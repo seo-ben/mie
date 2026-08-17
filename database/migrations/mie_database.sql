@@ -30,7 +30,7 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('agent_terrain', 'agent_agence', 'gestionnaire_superviseur', 'gestionnaire_credit', 'administrateur_systeme', 'administrateur_reglementaire') NOT NULL,
+    role ENUM('agent_terrain', 'agent_agence', 'caissier', 'gestionnaire_superviseur', 'gestionnaire_credit', 'administrateur_systeme', 'administrateur_reglementaire') NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,

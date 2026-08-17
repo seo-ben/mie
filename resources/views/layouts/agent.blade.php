@@ -14,6 +14,70 @@
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        @if (session('success'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Opération Réussie',
+                    text: "{{ session('success') }}"
+                });
+            });
+        @endif
+
+        @if (session('error'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: "{{ session('error') }}"
+                });
+            });
+        @endif
+
+        @if ($errors->any())
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Erreur de Validation',
+                    text: "Veuillez vérifier les champs du formulaire."
+                });
+            });
+        @endif
+        
+        @if (session('info'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'info',
+                    title: 'Information',
+                    text: "{{ session('info') }}"
+                });
+            });
+        @endif
+        
+        @if (session('warning'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Attention',
+                    text: "{{ session('warning') }}"
+                });
+            });
+        @endif
+    </script>
 
     <!-- Custom CSS -->
     {{-- <link rel="stylesheet" href="{{ asset('css/agent-dashboard.css') }}"> --}}
@@ -409,6 +473,13 @@
                     <span>Tableau de bord</span>
                 </a>
             </li>
+            
+            <li class="menu-item">
+                <a href="{{ route('agent.accounts.daily-collection') }}" class="menu-link {{ request()->routeIs('agent.accounts.daily-collection') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Tournée du Jour</span>
+                </a>
+            </li>
 
             <li class="menu-item">
                 <a href="{{ route('agent.clients.index') }}" class="menu-link {{ request()->routeIs('agent.clients.*') ? 'active' : '' }}">
@@ -565,26 +636,8 @@
 
         <!-- Page Content -->
         <main>
-            @if(session('success'))
-                <div class="px-4 pt-3 container-fluid">
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle me-2"></i>
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="px-4 pt-3 container-fluid">
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        {{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </div>
-            @endif
-
+            <!-- Toasts SweetAlert2 (remplace les alertes statiques) -->
+            <!-- Configuré via le script en bas de page -->
             @yield('content')
         </main>
 

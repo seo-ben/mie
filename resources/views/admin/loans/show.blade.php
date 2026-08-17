@@ -17,15 +17,6 @@
         </div>
 
         <div class="flex space-x-3">
-            @if($loan->status === 'pending')
-                @can('approve-loans')
-                <a href="{{ route('admin.loans.analyze', $loan->id) }}"
-                   class="px-4 py-2 text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700">
-                    <i class="mr-2 fas fa-chart-bar"></i>Analyser
-                </a>
-                @endcan
-            @endif
-
             @if(in_array($loan->status, ['disbursed', 'active']))
             <a href="{{ route('admin.loans.schedule', $loan->id) }}"
                class="px-4 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
@@ -157,6 +148,130 @@
             </div>
         </div>
     </div>
+
+    @if(in_array($loan->status, ['pending', 'approved']))
+    <!-- Section Audit Intelligent -->
+    <div class="p-6 mb-6 overflow-hidden relative border-2 border-slate-200 bg-white rounded-2xl shadow-xl">
+        <div class="absolute top-0 right-0 p-8 opacity-[0.03] scale-150 rotate-12">
+            <i class="fas fa-brain-circuit text-9xl text-slate-900"></i>
+        </div>
+        
+        <div class="flex items-center justify-between mb-8 relative border-b border-slate-100 pb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-2xl shadow-slate-200">
+                    <i class="fas fa-microchip text-xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Diagnostic Audit Cognitif</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Évaluation Automatisée de Solvabilité</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Score d'Éligibilité</span>
+                <span class="text-3xl font-black {{ $loan->eligibility_score >= 80 ? 'text-emerald-600' : ($loan->eligibility_score >= 50 ? 'text-blue-600' : 'text-rose-600') }}">
+                    {{ round($loan->eligibility_score, 1) }}%
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 relative">
+            <!-- Colonne Gauche : Diagnostic Rapide -->
+            <div class="space-y-6">
+                <!-- Signaux Positifs -->
+                @if(!empty($analysis['insights']['positive']))
+                <div>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter border-b border-slate-100 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fas fa-circle-check text-emerald-500"></i> Signaux de Confiance
+                    </h4>
+                    <div class="space-y-2">
+                        @foreach($analysis['insights']['positive'] as $insight)
+                        <div class="flex items-center gap-3">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                            <p class="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{{ $insight }}</p>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <!-- Points de Vigilance -->
+                <div>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter border-b border-slate-100 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fas fa-triangle-exclamation text-rose-500"></i> Points de Vigilance
+                    </h4>
+                    <div class="space-y-2">
+                        @if(!empty($analysis['insights']['warning']))
+                            @foreach($analysis['insights']['warning'] as $insight)
+                            <div class="flex items-center gap-3">
+                                <div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                                <p class="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{{ $insight }}</p>
+                            </div>
+                            @endforeach
+                        @else
+                            <p class="text-[10px] font-medium text-slate-400 italic">Aucune anomalie critique détectée par le moteur d'analyse.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonne Droite : États des Comptes Financial Insights -->
+            <div class="space-y-6">
+               <div>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-tighter border-b border-slate-100 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fas fa-vault text-blue-500"></i> Actifs & Comptes Adhérent
+                    </h4>
+                    <div class="grid grid-cols-1 gap-3">
+                        @foreach($loan->client->accounts as $account)
+                        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg {{ $account->account_type === 'savings' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600' }} flex items-center justify-center text-xs">
+                                    <i class="fas {{ $account->account_type === 'savings' ? 'fa-wallet' : 'fa-piggy-bank' }}"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-black text-slate-700 uppercase leading-none">{{ $account->account_type === 'savings' ? 'Compte Épargne' : 'Compte Tontine' }}</p>
+                                    <p class="text-[9px] text-slate-400 font-mono mt-1">{{ $account->account_number }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-black text-slate-900 font-mono">{{ number_format($account->balance, 0, ',', ' ') }}</span>
+                                <span class="text-[8px] font-black text-slate-400 uppercase ml-1">XOF</span>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center">
+                        <span class="text-[10px] font-black text-blue-700 uppercase">Total Liquidités</span>
+                        <span class="text-sm font-black text-blue-900 font-mono">{{ number_format($loan->client->accounts->sum('balance'), 0, ',', ' ') }} <span class="text-[10px]">XOF</span></span>
+                    </div>
+               </div>
+            </div>
+        </div>
+
+        <!-- Recommandation Algorithmique -->
+        <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                    <i class="fas fa-robot text-sm"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recommandation du Système</p>
+                    <p class="text-xs font-black {{ $analysis['recommendation']['status'] === 'approve' ? 'text-emerald-600' : ($analysis['recommendation']['status'] === 'reject' ? 'text-rose-600' : 'text-yellow-600') }} uppercase">
+                        {{ $analysis['recommendation']['message'] }}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                @if($loan->status === 'pending')
+                    <span class="px-4 py-1.5 rounded-full bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest shadow-xl shadow-slate-200">Validation Humaine Requise</span>
+                @else
+                    <span class="px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-widest">Diagnostic Archivé</span>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
 
     <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-3">
         <!-- Informations principales -->
@@ -722,18 +837,6 @@
 </div>
 
 <script>
-// Protéger le contenu contre les modifications externes
-document.addEventListener('DOMContentLoaded', function() {
-    // Empêcher toute modification du contenu des statuts
-    const statusElements = document.querySelectorAll('[data-status], [data-risk]');
-    statusElements.forEach(element => {
-        Object.defineProperty(element, 'innerHTML', {
-            writable: false,
-            configurable: false
-        });
-    });
-});
-
 function openApprovalModal() {
     const modal = document.getElementById('approvalModal');
     if (modal) {
@@ -799,58 +902,10 @@ function openPaymentModal(paymentId, expectedAmount) {
 
 function closePaymentModal() {
     const modal = document.getElementById('paymentModal');
-    const form = document.getElementById('paymentForm');
-
     if (modal) {
         modal.classList.add('hidden');
         modal.style.display = 'none';
     }
-
-    if (form) {
-        form.reset();
-    }
 }
-
-// Fermer les modals en cliquant à l'extérieur
-window.onclick = function(event) {
-    const modals = ['approvalModal', 'rejectionModal', 'disbursementModal', 'paymentModal'];
-    modals.forEach(modalId => {
-        const modal = document.getElementById(modalId);
-        if (modal && event.target === modal) {
-            modal.classList.add('hidden');
-            modal.style.display = 'none';
-        }
-    });
-}
-
-// Empêcher l'effacement des éléments critiques
-window.addEventListener('load', function() {
-    const criticalSelectors = [
-        '.inline-flex.items-center.px-4.py-2.rounded-lg',
-        '[class*="bg-yellow-100"]',
-        '[class*="bg-green-100"]',
-        '[class*="bg-red-100"]',
-        '[class*="bg-blue-100"]',
-        '[class*="bg-orange-100"]'
-    ];
-
-    criticalSelectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(element => {
-            // Marquer comme critique pour éviter suppression
-            element.setAttribute('data-critical', 'true');
-            // Observer les changements
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList' && element.children.length === 0) {
-                        // Si le contenu est vidé, empêcher
-                        mutation.target.innerHTML = mutation.oldValue;
-                    }
-                });
-            });
-            observer.observe(element, { childList: true, subtree: true });
-        });
-    });
-});
 </script>
 @endsection

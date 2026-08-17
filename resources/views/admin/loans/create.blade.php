@@ -104,10 +104,30 @@
                     @enderror
                 </div>
 
+                <!-- Type de Crédit -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700">
+                        Type de Crédit <span class="text-red-500">*</span>
+                    </label>
+                    <select name="loan_type" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('loan_type') border-red-500 @enderror">
+                        <option value="">Sélectionner le type...</option>
+                        <option value="CREDIT ORDINAIRE" {{ old('loan_type') == 'CREDIT ORDINAIRE' ? 'selected' : '' }}>CREDIT ORDINAIRE</option>
+                        <option value="CREDIT SUR TONTINE" {{ old('loan_type') == 'CREDIT SUR TONTINE' ? 'selected' : '' }}>CREDIT SUR TONTINE</option>
+                        <option value="FNFI AGRISEF" {{ old('loan_type') == 'FNFI AGRISEF' ? 'selected' : '' }}>FNFI AGRISEF</option>
+                        <option value="FNFI AGRISEF ACOMPAGNEMENT SPC" {{ old('loan_type') == 'FNFI AGRISEF ACOMPAGNEMENT SPC' ? 'selected' : '' }}>FNFI AGRISEF ACOMPAGNEMENT SPC</option>
+                        <option value="FNFI AGRISEF INTEGRE" {{ old('loan_type') == 'FNFI AGRISEF INTEGRE' ? 'selected' : '' }}>FNFI AGRISEF INTEGRE</option>
+                        <option value="FNFI APSEF INTEGRER" {{ old('loan_type') == 'FNFI APSEF INTEGRER' ? 'selected' : '' }}>FNFI APSEF INTEGRER</option>
+                    </select>
+                    @error('loan_type')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Objectif -->
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-700">
-                        Objectif du Prêt <span class="text-red-500">*</span>
+                        Catégorie d'Objectif <span class="text-red-500">*</span>
                     </label>
                     <select name="purpose_category"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">

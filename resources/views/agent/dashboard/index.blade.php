@@ -76,9 +76,7 @@
                     <div class="mb-1 text-muted small">Clients gérés</div>
                     <h3 class="mb-2 fw-bold">{{ number_format($overview['total_clients']) }}</h3>
                     <small class="text-muted">
-                        <span class="text-success me-2">
-                            <i class="fas fa-user-check"></i> {{ $overview['active_clients'] }} actifs
-                        </span>
+                        <i class="fas fa-user-friends"></i> Clients sous gestion
                     </small>
                 </div>
 
@@ -93,9 +91,6 @@
                         <div class="p-3 bg-info bg-opacity-10 rounded-3">
                             <i class="fas fa-wallet text-info fa-2x"></i>
                         </div>
-                        <span class="badge bg-info bg-opacity-10 text-info" id="new-accounts-badge">
-                            +{{ $overview['new_accounts'] }}
-                        </span>
                     </div>
                     <div class="mb-1 text-muted small">Comptes actifs</div>
                     <h3 class="mb-2 fw-bold">

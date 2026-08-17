@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\web\Admin;
+namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
@@ -10,10 +10,15 @@ use App\Models\SavingsAccount;
 use App\Models\TontineAccount;
 use App\Models\TontineCycle;
 use App\Models\Transaction;
+use App\Models\SystemParameter;
+use App\Models\AuditLog;
+use App\Models\CashierSession;
+use App\Models\Loan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Support\Log;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 use function Illuminate\Log\log;
 
@@ -25,7 +30,8 @@ class AdminAccountController extends Controller
          */
         public function index(Request $request)
         {
-            $user = auth()->user();
+            /** @var User $user */
+            $user = Auth::user();
 
             $query = Account::with([
                 'client',
@@ -35,10 +41,10 @@ class AdminAccountController extends Controller
                 }
             ]);
 
-            // Filtrage selon le rôle
-            if ($user->role !== 'administrateur_systeme') {
+            // Filtrage par Agence (Isolation Multi-Agence)
+            if ($user->role !== 'administrateur_systeme' && $user->role !== 'administrateur_reglementaire') {
                 $query->whereHas('client', function($q) use ($user) {
-                    $q->where('registered_by', $user->id);
+                    $q->where('agency_id', $user->agency_id);
                 });
             }
 
@@ -89,17 +95,19 @@ class AdminAccountController extends Controller
         {
             $client = Client::with(['accounts'])->findOrFail($clientId);
 
-            // Vérifier que le client a un KYC approuvé
-            if ($client->kyc_status !== 'approved') {
-                return redirect()
-                    ->route('admin.clients.show', $clientId)
-                    ->with('error', 'Le client doit avoir un KYC approuvé avant de créer un compte.');
+            // Récupérer les frais d'activation via les paramètres système
+            $savingsActivationFee = SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000;
+            
+            // Logique de fallback pour les frais de tontine
+            $tontineCarnetFee = SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value');
+            if (!$tontineCarnetFee) {
+                $tontineCarnetFee = SystemParameter::where('parameter_key', 'tontine_300_activation_fee')->value('parameter_value') ?? 1000;
             }
 
             // Vérifier si le client a déjà un compte d'épargne
-            $hasSavingsAccount = $client->accounts()->where('account_type', 'savings')->exists();
+            $hasSavingsAccount = $client->accounts->where('account_type', 'savings')->count() > 0;
 
-            return view('admin.accounts.create', compact('client', 'hasSavingsAccount'));
+            return view('admin.accounts.create', compact('client', 'hasSavingsAccount', 'savingsActivationFee', 'tontineCarnetFee'));
         }
 
         /**
@@ -120,23 +128,62 @@ class AdminAccountController extends Controller
             ]);
 
             try {
+                // 0ï¸â£ Vérification KYC pour les comptes épargne
+                $client = Client::findOrFail($clientId);
+                if ($request->account_type === 'savings' && $client->kyc_status !== 'approved') {
+                     throw new \Exception('Le client doit avoir un KYC approuvé pour ouvrir un compte d\'épargne.');
+                }
+
                 DB::beginTransaction();
 
-                // 1️⃣ Créer le compte de base
+                // 1ï¸â£ Récupérer les frais d'activation via les paramètres système
+                $activationFee = 0;
+                if ($request->account_type === 'savings') {
+                    $activationFee = SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000;
+                } elseif ($request->account_type === 'tontine') {
+                    // Utilisation du paramètre correct selon la configuration système (tontine_300_activation_fee ou tontine_carnet_fee)
+                    // On privilégie tontine_carnet_fee si présent, sinon on cherche tontine_300_activation_fee, sinon défaut 1000
+                    $activationFee = SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value');
+                    
+                    if (!$activationFee) {
+                         $activationFee = SystemParameter::where('parameter_key', 'tontine_300_activation_fee')->value('parameter_value') ?? 1000;
+                    }
+                }
+
+                // 2ï¸â£ Créer le compte de base
                 $account = Account::create([
                     'client_id' => $clientId,
                     'account_number' => 'ACC-' . strtoupper(uniqid()),
                     'account_type' => $request->account_type,
-                    'status' => 'suspended',
-                    'activation_fee' => $request->account_type === 'savings' ? 7000 : 0,
+                    'status' => 'active', // Directement actif car les frais sont payés à la création
+                    'activation_fee' => $activationFee,
                     'created_by' => auth()->id(),
                     'created_at' => now(),
                     'activated_by' => auth()->id(),
                     'activated_at' => now(),
-                    'balance' => 0,
+                    'balance' => 0, // Le solde reste à 0 car les frais vont dans les revenus
                 ]);
 
-                // 2️⃣ Si c'est un compte d'épargne
+                // 3ï¸â£ Enregistrer les frais comme transaction
+                Transaction::create([
+                    'transaction_reference' => $this->generateTransactionReference(),
+                    'account_id' => $account->id,
+                    'transaction_type' => 'deposit',
+                    'amount' => $activationFee,
+                    'fee_amount' => $activationFee,
+                    'balance_before' => 0,
+                    'balance_after' => 0,
+                    'payment_method' => 'cash',
+                    'description' => ($request->account_type === 'savings' ? 'Frais d\'activation de compte d\'épargne' : 'Frais de carnet tontine'),
+                    'status' => 'completed',
+                    'processed_by' => auth()->id(),
+                    'cashier_session_id' => $this->getCurrentSessionId(),
+                    'agency_id' => auth()->user()->agency_id ?? $account->client->agency_id,
+                    'processed_at' => now(),
+                    'transaction_date' => now(),
+                ]);
+
+                // 4ï¸â£ Si c'est un compte d'épargne
                 if ($request->account_type === 'savings') {
                     SavingsAccount::create([
                         'account_id' => $account->id,
@@ -147,49 +194,36 @@ class AdminAccountController extends Controller
                     ]);
                 }
 
-                // 3️⃣ Si c'est une tontine - LOGIQUE CORRIGÉE
+                // 5ï¸â£ Si c'est une tontine
                 if ($request->account_type === 'tontine') {
                     $startDate = now();
                     $endDate = (clone $startDate)->addMonths((int) $request->cycle_duration_months);
 
-                    // 🔹 Calcul du nombre de périodes selon la fréquence
-                    $totalPeriods = 0;
-                    switch ($request->payment_frequency) {
-                        case 'daily':
-                            $totalPeriods = $startDate->diffInDays($endDate);
-                            break;
+                    // ð¹ Calcul du nombre de périodes (Règles institutionnelles : 31j par mois / 52s par an)
+                    $totalPeriods = match ($request->payment_frequency) {
+                        'daily' => (int) $request->cycle_duration_months * 31,
+                        'weekly' => (int) round(((int) $request->cycle_duration_months * 52) / 12),
+                        'monthly' => (int) $request->cycle_duration_months,
+                        default => 0,
+                    };
 
-                        case 'weekly':
-                            $totalPeriods = $startDate->diffInWeeks($endDate);
-                            break;
-
-                        case 'monthly':
-                            $totalPeriods = (int) $request->cycle_duration_months;
-                            break;
-                    }
-
-                    // 🔹 CORRECTION MAJEURE :
-                    // target_amount = ce que la personne VEUT payer par période
-                    // total_expected = target_amount × nombre de périodes
                     $targetAmount = (float) $request->target_amount;
                     $totalExpected = $targetAmount * $totalPeriods;
 
-                    // 🔹 Création du compte tontine
                     $tontineAccount = TontineAccount::create([
                         'account_id' => $account->id,
-                        'tontine_amount' => $targetAmount, // Montant par période
+                        'tontine_amount' => $targetAmount,
                         'cycle_duration_months' => (int) $request->cycle_duration_months,
                         'payment_frequency' => $request->payment_frequency,
-                        'expected_monthly_payment' => $targetAmount, // Le même que tontine_amount
-                        'total_expected' => $totalExpected, // Total à payer sur toute la durée
+                        'expected_monthly_payment' => $targetAmount,
+                        'total_expected' => $totalExpected,
                         'total_paid' => 0,
-                        'penalty_rate' => 0.05, // 5% par défaut
+                        'penalty_rate' => 0.05,
                         'total_penalties' => 0,
                         'cycle_start_date' => $startDate,
                         'cycle_end_date' => $endDate,
                     ]);
 
-                    // Créer le premier cycle automatiquement
                     $this->createTontineCycle($tontineAccount);
                 }
 
@@ -197,7 +231,7 @@ class AdminAccountController extends Controller
 
                 return redirect()
                     ->route('admin.clients.show', $clientId)
-                    ->with('success', 'Compte créé avec succès.');
+                    ->with('success', 'Compte créé avec succès. Frais d\'activation de ' . number_format($activationFee, 0, ',', ' ') . ' FCFA enregistrés.');
 
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -426,11 +460,21 @@ class AdminAccountController extends Controller
         // =============== MÉTHODES PRIVÉES ===============
 
         /**
+         * Récupérer l'ID de la session de caisse active
+         */
+        private function getCurrentSessionId()
+        {
+            return CashierSession::where('user_id', auth()->id())
+                ->where('status', 'open')
+                ->value('id');
+        }
+
+        /**
          * Générer un numéro de compte unique
          */
         private function generateAccountNumber($type): string
         {
-            $prefix = $type === 'savings' ? 'SAV' : 'TON';
+            $prefix = $type === 'savings' ? 'SAV' : 'ACC';
 
             do {
                 $number = $prefix . '-' . date('ym') . '-' . strtoupper(Str::random(6));
@@ -442,9 +486,14 @@ class AdminAccountController extends Controller
         /**
          * Obtenir les frais d'activation selon le type
          */
-        private function getActivationFee($type): float
+        public function getActivationFee($type)
         {
-            return $type === 'savings' ? 7000 : 0;
+            if ($type === 'savings') {
+                return SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000;
+            } elseif ($type === 'tontine') {
+                return SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value') ?? 1000;
+            }
+            return 0;
         }
 
         /**
@@ -456,10 +505,10 @@ class AdminAccountController extends Controller
 
             switch ($frequency) {
                 case 'daily':
-                    $totalPayments = $months * 30;
+                    $totalPayments = $months * 31; // Règle institutionnelle : 31 jours / mois
                     break;
                 case 'weekly':
-                    $totalPayments = $months * 4;
+                    $totalPayments = (int) round(($months * 52) / 12); // Règle institutionnelle : 52 semaines / an
                     break;
                 case 'monthly':
                     $totalPayments = $months;
@@ -480,24 +529,31 @@ class AdminAccountController extends Controller
             if ($cycleNumber == 1) {
                 $startDate = now();
             } else {
-                // Pour les cycles suivants, partir de la fin du cycle précédent
                 $lastCycle = $tontineAccount->cycles()->latest('cycle_number')->first();
                 $startDate = $lastCycle ? $lastCycle->end_date->copy()->addDay() : now();
             }
 
+            // Un cycle représente un "mois" de tontine, soit 31 jours selon la règle institutionnelle
+            $daysInCycle = 31;
+            
             // Calculer la durée du cycle selon la fréquence
             switch ($tontineAccount->payment_frequency) {
                 case 'daily':
-                    $endDate = $startDate->copy()->addDay();
+                    $endDate = $startDate->copy()->addDays($daysInCycle);
+                    $targetAmount = $tontineAccount->tontine_amount * $daysInCycle;
                     break;
                 case 'weekly':
-                    $endDate = $startDate->copy()->addWeek();
+                    $endDate = $startDate->copy()->addMonths(1); // 1 mois calendaire
+                    // 52 semaines / 12 mois = ~4.33 semaines par cycle
+                    $targetAmount = $tontineAccount->tontine_amount * (52 / 12);
                     break;
                 case 'monthly':
-                    $endDate = $startDate->copy()->addMonth();
+                    $endDate = $startDate->copy()->addMonths(1);
+                    $targetAmount = $tontineAccount->tontine_amount;
                     break;
                 default:
-                    $endDate = $startDate->copy()->addMonth();
+                    $endDate = $startDate->copy()->addMonths(1);
+                    $targetAmount = $tontineAccount->tontine_amount;
             }
 
             return TontineCycle::create([
@@ -505,8 +561,9 @@ class AdminAccountController extends Controller
                 'cycle_number' => $cycleNumber,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
-                'target_amount' => $tontineAccount->tontine_amount, // Montant par période
+                'target_amount' => $targetAmount,
                 'collected_amount' => 0,
+                'payout_amount' => 0,
                 'status' => 'active',
             ]);
         }
@@ -518,15 +575,31 @@ class AdminAccountController extends Controller
         {
             $request->validate([
                 'query' => 'required|string|min:2',
-                'exclude_account_id' => 'nullable|exists:accounts,id'
+                'exclude_account_id' => 'nullable|exists:accounts,id',
+                'type' => 'nullable|in:source,destination'
             ]);
 
             $user = auth()->user();
             $query = $request->get('query');
             $excludeId = $request->get('exclude_account_id');
+            $type = $request->get('type');
+
+            $sourceAccount = null;
+            if ($type === 'destination' && $excludeId) {
+                $sourceAccount = Account::find($excludeId);
+            }
 
             $accounts = Account::with(['client'])
                 ->where('status', 'active')
+                ->when($type === 'source', function($q) {
+                    $q->where('account_type', 'tontine');
+                })
+                ->when($type === 'destination', function($q) use ($sourceAccount) {
+                    $q->where('account_type', 'savings');
+                    if ($sourceAccount) {
+                        $q->where('client_id', $sourceAccount->client_id);
+                    }
+                })
                 ->when($excludeId, function($q) use ($excludeId) {
                     $q->where('id', '!=', $excludeId);
                 })
@@ -566,6 +639,19 @@ class AdminAccountController extends Controller
         }
 
         /**
+         * Afficher le formulaire de transfert
+         */
+        public function transferForm(Request $request)
+        {
+            $sourceAccount = null;
+            if ($request->has('account_id')) {
+                $sourceAccount = Account::with('client')->find($request->account_id);
+            }
+
+            return view('admin.accounts.transfer', compact('sourceAccount'));
+        }
+
+        /**
          * Traiter le transfert d'argent
          */
         public function processTransfer(Request $request)
@@ -596,6 +682,18 @@ class AdminAccountController extends Controller
                     throw new \Exception('Le compte destinataire n\'est pas actif.');
                 }
 
+                if ($sourceAccount->client_id !== $destinationAccount->client_id) {
+                    throw new \Exception('Le transfert ne peut être effectué qu\'entre les comptes d\'un même client.');
+                }
+
+                if ($sourceAccount->account_type !== 'tontine') {
+                    throw new \Exception('Le compte source doit être un compte Tontine.');
+                }
+
+                if ($destinationAccount->account_type !== 'savings') {
+                    throw new \Exception('Le compte destinataire doit être un compte Épargne.');
+                }
+
                 // Calculer les frais de transfert (0.5% ou montant personnalisé)
                 $transferFee = $request->filled('transfer_fee')
                     ? $request->transfer_fee
@@ -624,7 +722,7 @@ class AdminAccountController extends Controller
                     'fee_amount' => $transferFee,
                     'balance_before' => $sourceAccount->balance,
                     'balance_after' => $sourceAccount->balance - $totalDebit,
-                    'payment_method' => 'internal_transfer',
+                    'payment_method' => 'system',
                     'payment_reference' => $transferReference,
                     'description' => $request->description ??
                         'Transfert vers ' . $destinationAccount->client->first_name . ' ' .
@@ -632,6 +730,8 @@ class AdminAccountController extends Controller
                     'related_account_id' => $destinationAccount->id,
                     'status' => 'completed',
                     'processed_by' => $user->id,
+                    'cashier_session_id' => $this->getCurrentSessionId(),
+                    'agency_id' => $user->agency_id,
                     'processed_at' => now(),
                     'transaction_date' => now(),
                 ]);
@@ -649,7 +749,7 @@ class AdminAccountController extends Controller
                     'fee_amount' => 0,
                     'balance_before' => $destinationAccount->balance,
                     'balance_after' => $destinationAccount->balance + $request->amount,
-                    'payment_method' => 'internal_transfer',
+                    'payment_method' => 'system',
                     'payment_reference' => $transferReference,
                     'description' => $request->description ??
                         'Transfert reçu de ' . $sourceAccount->client->first_name . ' ' .
@@ -657,6 +757,8 @@ class AdminAccountController extends Controller
                     'related_account_id' => $sourceAccount->id,
                     'status' => 'completed',
                     'processed_by' => $user->id,
+                    'cashier_session_id' => $this->getCurrentSessionId(),
+                    'agency_id' => $user->agency_id,
                     'processed_at' => now(),
                     'transaction_date' => now(),
                 ]);
@@ -668,12 +770,13 @@ class AdminAccountController extends Controller
                 DB::commit();
 
                 return redirect()
-                    ->route('admin.accounts.transfer-details', $debitTransaction->id)
+                    ->route('admin.accounts.transfer.details', $debitTransaction->id)
                     ->with('success',
                         'Transfert effectué avec succès. Montant: ' .
                         number_format($request->amount, 0, ',', ' ') . ' FCFA. Frais: ' .
                         number_format($transferFee, 0, ',', ' ') . ' FCFA'
-                    );
+                    )
+                    ->with('print_receipt', route('admin.receipt.print', $debitTransaction->id));
 
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -817,7 +920,7 @@ class AdminAccountController extends Controller
                     ->with('error', 'Le solde du compte est insuffisant pour effectuer un retrait.');
             }
 
-            // ✅ CALCUL CORRECT DU MONTANT MAXIMUM
+            // â CALCUL CORRECT DU MONTANT MAXIMUM
             // Le client peut recevoir au maximum le solde MOINS les frais de 1%
             // Formule: maxAmount + (maxAmount * 0.01) = balance
             // maxAmount = balance / 1.01
@@ -831,13 +934,41 @@ class AdminAccountController extends Controller
             // Solde disponible pour retrait (après avoir gardé le solde minimum)
             $availableBalance = max(0, $account->balance - $minimumBalance);
 
-            // ✅ Montant maximum que le client peut recevoir
-            // On résout: maxAmount + (maxAmount * 0.01) <= availableBalance
-            // maxAmount * 1.01 <= availableBalance
-            // maxAmount <= availableBalance / 1.01
-            $maxWithdrawal = floor($availableBalance / 1.01);
+            // Récupération des paramètres de frais
+            $savingsFeePercentage = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_percentage')->value('parameter_value') ?? 2.0);
+            $savingsFeeFixed = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_fixed')->value('parameter_value') ?? 0);
+            
+            $tontineFeePercentage = (float) (SystemParameter::where('parameter_key', 'tontine_withdrawal_fee_percentage')->value('parameter_value') ?? 3.0);
+            $tontineFeeFixed = (float) (SystemParameter::where('parameter_key', 'tontine_withdrawal_fee_fixed')->value('parameter_value') ?? 0);
 
-            return view('admin.accounts.withdrawal-form', compact('account', 'maxWithdrawal', 'minimumBalance'));
+            // Déterminer les frais applicables pour ce compte
+            if ($account->account_type === 'tontine') {
+                $tontine = $account->tontineAccount;
+                $mise = (float) $tontine->tontine_amount;
+                $freq = $tontine->payment_frequency;
+                
+                // Pour le calcul du max, on simplifie car c'est par tranche. 
+                // Pour être sûr, on prend au moins une mise de frais.
+                $maxWithdrawal = max(0, $availableBalance - $mise);
+                
+                $feePercentage = 0;
+                $feeFixed = $mise;
+                $feeLabel = ($freq === 'daily') ? 'Règle 1/31' : (($freq === 'weekly') ? 'Règle 1/52' : '1 mise par retrait');
+            } else {
+                $feePercentage = $savingsFeePercentage;
+                $feeFixed = $savingsFeeFixed;
+                $maxWithdrawal = floor(max(0, ($availableBalance - $feeFixed) / (1 + ($feePercentage / 100))));
+                $feeLabel = "{$feePercentage}% + " . number_format($feeFixed, 0, ',', ' ') . "F";
+            }
+
+            return view('admin.accounts.withdrawal-form', compact(
+                'account', 
+                'maxWithdrawal', 
+                'minimumBalance',
+                'feePercentage',
+                'feeFixed',
+                'feeLabel'
+            ));
         }
 
         /**
@@ -867,15 +998,43 @@ class AdminAccountController extends Controller
                     throw new \Exception('Le compte n\'est pas actif.');
                 }
 
-                // ✅ NOUVELLE LOGIQUE DE CALCUL
+                // â NOUVELLE LOGIQUE DE CALCUL VIA PARAMÈTRES
                 $amountToGive = $request->amount; // Ce que le client reçoit
 
-                // Calculer les frais de retrait (1% ou montant personnalisé)
-                $withdrawalFee = $request->filled('withdrawal_fee')
-                    ? $request->withdrawal_fee
-                    : round($amountToGive * 0.01, 2); // 1%
+                // Calculer les frais de retrait via les paramètres système
+                if ($request->filled('withdrawal_fee')) {
+                    $withdrawalFee = (float) $request->withdrawal_fee;
+                } else {
+                    // Sélection des paramètres selon le type de compte (tontine ou savings)
+                    if ($account->account_type === 'tontine') {
+                        $tontine = $account->tontineAccount;
+                        $mise = (float) $tontine->tontine_amount;
+                        
+                        if ($tontine->payment_frequency === 'daily') {
+                            $nbDaysTotal = $amountToGive / ($mise ?: 1);
+                            $nbCommissions = ceil($nbDaysTotal / 31);
+                            $withdrawalFee = $nbCommissions * $mise;
+                        } elseif ($tontine->payment_frequency === 'weekly') {
+                            $nbWeeksTotal = $amountToGive / ($mise ?: 1);
+                            $nbCommissions = ceil($nbWeeksTotal / 52);
+                            $withdrawalFee = $nbCommissions * $mise;
+                        } else {
+                            $withdrawalFee = $mise;
+                        }
+                    } else {
+                        $feePercentage = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_percentage')->value('parameter_value') ?? 2.0);
+                        $feeFixed = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_fixed')->value('parameter_value') ?? 0);
+                        $withdrawalFee = round(($amountToGive * ($feePercentage / 100)) + $feeFixed);
+                    }
+                }
 
-                // ✅ TOTAL À DÉBITER = Montant + Frais
+                // â Vérifier la session de caisse
+                $sessionId = $this->getCurrentSessionId();
+                // if (!$sessionId) {
+                //     throw new \Exception('Vous devez avoir une session de caisse ouverte pour effectuer un retrait.');
+                // }
+
+                // â TOTAL À DÉBITER = Montant + Frais
                 $totalDebit = $amountToGive + $withdrawalFee;
 
                 // VALIDATION SELON LE TYPE DE COMPTE
@@ -917,17 +1076,17 @@ class AdminAccountController extends Controller
                     }
                 }
 
-                // ✅ Créer la transaction de retrait avec la bonne structure
+                // â Créer la transaction de retrait avec la bonne structure
                 $transaction = Transaction::create([
                     'transaction_reference' => $this->generateTransactionReference(),
                     'account_id' => $account->id,
                     'transaction_type' => 'withdrawal',
-                    'amount' => $amountToGive, // ✅ Montant que le client reçoit
-                    'fee_amount' => $withdrawalFee, // ✅ Frais stockés dans fee_amount
-                    'withdrawal_fee' => $withdrawalFee, // ✅ Aussi dans withdrawal_fee pour compatibilité
+                    'amount' => $amountToGive, // â Montant que le client reçoit
+                    'fee_amount' => $withdrawalFee, // â Frais stockés dans fee_amount
+                    'withdrawal_fee' => $withdrawalFee, // â Aussi dans withdrawal_fee pour compatibilité
                     'net_amount' => $amountToGive, // Le montant net = ce que le client reçoit
                     'balance_before' => $account->balance,
-                    'balance_after' => $account->balance - $totalDebit, // ✅ Débit = montant + frais
+                    'balance_after' => $account->balance - $totalDebit, // â Débit = montant + frais
                     'payment_method' => $request->payment_method,
                     'payment_reference' => $this->generatePaymentReference($request->payment_method),
                     'description' => $request->description ?? 'Retrait de fonds',
@@ -936,11 +1095,13 @@ class AdminAccountController extends Controller
                     'recipient_id' => $request->recipient_id,
                     'status' => 'completed',
                     'processed_by' => auth()->id(),
+                    'cashier_session_id' => $this->getCurrentSessionId(),
+                    'agency_id' => auth()->user()->agency_id,
                     'processed_at' => now(),
                     'transaction_date' => now(),
                 ]);
 
-                // ✅ Mettre à jour le solde du compte (débit total)
+                // â Mettre à jour le solde du compte (débit total)
                 $newBalance = $account->balance - $totalDebit;
                 $account->update([
                     'balance' => $newBalance,
@@ -967,20 +1128,21 @@ class AdminAccountController extends Controller
 
                 DB::commit();
 
-                // ✅ Message de succès détaillé
-                $message = '✅ Retrait effectué avec succès<br>' .
-                        '💰 Montant remis au client: ' . number_format($amountToGive, 0, ',', ' ') . ' FCFA<br>' .
-                        '💳 Frais de retrait: ' . number_format($withdrawalFee, 0, ',', ' ') . ' FCFA<br>' .
-                        '📊 Total débité du compte: ' . number_format($totalDebit, 0, ',', ' ') . ' FCFA<br>' .
-                        '💼 Nouveau solde: ' . number_format($newBalance, 0, ',', ' ') . ' FCFA';
+                // â Message de succès détaillé
+                $message = 'â Retrait effectué avec succès<br>' .
+                        'ð° Montant remis au client: ' . number_format($amountToGive, 0, ',', ' ') . ' FCFA<br>' .
+                        'ð³ Frais de retrait: ' . number_format($withdrawalFee, 0, ',', ' ') . ' FCFA<br>' .
+                        'ð Total débité du compte: ' . number_format($totalDebit, 0, ',', ' ') . ' FCFA<br>' .
+                        'ð¼ Nouveau solde: ' . number_format($newBalance, 0, ',', ' ') . ' FCFA';
 
                 if ($account->account_type === 'tontine' && $newBalance == 0) {
-                    $message .= '<br>⚠️ Le compte de tontine a été automatiquement suspendu.';
+                    $message .= '<br>â ï¸ Le compte de tontine a été automatiquement suspendu.';
                 }
 
                 return redirect()
                     ->route('admin.accounts.show', $accountId)
-                    ->with('success', $message);
+                    ->with('success', $message)
+                    ->with('print_receipt', route('admin.receipt.print', $transaction->id));
 
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -1099,7 +1261,7 @@ class AdminAccountController extends Controller
             if ($account->account_type === 'tontine' && $account->tontineAccount) {
                 $tontine = $account->tontineAccount;
 
-                // ✅ NE PLUS BLOQUER si pas de cycle actif
+                // â NE PLUS BLOQUER si pas de cycle actif
                 // Si aucun cycle actif, on crée automatiquement lors du dépôt
                 $activeCycle = $tontine->activeCycle;
 
@@ -1170,6 +1332,12 @@ class AdminAccountController extends Controller
                     throw new \Exception('Le compte n\'est pas actif.');
                 }
 
+                // â Vérifier la session de caisse
+                $sessionId = $this->getCurrentSessionId();
+                if (!$sessionId) {
+                    throw new \Exception('Vous devez avoir une session de caisse ouverte pour effectuer un dépôt.');
+                }
+
                 $amount = $request->amount;
                 $balanceBefore = $account->balance;
                 $balanceAfter = $balanceBefore + $amount;
@@ -1188,7 +1356,7 @@ class AdminAccountController extends Controller
                 if ($account->account_type === 'tontine') {
                     $tontine = $account->tontineAccount;
 
-                    // 🔒 VÉRIFICATION : Ne pas dépasser le total attendu de la tontine
+                    // ð VÉRIFICATION : Ne pas dépasser le total attendu de la tontine
                     $totalRemaining = $tontine->total_expected - $tontine->total_paid;
 
                     if ($totalRemaining <= 0) {
@@ -1217,10 +1385,27 @@ class AdminAccountController extends Controller
                         $activeCycle = $this->createTontineCycle($tontine);
                     }
 
-                    // 🔥 GESTION MULTI-CYCLES
+                    // Calcul des Pénalités de Retard Opérationnel
+                    $penaltyAmount = 0;
+                    if ($activeCycle && now()->gt($activeCycle->end_date)) {
+                        $daysLate = now()->diffInDays($activeCycle->end_date);
+                        $penaltyRate = DB::table('system_parameters')->where('parameter_key', 'tontine_late_penalty_rate')->value('parameter_value') ?? 0.01;
+                        $penaltyAmount = $tontine->tontine_amount * $penaltyRate * $daysLate;
+                        
+                        if ($penaltyAmount > 0) {
+                            $tontine->increment('total_penalties', $penaltyAmount);
+                        }
+                    }
+
+                    // ð¥ GESTION MULTI-CYCLES & PROVISION POUR ALÉAS
                     $remainingAmount = $amount; // Montant restant à répartir
                     $cyclesAffected = []; // Pour le message de retour
                     $currentCycle = $activeCycle;
+                    
+                    // Calcul de la Provision pour Aléas (Fonds de Solidarité)
+                    $solidarityRate = DB::table('system_parameters')->where('parameter_key', 'solidarity_fund_rate')->value('parameter_value') ?? 0.005;
+                    $solidarityAmount = $amount * $solidarityRate;
+                    $tontine->increment('solidarity_fund_total', $solidarityAmount);
 
                     while ($remainingAmount > 0) {
                         // Calculer combien on peut mettre dans le cycle actuel
@@ -1280,6 +1465,8 @@ class AdminAccountController extends Controller
                         'description' => $description . ' (Multi-cycles: ' . implode(', ', array_column($cyclesAffected, 'cycle_number')) . ')',
                         'status' => 'completed',
                         'processed_by' => auth()->id(),
+                        'cashier_session_id' => $this->getCurrentSessionId(),
+                        'agency_id' => auth()->user()->agency_id,
                         'processed_at' => now(),
                         'transaction_date' => now(),
                     ]);
@@ -1295,7 +1482,7 @@ class AdminAccountController extends Controller
                         'total_paid' => $tontine->total_paid + $amount,
                     ]);
 
-                    // 📊 GÉNÉRER LE MESSAGE DE SUCCÈS
+                    // ð GÉNÉRER LE MESSAGE DE SUCCÈS
                     $message = $this->generateMultiCycleMessage($amount, $cyclesAffected, $tontine);
 
                 } else {
@@ -1314,6 +1501,8 @@ class AdminAccountController extends Controller
                         'description' => $description,
                         'status' => 'completed',
                         'processed_by' => auth()->id(),
+                        'cashier_session_id' => $this->getCurrentSessionId(),
+                        'agency_id' => auth()->user()->agency_id,
                         'processed_at' => now(),
                         'transaction_date' => now(),
                     ]);
@@ -1331,7 +1520,8 @@ class AdminAccountController extends Controller
 
                 return redirect()
                     ->route('admin.accounts.show', $accountId)
-                    ->with('success', $message);
+                    ->with('success', $message)
+                    ->with('print_receipt', route('admin.receipt.print', $transaction->id));
 
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -1372,43 +1562,43 @@ class AdminAccountController extends Controller
             $completedCycles = array_filter($cyclesAffected, fn($c) => $c['completed']);
             $nbCompleted = count($completedCycles);
 
-            $message = '✅ Cotisation enregistrée : ' . number_format($totalAmount, 0, ',', ' ') . ' FCFA';
+            $message = 'â Cotisation enregistrée : ' . number_format($totalAmount, 0, ',', ' ') . ' FCFA';
 
             if ($nbCycles === 1) {
                 // Un seul cycle affecté
                 $cycle = $cyclesAffected[0];
                 if ($cycle['completed']) {
-                    $message .= '<br>🎉 Cycle #' . $cycle['cycle_number'] . ' complété !';
+                    $message .= '<br>ð Cycle #' . $cycle['cycle_number'] . ' complété !';
                 } else {
                     // Calculer le restant
                     $remaining = $tontine->tontine_amount - $cycle['amount'];
-                    $message .= '<br>📊 Cycle #' . $cycle['cycle_number'] . ' : reste ' .
+                    $message .= '<br>ð Cycle #' . $cycle['cycle_number'] . ' : reste ' .
                             number_format($remaining, 0, ',', ' ') . ' FCFA';
                 }
             } else {
                 // Plusieurs cycles affectés
-                $message .= '<br>📈 Réparti sur ' . $nbCycles . ' cycle(s) :';
+                $message .= '<br>ð Réparti sur ' . $nbCycles . ' cycle(s) :';
 
                 foreach ($cyclesAffected as $cycle) {
-                    $status = $cycle['completed'] ? '✓ Complété' : 'En cours';
+                    $status = $cycle['completed'] ? 'â Complété' : 'En cours';
                     $message .= '<br>&nbsp;&nbsp;• Cycle #' . $cycle['cycle_number'] . ' : ' .
                             number_format($cycle['amount'], 0, ',', ' ') . ' FCFA ' . $status;
                 }
 
                 if ($nbCompleted > 0) {
-                    $message .= '<br><br>🎉 ' . $nbCompleted . ' cycle(s) complété(s) !';
+                    $message .= '<br><br>ð ' . $nbCompleted . ' cycle(s) complété(s) !';
                 }
             }
 
             // Progression globale
             $progress = ($tontine->total_paid / $tontine->total_expected) * 100;
-            $message .= '<br><br>📊 Progression totale : ' . number_format($progress, 1) . '% (' .
+            $message .= '<br><br>ð Progression totale : ' . number_format($progress, 1) . '% (' .
                     number_format($tontine->total_paid, 0, ',', ' ') . ' / ' .
                     number_format($tontine->total_expected, 0, ',', ' ') . ' FCFA)';
 
             // Si tontine complète
             if ($tontine->total_paid >= $tontine->total_expected) {
-                $message .= '<br><br>🎊 <strong>FÉLICITATIONS ! La tontine est complète !</strong>';
+                $message .= '<br><br>ð <strong>FÉLICITATIONS ! La tontine est complète !</strong>';
             }
             return $message;
         }
@@ -1527,11 +1717,55 @@ class AdminAccountController extends Controller
             ->limit(10)
             ->get();
 
+            $loans = Loan::select('id', 'loan_number', 'client_id', 'status', 'total_amount_due', 'total_paid')
+                ->with('client:id,first_name,last_name,phone,client_number')
+                ->whereIn('status', ['approved', 'disbursed', 'active'])
+                ->when($user->role !== 'administrateur_systeme', function($q) use ($user) {
+                    $q->whereHas('client', function($q2) use ($user) {
+                        $q2->where('registered_by', $user->id);
+                    });
+                })
+                ->where(function ($q) use ($query) {
+                    $q->where('loan_number', 'like', "%{$query}%")
+                        ->orWhereHas('client', function($q2) use ($query) {
+                            $q2->where('first_name', 'like', "%{$query}%")
+                                ->orWhere('last_name', 'like', "%{$query}%")
+                                ->orWhere('phone', 'like', "%{$query}%")
+                                ->orWhere('client_number', 'like', "%{$query}%");
+                        });
+                })
+                ->limit(5)
+                ->get();
+
+            $accountResults = $accounts->map(function($account) {
+                return $this->formatAccountForSearch($account);
+            });
+
+            $loanResults = $loans->map(function ($loan) {
+                return [
+                    'id' => $loan->id,
+                    'account_number' => $loan->loan_number,
+                    'account_type' => 'loan',
+                    'balance' => collect([$loan->total_amount_due ?? 0, 0])->max() - ($loan->total_paid ?? 0),
+                    'client' => [
+                        'id' => $loan->client_id,
+                        'name' => $loan->client->full_name,
+                        'client_number' => $loan->client->client_number ?? '',
+                        'phone' => $loan->client->phone ?? '',
+                        'kyc_status' => $loan->client->kyc_status ?? 'N/A',
+                    ],
+                    'can_deposit' => true,
+                    'can_withdraw' => false,
+                    'deposit_url' => route('admin.accounts.quick-deposit.process', $loan->id) . '?type=loan',
+                    'schedule_url' => route('admin.loans.schedule', $loan->id)
+                ];
+            });
+
+            $results = $accountResults->concat($loanResults);
+
             return response()->json([
                 'success' => true,
-                'data' => $accounts->map(function($account) {
-                    return $this->formatAccountForSearch($account);
-                })
+                'data' => $results
             ]);
         }
 
@@ -1539,20 +1773,26 @@ class AdminAccountController extends Controller
          * Formater un compte pour la recherche
          * NOUVEAU : Centralise la logique de formatage
          */
-        private function formatAccountForSearch(Account $account): array
+        private function formatAccountForSearch($account): array
         {
             $data = [
                 'id' => $account->id,
                 'account_number' => $account->account_number,
                 'account_type' => $account->account_type,
                 'balance' => $account->balance,
+                'client_id' => $account->client_id,
                 'client' => [
+                    'id' => $account->client_id,
                     'name' => $account->client->first_name . ' ' . $account->client->last_name,
                     'client_number' => $account->client->client_number,
                     'phone' => $account->client->phone,
+                    'kyc_status' => $account->client->kyc_status,
                 ],
                 'can_deposit' => true,
-                'deposit_url' => route('admin.accounts.quick-deposit.process', $account->id),            ];
+                'can_withdraw' => $account->balance > 0,
+                'deposit_url' => route('admin.accounts.quick-deposit.process', $account->id),
+                'withdrawal_url' => route('admin.accounts.quick-withdrawal.process', $account->id),
+            ];
 
             // === LOGIQUE ÉPARGNE ===
             if ($account->account_type === 'savings' && $account->savingsAccount) {
@@ -1579,6 +1819,7 @@ class AdminAccountController extends Controller
                         ? round(($tontine->total_paid / $tontine->total_expected) * 100, 2)
                         : 0,
                     'is_complete' => $tontine->total_paid >= $tontine->total_expected,
+                    'institutional_fee' => $tontine->tontine_amount, // La règle du 1/31
                 ];
 
                 // Vérifier si la tontine est complète
@@ -1670,39 +1911,155 @@ class AdminAccountController extends Controller
             try {
                 DB::beginTransaction();
 
-                $account = Account::with([
-                    'client',
-                    'savingsAccount',
-                    'tontineAccount.activeCycle',
-                    'tontineAccount.cycles'
-                ])->lockForUpdate()->findOrFail($accountId);
+                if ($request->query('type') !== 'loan') {
+                    $baseAccount = Account::with([
+                        'client',
+                        'savingsAccount',
+                        'tontineAccount.activeCycle',
+                        'tontineAccount.cycles'
+                    ])->lockForUpdate()->findOrFail($accountId);
 
-                // Vérifications de sécurité
-                if ($account->status !== 'active') {
-                    throw new \Exception('Le compte n\'est pas actif.');
-                }
+                    // Vérifications de sécurité
+                    if ($baseAccount->status !== 'active') {
+                        throw new \Exception('Le compte n\'est pas actif.');
+                    }
 
-                // Vérifier les permissions utilisateur
-                if (auth()->user()->role !== 'administrateur_systeme') {
-                    if ($account->client->registered_by !== auth()->id()) {
-                        throw new \Exception('Vous n\'avez pas la permission d\'accéder à ce compte.');
+                    // Vérifier les permissions utilisateur
+                    if (auth()->user()->role !== 'administrateur_systeme') {
+                        if ($baseAccount->client->registered_by !== auth()->id()) {
+                            throw new \Exception('Vous n\'avez pas la permission d\'accéder à ce compte.');
+                        }
                     }
                 }
 
-                $amount = $request->amount;
-                $balanceBefore = $account->balance;
-                $balanceAfter = $balanceBefore + $amount;
+                // â Vérifier la session de caisse
+                $sessionId = $this->getCurrentSessionId();
+                if (!$sessionId) {
+                    throw new \Exception('Vous devez avoir une session de caisse ouverte pour effectuer un dépôt.');
+                }
 
+                $amount = $request->amount;
                 $paymentReference = $request->payment_reference ?: $this->generatePaymentReference($request->payment_method);
-                $description = $request->description ?? $this->getDefaultDescription($account);
+                
+                if ($request->query('type') !== 'loan') {
+                    $balanceBefore = $baseAccount->balance;
+                    $balanceAfter = $balanceBefore + $amount;
+                    $description = $request->description ?? $this->getDefaultDescription($baseAccount);
+                } else {
+                    $description = $request->description;
+                }
 
                 // === TRAITEMENT SELON LE TYPE DE COMPTE ===
-                if ($account->account_type === 'tontine') {
-                    $result = $this->processTontineDeposit($account, $amount, $request, $paymentReference, $description);
-                    $message = $result['message'];
+                if ($request->query('type') === 'loan') {
+                    $loan = Loan::with(['client', 'payments' => function($q) {
+                        $q->whereIn('status', ['pending', 'overdue', 'partial'])->orderBy('payment_number');
+                    }])->lockForUpdate()->findOrFail($accountId);
+
+                    // Transaction Globale
+                    $transaction = Transaction::create([
+                        'transaction_reference' => $this->generateTransactionReference(),
+                        'loan_id' => $loan->id,
+                        'transaction_type' => 'loan_repayment',
+                        'amount' => $amount,
+                        'payment_method' => $request->payment_method,
+                        'payment_reference' => $paymentReference,
+                        'description' => "Remboursement prêt {$loan->loan_number} " . ($description ? " - ".$description : ""),
+                        'status' => 'completed',
+                        'processed_by' => auth()->id(),
+                        'agency_id' => auth()->user()->agency_id ?? 1,
+                        'cashier_session_id' => $sessionId,
+                        'processed_at' => now(),
+                        'transaction_date' => now(),
+                    ]);
+
+                    // ð¥ RÉPARTITION INTELLIGENTE SUR LES ÉCHÉANCES
+                    $remainingToDistribute = $amount;
+                    foreach ($loan->payments as $payment) {
+                        if ($remainingToDistribute <= 0) break;
+
+                        $penaltyAmount = $payment->penalty_amount;
+                        if (now()->gt($payment->due_date) && !in_array($payment->status, ['paid'])) {
+                            $daysLate = now()->diffInDays($payment->due_date);
+                            $penaltyRate = SystemParameter::where('parameter_key', 'loan_late_penalty_rate')->value('parameter_value') ?? 0.01;
+                            $penaltyAmount = ($payment->expected_amount * $penaltyRate) * $daysLate;
+                        }
+
+                        $amountNeededForThisPayment = ($payment->expected_amount + $penaltyAmount) - $payment->paid_amount;
+                        if ($amountNeededForThisPayment <= 0) continue;
+
+                        $payForThis = min($remainingToDistribute, $amountNeededForThisPayment);
+                        $remainingToDistribute -= $payForThis;
+                        $newPaidAmount = $payment->paid_amount + $payForThis;
+                        
+                        $status = ($newPaidAmount >= ($payment->expected_amount + $penaltyAmount)) ? 'paid' : 'partial';
+
+                        $payment->update([
+                            'paid_amount' => $newPaidAmount,
+                            'penalty_amount' => $penaltyAmount,
+                            'payment_method' => $request->payment_method,
+                            'payment_reference' => $transaction->payment_reference,
+                            'payment_notes' => $description,
+                            'paid_date' => now(),
+                            'status' => $status,
+                            'processed_by' => auth()->id(),
+                            'processed_at' => now(),
+                        ]);
+                    }
+
+                    if ($remainingToDistribute > 0) {
+                        \App\Models\LoanPayment::create([
+                            'loan_id' => $loan->id,
+                            'payment_number' => \App\Models\LoanPayment::where('loan_id', $loan->id)->max('payment_number') + 1,
+                            'due_date' => now(),
+                            'expected_amount' => 0,
+                            'principal_amount' => 0,
+                            'interest_amount' => 0,
+                            'paid_date' => now(),
+                            'paid_amount' => $remainingToDistribute,
+                            'payment_method' => $request->payment_method,
+                            'payment_reference' => $transaction->payment_reference,
+                            'payment_notes' => $description,
+                            'processed_by' => auth()->id(),
+                            'status' => 'paid',
+                            'processed_at' => now(),
+                        ]);
+                    }
+
+                    // Mettre à jour les totaux du prêt
+                    $loan->increment('total_paid', $amount);
+                    
+                    $reductionPrincipal = min($loan->outstanding_principal, $amount);
+                    $reductionInterest = min($loan->outstanding_interest, $amount - $reductionPrincipal);
+                    
+                    $loan->decrement('outstanding_principal', $reductionPrincipal);
+                    $loan->decrement('outstanding_interest', $reductionInterest);
+
+                    if ($loan->total_paid >= $loan->total_amount_due) {
+                        $loan->update(['status' => 'completed']);
+                    }
+
+                    $message = 'â Remboursement de prêt enregistré avec succès.<br>' .
+                              'ð° Montant: ' . number_format($amount, 0, ',', ' ') . ' FCFA<br>' .
+                              'ð Reste à payer: ' . number_format(max(0, $loan->total_amount_due - $loan->total_paid), 0, ',', ' ') . ' FCFA';
+                    $newBalance = max(0, $loan->total_amount_due - $loan->total_paid);
+                    $transRef = $transaction->transaction_reference;
+                    $transId = $transaction->id;
                 } else {
-                    $result = $this->processSavingsDeposit($account, $amount, $request, $paymentReference, $description);
-                    $message = $result['message'];
+                    $account = clone $baseAccount;
+                    
+                    // === TRAITEMENT SELON LE TYPE DE COMPTE ===
+                    if ($account->account_type === 'tontine') {
+                        $result = $this->processTontineDeposit($account, $amount, $request, $paymentReference, $description, $sessionId);
+                        $message = $result['message'];
+                        $transRef = $result['transaction_reference'];
+                        $transId = $result['transaction_id'];
+                    } else {
+                        $result = $this->processSavingsDeposit($account, $amount, $request, $paymentReference, $description, $sessionId);
+                        $message = $result['message'];
+                        $transRef = $result['transaction_reference'];
+                        $transId = $result['transaction_id'];
+                    }
+                    $newBalance = $account->fresh()->balance;
                 }
 
                 DB::commit();
@@ -1710,9 +2067,10 @@ class AdminAccountController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => $message,
+                    'receipt_url' => route('admin.receipt.print', $transId),
                     'data' => [
-                        'new_balance' => $account->fresh()->balance,
-                        'transaction_reference' => $result['transaction_reference'],
+                        'new_balance' => $newBalance,
+                        'transaction_reference' => $transRef,
                     ]
                 ]);
 
@@ -1730,7 +2088,7 @@ class AdminAccountController extends Controller
         /**
          * NOUVEAU : Traiter un dépôt sur compte d'épargne
          */
-        private function processSavingsDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description): array
+        private function processSavingsDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description, string $sessionId): array
         {
             $balanceBefore = $account->balance;
             $balanceAfter = $balanceBefore + $amount;
@@ -1749,6 +2107,7 @@ class AdminAccountController extends Controller
                 'description' => $description,
                 'status' => 'completed',
                 'processed_by' => auth()->id(),
+                'cashier_session_id' => $sessionId,
                 'processed_at' => now(),
                 'transaction_date' => now(),
             ]);
@@ -1760,21 +2119,22 @@ class AdminAccountController extends Controller
 
             return [
                 'transaction_reference' => $transaction->transaction_reference,
-                'message' => '✅ Dépôt enregistré avec succès.<br>' .
-                            '💰 Montant: ' . number_format($amount, 0, ',', ' ') . ' FCFA<br>' .
-                            '📊 Nouveau solde: ' . number_format($balanceAfter, 0, ',', ' ') . ' FCFA'
+                'transaction_id' => $transaction->id,
+                'message' => 'â Dépôt enregistré avec succès.<br>' .
+                            'ð° Montant: ' . number_format($amount, 0, ',', ' ') . ' FCFA<br>' .
+                            'ð Nouveau solde: ' . number_format($balanceAfter, 0, ',', ' ') . ' FCFA'
             ];
         }
 
         /**
          * NOUVEAU : Traiter un dépôt tontine avec logique multi-cycles
          */
-        private function processTontineDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description): array
+        private function processTontineDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description, string $sessionId): array
         {
             $tontine = $account->tontineAccount;
             $balanceBefore = $account->balance;
 
-            // 🔒 VÉRIFICATION : Ne pas dépasser le total attendu
+            // ð VÉRIFICATION : Ne pas dépasser le total attendu
             $totalRemaining = $tontine->total_expected - $tontine->total_paid;
 
             if ($totalRemaining <= 0) {
@@ -1795,7 +2155,7 @@ class AdminAccountController extends Controller
                 $activeCycle = $this->createTontineCycle($tontine);
             }
 
-            // 🔥 RÉPARTITION MULTI-CYCLES
+            // ð¥ RÉPARTITION MULTI-CYCLES
             $cyclesAffected = $this->distributeTontineAmount($tontine, $activeCycle, $amount);
 
             // Créer la transaction UNIQUE
@@ -1813,6 +2173,7 @@ class AdminAccountController extends Controller
                 'description' => $description . ' (Cycles: ' . implode(', ', array_column($cyclesAffected, 'cycle_number')) . ')',
                 'status' => 'completed',
                 'processed_by' => auth()->id(),
+                'cashier_session_id' => $sessionId,
                 'processed_at' => now(),
                 'transaction_date' => now(),
             ]);
@@ -1832,6 +2193,7 @@ class AdminAccountController extends Controller
 
             return [
                 'transaction_reference' => $transaction->transaction_reference,
+                'transaction_id' => $transaction->id,
                 'message' => $message,
                 'cycles_affected' => $cyclesAffected,
             ];
@@ -1896,6 +2258,191 @@ class AdminAccountController extends Controller
         }
 
         /**
+     * Page de retrait rapide (recherche + retrait sur la même page)
+     */
+    public function retraitform()
+    {
+        $savingsFeePercentage = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_percentage')->value('parameter_value') ?? 2.0);
+        $savingsFeeFixed = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_fixed')->value('parameter_value') ?? 0);
+        
+        $tontineFeePercentage = (float) (SystemParameter::where('parameter_key', 'tontine_withdrawal_fee_percentage')->value('parameter_value') ?? 3.0);
+        $tontineFeeFixed = (float) (SystemParameter::where('parameter_key', 'tontine_withdrawal_fee_fixed')->value('parameter_value') ?? 0);
+        
+        return view('admin.accounts.retrait', compact(
+            'savingsFeePercentage', 
+            'savingsFeeFixed', 
+            'tontineFeePercentage', 
+            'tontineFeeFixed'
+        ));
+    }    
+
+        /**
+         * Recherche AJAX de comptes pour retrait rapide
+         */
+        public function quickWithdrawalSearch(Request $request)
+        {
+            $request->validate([
+                'query' => 'required|string|min:2',
+            ]);
+
+            $user = auth()->user();
+            $query = $request->get('query');
+
+            $accounts = Account::with([
+                'client',
+                'savingsAccount',
+                'tontineAccount.activeCycle',
+            ])
+            ->where('status', 'active')
+            ->where('balance', '>', 0) // Uniquement ceux qui ont du solde
+            ->when($user->role !== 'administrateur_systeme', function($q) use ($user) {
+                $q->whereHas('client', function($q2) use ($user) {
+                    $q2->where('registered_by', $user->id);
+                });
+            })
+            ->where(function($q) use ($query) {
+                $q->where('account_number', 'like', "%{$query}%")
+                ->orWhereHas('client', function($q2) use ($query) {
+                    $q2->where('first_name', 'like', "%{$query}%")
+                        ->orWhere('last_name', 'like', "%{$query}%")
+                        ->orWhere('client_number', 'like', "%{$query}%")
+                        ->orWhere('phone', 'like', "%{$query}%");
+                });
+            })
+            ->limit(10)
+            ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $accounts->map(function($account) {
+                    return $this->formatAccountForSearch($account);
+                })
+            ]);
+        }
+
+        /**
+         * Traiter le retrait rapide via AJAX
+         */
+        public function processQuickWithdrawal(Request $request, $accountId)
+        {
+            $request->validate([
+                'amount' => 'required|numeric|min:100',
+                'payment_method' => 'required|in:cash,mobile_money,bank_transfer',
+                'mobile_money_operator' => 'nullable|in:tmoney,flooz',
+                'payment_reference' => 'nullable|string|max:100',
+                'description' => 'nullable|string|max:500',
+            ]);
+
+            try {
+                DB::beginTransaction();
+
+                $account = Account::with(['client', 'savingsAccount', 'tontineAccount'])
+                    ->lockForUpdate()
+                    ->findOrFail($accountId);
+
+                if ($account->status !== 'active') {
+                    throw new \Exception('Le compte n\'est pas actif.');
+                }
+
+                // // â Vérifier la session de caisse
+                $sessionId = $this->getCurrentSessionId();
+                // if (!$sessionId) {
+                //     throw new \Exception('Vous devez avoir une session de caisse ouverte pour effectuer un retrait.');
+                // }
+
+                $amount = (float) $request->amount;
+
+                // ð¹ Calcul des frais de retrait selon le type de compte (Règle Proportionnelle 1/31)
+                if ($account->account_type === 'tontine') {
+                    $tontine = $account->tontineAccount;
+                    $mise = (float) $tontine->tontine_amount;
+                    
+                    if ($tontine->payment_frequency === 'daily') {
+                        // Pour le quotidien : 1 jour par tranche de 31 jours (mois de tontine)
+                        $nbDaysTotal = $amount / $mise;
+                        $nbCommissions = ceil($nbDaysTotal / 31);
+                        $feeAmount = $nbCommissions * $mise;
+                    } elseif ($tontine->payment_frequency === 'weekly') {
+                        // Pour l'hebdo (annuel) : 1 semaine par an/cycle
+                        // Si le montant dépasse la mise annuelle d'un cycle (52 semaines)
+                        $nbWeeksTotal = $amount / $mise;
+                        $nbCommissions = ceil($nbWeeksTotal / 52);
+                        $feeAmount = $nbCommissions * $mise;
+                    } else {
+                        // Par défaut ou mensuel
+                        $feeAmount = $mise;
+                    }
+                    
+                    $feePercentage = 0;
+                    $feeFixed = $feeAmount;
+                } else {
+                    $feePercentage = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_percentage')->value('parameter_value') ?? 2.0);
+                    $feeFixed = (float) (SystemParameter::where('parameter_key', 'savings_withdrawal_fee_fixed')->value('parameter_value') ?? 0);
+                    $feeAmount = round(($amount * ($feePercentage / 100)) + $feeFixed);
+                }
+                
+                $totalDeduction = $amount + $feeAmount;
+
+                if ($account->balance < $totalDeduction) {
+                    throw new \Exception('Solde insuffisant pour cette opération (incluant les frais de ' . number_format($feeAmount, 0, ',', ' ') . ' FCFA). Solde requis: ' . number_format($totalDeduction, 0, ',', ' ') . ' FCFA');
+                }
+
+                $balanceBefore = $account->balance;
+                $balanceAfter = $balanceBefore - $totalDeduction;
+
+                $paymentReference = $request->payment_reference ?: $this->generatePaymentReference($request->payment_method);
+                $description = $request->description ?: 'Retrait rapide au guichet';
+
+                $transaction = Transaction::create([
+                    'transaction_reference' => $this->generateTransactionReference(),
+                    'account_id' => $account->id,
+                    'transaction_type' => 'withdrawal',
+                    'amount' => $amount,
+                    'fee_amount' => $feeAmount,
+                    'withdrawal_fee' => $feeAmount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $balanceAfter,
+                    'payment_method' => $request->payment_method,
+                    'mobile_money_operator' => $request->mobile_money_operator,
+                    'payment_reference' => $paymentReference,
+                    'description' => $description,
+                    'status' => 'completed',
+                    'processed_by' => auth()->id(),
+                    'cashier_session_id' => $this->getCurrentSessionId(),
+                    'processed_at' => now(),
+                    'transaction_date' => now(),
+                ]);
+
+                $account->update([
+                    'balance' => $balanceAfter,
+                    'last_transaction_at' => now(),
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'ð¸ Retrait de ' . number_format($amount, 0, ',', ' ') . ' FCFA exécuté avec succès.<br>' .
+                                 'ð§¾ Commission Institutionnelle : ' . number_format($feeAmount, 0, ',', ' ') . ' FCFA' . ($account->account_type === 'tontine' ? ' (Règle 1/31)' : " ({$feePercentage}%)") . '<br>' .
+                                 'ð Nouveau solde : ' . number_format($balanceAfter, 0, ',', ' ') . ' FCFA',
+                    'receipt_url' => route('admin.receipt.print', $transaction->id),
+                    'data' => [
+                        'transaction_reference' => $transaction->transaction_reference,
+                        'new_balance' => $balanceAfter,
+                        'fee_amount' => $feeAmount
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors du retrait: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
+        /**
          * Obtenir la description par défaut selon le type de compte
          */
         private function getDefaultDescription(Account $account): string
@@ -1907,6 +2454,28 @@ class AdminAccountController extends Controller
             }
         }
 
-}
+        /**
+         * Impression d'un reçu de transaction pour l'admin
+         */
+        public function printReceipt(Transaction $transaction)
+        {
+            $transaction->load(['account.client', 'processedBy', 'agency']);
+            
+            $clientName = 'N/A';
+            
+            if ($transaction->account) {
+                $clientName = $transaction->account->client->full_name;
+            } elseif (str_starts_with($transaction->payment_reference, 'LOAN-')) {
+                // Rechercher le client via le prêt
+                $loanNumber = str_replace('LOAN-', '', $transaction->payment_reference);
+                $loan = Loan::where('loan_number', $loanNumber)->with('client')->first();
+                if ($loan) {
+                    $clientName = $loan->client->full_name;
+                }
+            }
+            
+            return view('agent.cashier.receipt', compact('transaction', 'clientName'));
+        }
+    }
 
 

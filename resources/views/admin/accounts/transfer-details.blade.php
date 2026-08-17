@@ -1,256 +1,198 @@
 @extends('layouts.app_admin')
 
-@section('content')
-<div class="min-h-screen py-8 bg-gray-50">
-    <div class="max-w-4xl px-4 mx-auto sm:px-6 lg:px-8">
+@section('title', 'Mémorandum de Migration - ' . $transaction->payment_reference)
+@section('page-title', 'Trésorerie / Audit de Migration')
 
-        <!-- En-tête -->
-        <div class="mb-8">
-            <a href="{{ route('admin.accounts.transfer.history') }}"
-               class="inline-flex items-center mb-4 text-sm text-gray-500 hover:text-gray-700">
-                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                Retour à l'historique
-            </a>
-            <div class="flex items-center justify-between">
+@section('content')
+<div class="max-w-4xl mx-auto space-y-8 no-print">
+    <!-- En-tête de Navigation -->
+    <div class="flex items-center justify-between">
+        <a href="{{ route('admin.accounts.transfer.history') }}" class="btn-bank btn-bank-outline px-6">
+            <i class="fas fa-chevron-left mr-2 text-[10px]"></i> Retour aux Registres
+        </a>
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="btn-bank btn-bank-outline px-6 italic">
+                <i class="fas fa-print mr-2 text-[10px]"></i> Générer l'Artefact Impressible
+            </button>
+            <span class="px-4 py-2 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-full border border-emerald-100 uppercase tracking-widest shadow-sm">
+                <i class="fas fa-certificate mr-1.5"></i> Migration Certifiée
+            </span>
+        </div>
+    </div>
+
+    <!-- Interface d'Audit Principale -->
+    <div class="bank-card overflow-hidden shadow-2xl print-area">
+        <!-- Bannière Institutionnelle -->
+        <div class="px-10 py-8 bg-slate-900 text-white relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500 opacity-5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+            <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Détails du Transfert</h1>
-                    <p class="mt-2 text-sm text-gray-600">Référence: {{ $transaction->payment_reference }}</p>
+                    <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400 mb-2">Mémorandum de Migration d'Actifs</h2>
+                    <h3 class="text-3xl font-black tracking-tighter leading-none">{{ $transaction->payment_reference }}</h3>
+                    <p class="text-[10px] font-mono font-bold text-white/40 mt-3 uppercase tracking-widest">Protocol Audit Index: {{ $transaction->transaction_reference }}</p>
                 </div>
-                <span class="inline-flex items-center px-4 py-2 text-sm font-medium text-green-800 bg-green-100 rounded-full">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    Complété
-                </span>
+                <div class="text-right hidden md:block">
+                    <p class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Horodatage de Certification</p>
+                    <p class="text-sm font-black italic">{{ $transaction->transaction_date->format('d/m/Y') }} <span class="text-blue-400 mx-1">•</span> {{ $transaction->transaction_date->format('H:i:s') }}</p>
+                </div>
             </div>
         </div>
 
-        <!-- Message de succès -->
-        @if(session('success'))
-            <div class="p-4 mb-6 border-l-4 border-green-500 rounded bg-green-50">
-                <p class="text-sm font-medium text-green-800">{{ session('success') }}</p>
-            </div>
-        @endif
-
-        <!-- Flux du transfert -->
-        <div class="p-8 mb-6 bg-white rounded-lg shadow">
-            <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-
-                <!-- Compte émetteur -->
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 mb-4 bg-red-100 rounded-full">
-                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
+        <div class="p-10 space-y-12">
+            <!-- Visualisation du Flux d'Actifs -->
+            <div class="relative">
+                <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-slate-100 hidden md:block border-dashed border-t"></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
+                    <!-- Source -->
+                    <div class="bg-white p-6 rounded-3xl border border-slate-100 text-center shadow-sm">
+                        <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-100 shadow-inner">
+                            <i class="fas fa-arrow-up-from-bracket"></i>
+                        </div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">compte Source / Émetteur</p>
+                        @php
+                            $sender = $transaction->transaction_type === 'transfer_out' ? $transaction : $relatedTransaction;
+                        @endphp
+                        @if($sender)
+                            <h4 class="text-sm font-black text-slate-900 uppercase leading-tight">{{ $sender->account->client->full_name }}</h4>
+                            <p class="text-[10px] font-mono font-bold text-blue-600 mt-1">{{ $sender->account->account_number }}</p>
+                        @endif
                     </div>
-                    <h3 class="mb-2 text-sm font-medium text-gray-500 uppercase">Émetteur</h3>
-                    @if($transaction->transaction_type === 'transfer_out')
-                        <p class="text-lg font-bold text-gray-900">{{ $transaction->account->client->first_name }} {{ $transaction->account->client->last_name }}</p>
-                        <p class="text-sm text-gray-600">{{ $transaction->account->account_number }}</p>
-                        <p class="text-sm text-gray-500">{{ $transaction->account->client->phone }}</p>
-                    @elseif($relatedTransaction)
-                        <p class="text-lg font-bold text-gray-900">{{ $relatedTransaction->account->client->first_name }} {{ $relatedTransaction->account->client->last_name }}</p>
-                        <p class="text-sm text-gray-600">{{ $relatedTransaction->account->account_number }}</p>
-                        <p class="text-sm text-gray-500">{{ $relatedTransaction->account->client->phone }}</p>
-                    @endif
-                </div>
 
-                <!-- Flèche et montant -->
-                <div class="flex flex-col items-center justify-center">
-                    <svg class="w-12 h-12 mb-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                    </svg>
-                    <div class="text-center">
-                        <p class="text-3xl font-bold text-blue-600">{{ number_format($transaction->amount, 0, ',', ' ') }}</p>
-                        <p class="text-sm text-gray-600">FCFA</p>
+                    <!-- Volume en Transit -->
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="px-6 py-4 bg-slate-900 rounded-2xl text-white text-center shadow-xl mb-4">
+                            <p class="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-2">Volume Migré</p>
+                            <span class="text-2xl font-black font-numeric text-emerald-400">{{ number_format($transaction->amount, 0, ',', ' ') }}</span>
+                            <span class="text-[10px] font-black text-white/40 ml-1">XOF</span>
+                        </div>
                         @if($transaction->fee_amount > 0)
-                            <p class="mt-2 text-xs text-gray-500">Frais: {{ number_format($transaction->fee_amount, 0, ',', ' ') }} FCFA</p>
+                            <p class="text-[9px] font-black text-rose-500 uppercase italic tracking-tighter">Taxe d'Audit : {{ number_format($transaction->fee_amount, 0, ',', ' ') }} XOF</p>
+                        @endif
+                    </div>
+
+                    <!-- Destination -->
+                    <div class="bg-white p-6 rounded-3xl border border-slate-100 text-center shadow-sm">
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-inner">
+                            <i class="fas fa-arrow-down-to-bracket"></i>
+                        </div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">compte Cible / Bénéficiaire</p>
+                        @php
+                            $receiver = $transaction->transaction_type === 'transfer_in' ? $transaction : $relatedTransaction;
+                        @endphp
+                        @if($receiver)
+                            <h4 class="text-sm font-black text-slate-900 uppercase leading-tight">{{ $receiver->account->client->full_name }}</h4>
+                            <p class="text-[10px] font-mono font-bold text-blue-600 mt-1">{{ $receiver->account->account_number }}</p>
                         @endif
                     </div>
                 </div>
+            </div>
 
-                <!-- Compte bénéficiaire -->
-                <div class="text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 mb-4 bg-green-100 rounded-full">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
+            <!-- Grille de Détails de l'Audit -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-slate-100">
+                <!-- Spécifications Techniques -->
+                <div class="space-y-6">
+                    <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-microchip text-blue-500"></i> Spécifications du Protocole
+                    </h4>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center text-[11px] font-bold">
+                            <span class="text-slate-400 uppercase tracking-widest">Nature du Flux</span>
+                            <span class="text-slate-900">Vecteur de Migration Interne</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] font-bold">
+                            <span class="text-slate-400 uppercase tracking-widest">Statut Certification</span>
+                            <span class="text-emerald-600 italic">IRRÉVOCABLE & SÉCURISÉ</span>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] font-bold">
+                            <span class="text-slate-400 uppercase tracking-widest">Auditeur Responsable</span>
+                            <span class="text-slate-900 uppercase">{{ $transaction->processedBy->name ?? 'Système Automatisé' }}</span>
+                        </div>
                     </div>
-                    <h3 class="mb-2 text-sm font-medium text-gray-500 uppercase">Bénéficiaire</h3>
-                    @if($transaction->transaction_type === 'transfer_in')
-                        <p class="text-lg font-bold text-gray-900">{{ $transaction->account->client->first_name }} {{ $transaction->account->client->last_name }}</p>
-                        <p class="text-sm text-gray-600">{{ $transaction->account->account_number }}</p>
-                        <p class="text-sm text-gray-500">{{ $transaction->account->client->phone }}</p>
-                    @elseif($relatedTransaction)
-                        <p class="text-lg font-bold text-gray-900">{{ $relatedTransaction->account->client->first_name }} {{ $relatedTransaction->account->client->last_name }}</p>
-                        <p class="text-sm text-gray-600">{{ $relatedTransaction->account->account_number }}</p>
-                        <p class="text-sm text-gray-500">{{ $relatedTransaction->account->client->phone }}</p>
-                    @endif
                 </div>
-            </div>
-        </div>
 
-        <!-- Détails de la transaction -->
-        <div class="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2">
-
-            <!-- Informations principales -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Informations du Transfert
-                </h2>
-                <dl class="space-y-3">
-                    <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Référence transfert:</dt>
-                        <dd class="font-mono text-sm font-semibold text-gray-900">{{ $transaction->payment_reference }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Référence transaction:</dt>
-                        <dd class="font-mono text-sm text-gray-900">{{ $transaction->transaction_reference }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Date et heure:</dt>
-                        <dd class="text-sm text-gray-900">{{ $transaction->transaction_date->format('d/m/Y à H:i') }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Type de transfert:</dt>
-                        <dd class="text-sm font-medium text-gray-900">Transfert interne</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Traité par:</dt>
-                        <dd class="text-sm text-gray-900">
-                            {{ $transaction->processedBy->first_name ?? '' }} {{ $transaction->processedBy->last_name ?? '' }}
-                        </dd>
-                    </div>
-                </dl>
-            </div>
-
-            <!-- Détails financiers -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Détails Financiers
-                </h2>
-                <dl class="space-y-3">
-                    <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Montant transféré:</dt>
-                        <dd class="text-lg font-bold text-blue-600">{{ number_format($transaction->amount, 0, ',', ' ') }} FCFA</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm font-medium text-gray-500">Frais de transfert:</dt>
-                        <dd class="text-sm font-semibold text-gray-900">{{ number_format($transaction->fee_amount, 0, ',', ' ') }} FCFA</dd>
-                    </div>
-                    <div class="pt-3 border-t border-gray-200"></div>
-                    @if($transaction->transaction_type === 'transfer_out')
-                        <div class="flex justify-between">
-                            <dt class="text-sm font-medium text-gray-500">Total débité:</dt>
-                            <dd class="text-lg font-bold text-red-600">{{ number_format($transaction->amount + $transaction->fee_amount, 0, ',', ' ') }} FCFA</dd>
+                <!-- Analyse d'Incidence Financière -->
+                <div class="space-y-6">
+                    <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-calculator text-blue-500"></i> Incidence de Trésorerie
+                    </h4>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center text-[11px] font-bold">
+                            <span class="text-slate-400 uppercase tracking-widest">Valeur Nominale</span>
+                            <span class="text-slate-900">{{ number_format($transaction->amount, 0, ',', ' ') }} XOF</span>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-sm font-medium text-gray-500">Solde avant:</dt>
-                            <dd class="text-sm text-gray-900">{{ number_format($transaction->balance_before, 0, ',', ' ') }} FCFA</dd>
+                        <div class="flex justify-between items-center text-[11px] font-bold">
+                            <span class="text-slate-400 uppercase tracking-widest">Taxes Foncées Industrielles</span>
+                            <span class="text-rose-500">+ {{ number_format($transaction->fee_amount, 0, ',', ' ') }} XOF</span>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-sm font-medium text-gray-500">Solde après:</dt>
-                            <dd class="text-sm font-semibold text-gray-900">{{ number_format($transaction->balance_after, 0, ',', ' ') }} FCFA</dd>
+                        <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
+                            @if($transaction->transaction_type === 'transfer_out')
+                                <span class="text-slate-800 text-[11px] font-black uppercase tracking-widest">Exposition Totale Source</span>
+                                <span class="text-lg font-black text-rose-600 font-numeric">{{ number_format($transaction->amount + $transaction->fee_amount, 0, ',', ' ') }} XOF</span>
+                            @else
+                                <span class="text-slate-800 text-[11px] font-black uppercase tracking-widest">Injection Nette Bénéficiaire</span>
+                                <span class="text-lg font-black text-emerald-600 font-numeric">{{ number_format($transaction->amount, 0, ',', ' ') }} XOF</span>
+                            @endif
                         </div>
-                    @else
-                        <div class="flex justify-between">
-                            <dt class="text-sm font-medium text-gray-500">Montant reçu:</dt>
-                            <dd class="text-lg font-bold text-green-600">{{ number_format($transaction->amount, 0, ',', ' ') }} FCFA</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-sm font-medium text-gray-500">Solde avant:</dt>
-                            <dd class="text-sm text-gray-900">{{ number_format($transaction->balance_before, 0, ',', ' ') }} FCFA</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-sm font-medium text-gray-500">Solde après:</dt>
-                            <dd class="text-sm font-semibold text-gray-900">{{ number_format($transaction->balance_after, 0, ',', ' ') }} FCFA</dd>
-                        </div>
-                    @endif
-                </dl>
-            </div>
-        </div>
-
-        <!-- Description -->
-        @if($transaction->description)
-            <div class="p-6 mb-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-3 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                    </svg>
-                    Description
-                </h2>
-                <p class="text-sm text-gray-700">{{ $transaction->description }}</p>
-            </div>
-        @endif
-
-        <!-- Transactions liées -->
-        @if($relatedTransaction)
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                    </svg>
-                    Transaction Liée
-                </h2>
-                <div class="p-4 rounded-lg bg-gray-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">{{ $relatedTransaction->transaction_reference }}</p>
-                            <p class="text-xs text-gray-500">
-                                {{ $relatedTransaction->transaction_type === 'transfer_out' ? 'Débit' : 'Crédit' }} -
-                                {{ $relatedTransaction->account->client->first_name }} {{ $relatedTransaction->account->client->last_name }}
-                            </p>
-                        </div>
-                        <span class="text-lg font-bold {{ $relatedTransaction->transaction_type === 'transfer_out' ? 'text-red-600' : 'text-green-600' }}">
-                            {{ $relatedTransaction->transaction_type === 'transfer_out' ? '-' : '+' }}
-                            {{ number_format($relatedTransaction->amount, 0, ',', ' ') }} FCFA
-                        </span>
                     </div>
                 </div>
             </div>
-        @endif
 
-        <!-- Actions -->
-        <div class="flex justify-end mt-6 space-x-4">
-            <a href="{{ route('admin.accounts.show', $transaction->account_id) }}"
-               class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 transition bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                </svg>
-                Voir le compte
-            </a>
-            <button onclick="window.print()"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                </svg>
-                Imprimer
-            </button>
+            <!-- Notes d'Audit -->
+            @if($transaction->description)
+            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 italic">
+                <h4 class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Annotation de l'Auditeur</h4>
+                <p class="text-[11px] font-bold text-slate-600 leading-relaxed">"{{ $transaction->description }}"</p>
+            </div>
+            @endif
+
+            <!-- Preuve Cryptographique (Pied de page) -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6 pt-12 border-t border-slate-100 border-dashed">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-300">
+                        <i class="fas fa-qrcode text-3xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tight">Vérification de l'Intégrité</p>
+                        <p class="text-[10px] font-mono font-bold text-slate-500 mt-1 uppercase">X-MIGRATION-SIGNATURE-VALIDATED</p>
+                    </div>
+                </div>
+                <div class="text-center md:text-right">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-tight mb-2 italic">Certifié par la Direction des Flux</p>
+                    <div class="w-32 h-12 bg-slate-50/50 border border-slate-100 rounded-lg flex items-center justify-center italic text-[10px] font-black text-slate-200">SIGNATURE NUMÉRIQUE</div>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <!-- Actions Externes -->
+    <div class="flex justify-end gap-4 pb-12">
+        <a href="{{ route('admin.accounts.show', $transaction->account_id) }}" class="btn-bank btn-bank-outline px-8 py-3 text-xs font-black uppercase">
+            Ré-Ouvrir le compte Détenteur
+        </a>
     </div>
 </div>
 
+<!-- Styles spécifiques à l'impression -->
 <style>
 @media print {
-    body * {
-        visibility: hidden;
+    body { background: white !important; }
+    .no-print { display: none !important; }
+    .print-area { 
+        position: fixed;
+        inset: 0;
+        margin: 0;
+        box-shadow: none !important;
+        border: none !important;
     }
-    .print-area, .print-area * {
-        visibility: visible;
-    }
-    .print-area {
-        position: absolute;
-        left: 0;
-        top: 0;
-    }
+    .bank-card { border: 1px solid #e2e8f0 !important; }
 }
 </style>
+
+@if(session('print_receipt'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        window.open('{{ session('print_receipt') }}', '_blank');
+    });
+</script>
+@endif
 @endsection

@@ -51,6 +51,7 @@ class Client extends Authenticatable
         'agency_id',
         'credit_score',
         'validated_at',
+        'is_leader_or_elected',
     ];
 
     protected $casts = [
@@ -170,16 +171,39 @@ class Client extends Authenticatable
             && $this->loans()->whereIn('status', ['active', 'disbursed'])->count() === 0;
     }
 
-    public function getIsActiveAttribute(): bool
+    /**
+     * Moteur d'Éligibilité : Analyse algorithmique du profil
+     */
+    public function calculateCreditScore(): float
     {
-        return $this->registration_status === 'approved';
+        $score = 0;
+
+        // 1. Ancienneté (20 points)
+        $monthsSinceRegistry = $this->created_at->diffInMonths(now());
+        $score += min(20, $monthsSinceRegistry * 2);
+
+        // 2. Volume d'Épargne relative au revenu (30 points)
+        $totalAssets = $this->total_savings + $this->total_tontine;
+        if ($this->monthly_income > 0) {
+            $savingsRatio = $totalAssets / $this->monthly_income;
+            $score += min(30, $savingsRatio * 10);
+        }
+
+        // 3. Discipline de Tontine (50 points)
+        $tontineAccounts = $this->tontineAccounts()->withCount('transactions')->get();
+        $totalTransactions = $tontineAccounts->sum('transactions_count');
+        $score += min(50, $totalTransactions * 1.5);
+
+        return min(100, $score);
     }
 
-
-
-
-
-
-
-
+    /**
+     * Artefact de Conformité KYC
+     */
+    public function getKycIsCompliantAttribute(): bool
+    {
+        if ($this->kyc_status !== 'approved') return false;
+        if (!$this->kyc_expiry_date) return true; // Si pas de date, on assume permanent ou non-renseigné
+        return $this->kyc_expiry_date->isFuture();
+    }
 }

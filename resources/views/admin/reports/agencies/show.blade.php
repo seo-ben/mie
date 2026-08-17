@@ -1,488 +1,337 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Rapport - ' . $agency->name)
+@section('title', 'Intelligence Divisionnaire - ' . $agency->name)
+@section('page-title', 'Protocole / Intelligence de l\'Agence')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div class="flex items-center gap-4">
-            <a href="{{ route('admin.agencies.index') }}"
-               class="flex items-center justify-center w-10 h-10 transition bg-gray-100 rounded-lg hover:bg-gray-200">
-                <i class="text-gray-600 fas fa-arrow-left"></i>
+            <a href="{{ route('admin.agencies.index') }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
             </a>
             <div>
-                <h2 class="text-2xl font-bold text-gray-800">Rapport d'Agence</h2>
-                <p class="text-sm text-gray-600">{{ $agency->name }} - {{ $agency->city }}</p>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Rapport de Division de l'Agence</h2>
+                <p class="text-slate-500 text-sm font-medium">{{ $agency->name }} • Portefeuille du compte {{ $agency->code }}</p>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="window.print()"
-                    class="flex items-center gap-2 px-4 py-2 text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
-                <i class="fas fa-print"></i>
-                <span>Imprimer</span>
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="btn-bank btn-bank-primary">
+                <i class="fas fa-print mr-2 text-[10px]"></i> Impression Protocolaire
             </button>
         </div>
     </div>
 
-    <!-- Filtre de période -->
-    <div class="p-4 bg-white shadow-sm rounded-xl">
-        <form method="GET" action="{{ route('admin.reports.agencies.show', $agency->id) }}"
-              class="flex flex-wrap items-end gap-4">
+    <!-- Sélection de la Fenêtre d'Audit -->
+    <div class="bank-card p-6 no-print">
+        <form method="GET" action="{{ route('admin.reports.agencies.show', $agency->id) }}" class="flex flex-wrap items-end gap-4">
             <div class="flex-1 min-w-[200px]">
-                <label class="block mb-2 text-sm font-medium text-gray-700">Date début</label>
-                <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Début Fenêtre d'Audit</label>
+                <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
             </div>
             <div class="flex-1 min-w-[200px]">
-                <label class="block mb-2 text-sm font-medium text-gray-700">Date fin</label>
-                <input type="date" name="end_date" value="{{ $endDate->format('Y-m-d') }}"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Fin Fenêtre d'Audit</label>
+                <input type="date" name="end_date" value="{{ $endDate->format('Y-m-d') }}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
             </div>
-            <button type="submit" class="px-6 py-2 text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
-                <i class="mr-2 fas fa-filter"></i>Appliquer
-            </button>
+            <button type="submit" class="btn-bank btn-bank-primary px-8">Actualiser l'Analyse</button>
         </form>
-        <p class="mt-2 text-sm text-gray-500">
-            <i class="mr-1 fas fa-calendar-alt"></i>
-            Période: {{ $startDate->format('d/m/Y') }} au {{ $endDate->format('d/m/Y') }}
-            ({{ $startDate->diffInDays($endDate) }} jours)
-        </p>
     </div>
 
-    <!-- Informations de l'agence -->
-    <div class="p-6 text-white shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-center w-16 h-16 text-2xl rounded-full bg-white/20 backdrop-blur-sm">
-                    <i class="fas fa-building"></i>
+    <!-- Carte d'Identité Divisionnaire -->
+    <div class="bank-card !bg-slate-900 p-8 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div class="flex flex-wrap items-center justify-between gap-8 relative z-10">
+            <div class="flex items-center gap-6">
+                <div class="w-24 h-24 bg-white/10 rounded-2xl flex items-center justify-center text-4xl font-black border border-white/10 backdrop-blur-md">
+                    <i class="fas fa-landmark text-white/50"></i>
                 </div>
                 <div>
-                    <p class="text-sm opacity-80">Agence</p>
-                    <h3 class="text-2xl font-bold">{{ $agency->name }}</h3>
-                    <p class="mt-1 text-sm">{{ $agency->city }} - {{ $agency->region }}</p>
+                    <h3 class="text-3xl font-black text-white leading-tight">{{ $agency->name }}</h3>
+                    <p class="text-lg font-bold text-blue-400 mt-1 uppercase tracking-tight">Infrastructure de {{ $agency->city }} • {{ $agency->region }}</p>
+                    <div class="flex flex-wrap items-center gap-4 mt-4">
+                        <span class="px-4 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-white/70">
+                            Code compte : <span class="text-blue-400 font-mono">{{ $agency->code }}</span>
+                        </span>
+                        @if($agency->manager)
+                        <span class="px-4 py-1.5 bg-emerald-600/20 border border-emerald-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                            Gestionnaire : {{ $agency->manager->full_name }}
+                        </span>
+                        @endif
+                    </div>
                 </div>
-            </div>
-
-            <div class="p-4 rounded-lg bg-white/20 backdrop-blur-sm">
-                <p class="text-sm opacity-80">Code Agence</p>
-                <p class="font-mono text-2xl font-bold">{{ $agency->code }}</p>
-            </div>
-
-            <div class="p-4 rounded-lg bg-white/20 backdrop-blur-sm">
-                <p class="text-sm opacity-80">Manager</p>
-                @if($agency->manager)
-                    <p class="text-xl font-bold">{{ $agency->manager->full_name }}</p>
-                    <p class="text-sm opacity-80">{{ $agency->manager->phone }}</p>
-                @else
-                    <p class="text-xl font-bold opacity-60">Non assigné</p>
-                @endif
             </div>
         </div>
     </div>
 
-    <!-- Statistiques Globales -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div class="p-6 bg-white border-l-4 border-blue-500 shadow-sm rounded-xl">
+    <!-- KPIs de Division -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bank-card p-6 border-trust">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-                    <i class="text-xl text-blue-600 fas fa-users"></i>
-                </div>
-                <span class="px-2 py-1 text-xs text-blue-700 rounded-full bg-blue-50">Équipe</span>
+                <span class="kpi-label">Équipe d'Officiers</span>
+                <i class="fas fa-user-tie text-blue-500 text-xs"></i>
             </div>
-            <p class="text-3xl font-bold text-gray-800">{{ $stats['total_users'] }}</p>
-            <p class="mt-1 text-sm text-gray-600">Utilisateurs</p>
-            <div class="pt-4 mt-4 text-sm border-t border-gray-100">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Actifs:</span>
-                    <span class="font-semibold text-green-600">{{ $stats['active_users'] }}</span>
-                </div>
+            <div class="kpi-value !text-2xl mt-1">{{ $stats['total_users'] }}</div>
+            <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between text-[9px] font-bold uppercase">
+                <span class="text-slate-400">Opérationnels :</span>
+                <span class="text-emerald-600">{{ $stats['active_users'] }} Actifs</span>
             </div>
         </div>
 
-        <div class="p-6 bg-white border-l-4 border-green-500 shadow-sm rounded-xl">
+        <div class="bank-card p-6">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
-                    <i class="text-xl text-green-600 fas fa-user-friends"></i>
-                </div>
-                <span class="px-2 py-1 text-xs text-green-700 rounded-full bg-green-50">Clients</span>
+                <span class="kpi-label">Adhérents de Division</span>
+                <i class="fas fa-users text-emerald-500 text-xs"></i>
             </div>
-            <p class="text-3xl font-bold text-gray-800">{{ number_format($stats['total_clients']) }}</p>
-            <p class="mt-1 text-sm text-gray-600">Total clients</p>
-            <div class="pt-4 mt-4 text-sm border-t border-gray-100">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Période:</span>
-                    <span class="font-semibold text-blue-600">{{ $stats['clients_period'] }}</span>
-                </div>
+            <div class="kpi-value !text-2xl mt-1">{{ number_format($stats['total_clients']) }}</div>
+            <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between text-[9px] font-bold uppercase">
+                <span class="text-slate-400">Acquisition de Fenêtre :</span>
+                <span class="text-blue-600">+{{ $stats['clients_period'] }} Entités</span>
             </div>
         </div>
 
-        <div class="p-6 bg-white border-l-4 border-purple-500 shadow-sm rounded-xl">
+        <div class="bank-card p-6">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
-                    <i class="text-xl text-purple-600 fas fa-wallet"></i>
-                </div>
-                <span class="px-2 py-1 text-xs text-purple-700 rounded-full bg-purple-50">Comptes</span>
+                <span class="kpi-label">Portefeuilles Sous Gestion</span>
+                <i class="fas fa-vault text-purple-500 text-xs"></i>
             </div>
-            <p class="text-3xl font-bold text-gray-800">{{ number_format($stats['total_accounts']) }}</p>
-            <p class="mt-1 text-sm text-gray-600">Total comptes</p>
-            <div class="pt-4 mt-4 text-sm border-t border-gray-100">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Actifs:</span>
-                    <span class="font-semibold text-green-600">{{ $stats['active_accounts'] }}</span>
-                </div>
+            <div class="kpi-value !text-2xl mt-1">{{ number_format($stats['total_accounts']) }}</div>
+            <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between text-[9px] font-bold uppercase">
+                <span class="text-slate-400">comptes Opérationnels :</span>
+                <span class="text-emerald-600">{{ $stats['active_accounts'] }} Actifs</span>
             </div>
         </div>
 
-        <div class="p-6 bg-white border-l-4 border-orange-500 shadow-sm rounded-xl">
+        <div class="bank-card p-6">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
-                    <i class="text-xl text-orange-600 fas fa-coins"></i>
-                </div>
-                <span class="px-2 py-1 text-xs text-orange-700 rounded-full bg-orange-50">Soldes</span>
+                <span class="kpi-label">Poids du Capital Divisionnaire</span>
+                <i class="fas fa-coins text-amber-500 text-xs"></i>
             </div>
-            <p class="text-2xl font-bold text-gray-800">{{ number_format($stats['total_balance'], 0, ',', ' ') }}</p>
-            <p class="mt-1 text-sm text-gray-600">FCFA en comptes</p>
+            <div class="kpi-value !text-2xl mt-1">{{ number_format($stats['total_balance'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <div class="mt-4 pt-4 border-t border-slate-100 text-[9px] font-bold uppercase text-slate-400">Solde Cumulé du Registre</div>
         </div>
     </div>
 
-    <!-- Statistiques de la période -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div class="p-6 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl">
+    <!-- Débit de Fenêtre -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bank-card p-6 bg-slate-50/50 border-blue-100">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-gray-800">
-                    <i class="mr-2 text-blue-600 fas fa-exchange-alt"></i>
-                    Transactions
-                </h3>
-                <span class="px-3 py-1 text-sm text-blue-700 bg-blue-100 rounded-full">Période</span>
+                <h4 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Débit Opérationnel de la Fenêtre</h4>
+                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black rounded uppercase">Données d'Audit</span>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-6">
                 <div>
-                    <p class="text-sm text-gray-600">Nombre</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ number_format($stats['transactions_period']) }}</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Volume d'Ops</p>
+                    <p class="text-2xl font-black text-slate-900">{{ number_format($stats['transactions_period']) }}</p>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600">Montant</p>
-                    <p class="text-2xl font-bold text-green-600">{{ number_format($stats['amount_period'], 0, ',', ' ') }}</p>
-                    <p class="text-xs text-gray-500">FCFA</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Flux Divisionnaire</p>
+                    <p class="text-2xl font-black text-emerald-600">{{ number_format($stats['amount_period'], 0, ',', ' ') }} <small class="text-xs">XOF</small></p>
                 </div>
             </div>
         </div>
 
-        <div class="p-6 shadow-sm bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl">
+        <div class="bank-card p-6 bg-slate-50/50 border-emerald-100">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-gray-800">
-                    <i class="mr-2 text-green-600 fas fa-user-plus"></i>
-                    Nouveaux Clients
-                </h3>
-                <span class="px-3 py-1 text-sm text-green-700 bg-green-100 rounded-full">Période</span>
+                <h4 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Indice de Croissance des Adhérents</h4>
+                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black rounded uppercase">Données d'Expansion</span>
             </div>
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-4xl font-bold text-green-600">{{ number_format($stats['clients_period']) }}</p>
-                    <p class="mt-1 text-sm text-gray-600">Clients acquis</p>
+                    <p class="text-3xl font-black text-emerald-600">{{ number_format($stats['clients_period']) }}</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase mt-1">Entités Nettes de Fenêtre</p>
                 </div>
                 @if($stats['total_clients'] > 0)
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-blue-600">{{ round(($stats['clients_period'] / $stats['total_clients']) * 100) }}%</div>
-                    <p class="text-xs text-gray-500">du total</p>
+                <div class="text-right">
+                    <p class="text-2xl font-black text-blue-600">{{ round(($stats['clients_period'] / $stats['total_clients']) * 100) }}%</p>
+                    <p class="text-[8px] font-bold text-slate-400 uppercase">Saturation Divisionnaire</p>
                 </div>
                 @endif
             </div>
         </div>
     </div>
 
-    <!-- Performance quotidienne -->
-    <div class="p-6 bg-white shadow-sm rounded-xl">
-        <h3 class="mb-4 text-lg font-bold text-gray-800">
-            <i class="mr-2 text-purple-600 fas fa-chart-line"></i>
-            Performance Quotidienne de l'Agence
+    <!-- Tendance de Performance -->
+    <div class="bank-card p-8">
+        <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-6 block flex items-center gap-2">
+            <i class="fas fa-chart-line text-purple-600"></i> Tendance de Performance Divisionnaire
         </h3>
         <div class="h-80">
             <canvas id="dailyPerformanceChart"></canvas>
         </div>
     </div>
 
-    <!-- Performance par utilisateur -->
-    <div class="overflow-hidden bg-white shadow-sm rounded-xl">
-        <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
-            <h3 class="text-lg font-bold text-gray-800">
-                <i class="mr-2 text-purple-600 fas fa-users-cog"></i>
-                Performance par Utilisateur
-            </h3>
-            <p class="mt-1 text-sm text-gray-600">Classé par nombre de transactions</p>
+    <!-- Registre de Performance du Personnel de Division -->
+    <div class="bank-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Grand Livre de Performance du Personnel</h3>
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Classé par Efficacité Opérationnelle</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="border-b border-gray-200 bg-gray-50">
+            <table class="bank-table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Rang</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Utilisateur</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Rôle</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Clients Total</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Clients Période</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Transactions</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Montant Total</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Dernière Activité</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-right text-gray-600 uppercase">Action</th>
+                        <th class="w-12">Rang</th>
+                        <th>Entité d'Officier</th>
+                        <th>Gouvernance</th>
+                        <th>Entités</th>
+                        <th>Poids Ops</th>
+                        <th>Flux d'Actifs</th>
+                        <th class="text-right">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @foreach($userPerformances as $index => $performance)
-                    <tr class="transition hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
-                                {{ $index === 0 ? 'bg-yellow-100 text-yellow-700' : '' }}
-                                {{ $index === 1 ? 'bg-gray-200 text-gray-700' : '' }}
-                                {{ $index === 2 ? 'bg-orange-100 text-orange-700' : '' }}
-                                {{ $index > 2 ? 'bg-gray-100 text-gray-600' : '' }}">
-                                {{ $index + 1 }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
+                <tbody class="divide-y divide-slate-100">
+                    @foreach($userPerformances as $index => $perf)
+                    <tr class="hover:bg-slate-50/50">
+                        <td class="text-center font-black text-slate-400 text-xs">#{{ $index + 1 }}</td>
+                        <td>
                             <div class="flex items-center gap-3">
-                                <div class="flex items-center justify-center w-10 h-10 text-sm font-semibold text-white rounded-full bg-gradient-to-br from-blue-400 to-purple-500">
-                                    {{ strtoupper(substr($performance['user']->first_name, 0, 1) . substr($performance['user']->last_name, 0, 1)) }}
+                                <div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-500 text-[10px]">
+                                    {{ strtoupper(substr($perf['user']->first_name, 0, 1) . substr($perf['user']->last_name, 0, 1)) }}
                                 </div>
                                 <div>
-                                    <p class="font-semibold text-gray-800">{{ $performance['user']->full_name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $performance['user']->email }}</p>
+                                    <p class="font-bold text-slate-800 leading-none">{{ $perf['user']->full_name }}</p>
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase mt-1">{{ $perf['user']->email }}</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full">
-                                {{ ucfirst(str_replace('_', ' ', $performance['user']->role)) }}
+                        <td>
+                            <span class="px-2 py-0.5 bg-purple-50 text-purple-700 text-[8px] font-black rounded uppercase border border-purple-100">
+                                {{ ucfirst(str_replace('_', ' ', $perf['user']->role)) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="text-lg font-bold text-gray-800">{{ number_format($performance['clients_count']) }}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-full">
-                                +{{ number_format($performance['clients_period']) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="text-lg font-bold text-purple-600">{{ number_format($performance['transactions_count']) }}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div>
-                                <p class="font-bold text-green-600">{{ number_format($performance['transactions_amount'], 0, ',', ' ') }}</p>
-                                <p class="text-xs text-gray-500">FCFA</p>
+                        <td>
+                            <div class="flex flex-col">
+                                <p class="text-xs font-bold text-slate-800">{{ $perf['clients_count'] }} Totaux</p>
+                                <p class="text-[8px] font-black text-blue-600 uppercase">Fenêtre : +{{ $perf['clients_period'] }}</p>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            @if($performance['last_activity'])
-                                <div>
-                                    <p class="text-sm text-gray-800">{{ $performance['last_activity']->format('d/m/Y') }}</p>
-                                    <p class="text-xs text-gray-500">{{ $performance['last_activity']->diffForHumans() }}</p>
-                                </div>
-                            @else
-                                <span class="text-sm italic text-gray-400">Aucune</span>
-                            @endif
+                        <td class="font-black text-slate-900">{{ number_format($perf['transactions_count']) }} Ops</td>
+                        <td>
+                            <p class="text-sm font-black text-emerald-600">{{ number_format($perf['transactions_amount'], 0, ',', ' ') }} <small class="text-[9px] text-slate-400">XOF</small></p>
                         </td>
-                        <td class="px-6 py-4 text-right">
-                            <a href="{{ route('admin.reports.users.show', $performance['user']->id) }}"
-                               class="inline-flex items-center gap-2 px-3 py-2 text-blue-600 transition rounded-lg hover:bg-blue-50"
-                               title="Voir le rapport détaillé">
-                                <i class="fas fa-chart-line"></i>
-                                <span class="text-sm">Rapport</span>
+                        <td class="text-right">
+                            <a href="{{ route('admin.reports.users.show', $perf['user']->id) }}" class="p-2 text-slate-400 hover:text-blue-600 transition" title="Dossier Analytique">
+                                <i class="fas fa-chart-pie text-xs"></i>
                             </a>
                         </td>
                     </tr>
                     @endforeach
-
-                    @if(count($userPerformances) === 0)
-                    <tr>
-                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
-                            <i class="mb-4 text-4xl text-gray-300 fas fa-users"></i>
-                            <p class="text-lg font-medium">Aucun utilisateur dans cette agence</p>
-                        </td>
-                    </tr>
-                    @endif
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Classement et insights -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+    <!-- Perspectives Institutionnelles -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         @if(count($userPerformances) > 0)
             @php
-                $topPerformer = $userPerformances[0] ?? null;
-                $mostActiveUser = collect($userPerformances)->sortByDesc('transactions_count')->first();
-                $bestAcquirer = collect($userPerformances)->sortByDesc('clients_period')->first();
+                $top = $userPerformances[0];
+                $active = collect($userPerformances)->sortByDesc('transactions_count')->first();
+                $growth = collect($userPerformances)->sortByDesc('clients_period')->first();
             @endphp
-
-            @if($topPerformer)
-            <div class="p-6 border-2 border-yellow-200 shadow-sm bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-full">
-                        <i class="text-2xl text-yellow-600 fas fa-trophy"></i>
+            
+            <div class="bank-card p-6 border-l-4 border-l-amber-400 shadow-xl shadow-amber-500/5">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center border border-amber-100">
+                        <i class="fas fa-crown text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-xs tracking-wide text-gray-600 uppercase">Top Performer</p>
-                        <p class="font-bold text-gray-800">{{ $topPerformer['user']->full_name }}</p>
+                        <p class="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest">Héro de Division</p>
+                        <h4 class="text-sm font-black text-slate-800 leading-tight">{{ $top['user']->full_name }}</h4>
                     </div>
                 </div>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Transactions:</span>
-                        <span class="font-bold">{{ number_format($topPerformer['transactions_count']) }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Montant:</span>
-                        <span class="font-bold text-green-600">{{ number_format($topPerformer['transactions_amount'], 0, ',', ' ') }} F</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Clients:</span>
-                        <span class="font-bold text-blue-600">{{ $topPerformer['clients_count'] }}</span>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[10px] uppercase font-bold text-slate-500">
+                        <span>Poids :</span>
+                        <span class="text-emerald-600">{{ number_format($top['transactions_amount'], 0, ',', ' ') }} XOF</span>
                     </div>
                 </div>
             </div>
-            @endif
 
-            @if($mostActiveUser)
-            <div class="p-6 border-2 border-blue-200 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full">
-                        <i class="text-2xl text-blue-600 fas fa-bolt"></i>
+            <div class="bank-card p-6 border-l-4 border-l-blue-400 shadow-xl shadow-blue-500/5">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center border border-blue-100">
+                        <i class="fas fa-bolt-lightning text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-xs tracking-wide text-gray-600 uppercase">Plus Actif</p>
-                        <p class="font-bold text-gray-800">{{ $mostActiveUser['user']->full_name }}</p>
+                        <p class="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest">Lead Ops</p>
+                        <h4 class="text-sm font-black text-slate-800 leading-tight">{{ $active['user']->full_name }}</h4>
                     </div>
                 </div>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Transactions:</span>
-                        <span class="font-bold text-blue-600">{{ number_format($mostActiveUser['transactions_count']) }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Dernière activité:</span>
-                        <span class="font-bold">{{ $mostActiveUser['last_activity'] ? $mostActiveUser['last_activity']->format('d/m/Y') : 'N/A' }}</span>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[10px] uppercase font-bold text-slate-500">
+                        <span>Débit :</span>
+                        <span class="text-blue-600">{{ number_format($active['transactions_count']) }} Ops</span>
                     </div>
                 </div>
             </div>
-            @endif
 
-            @if($bestAcquirer)
-            <div class="p-6 border-2 border-green-200 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full">
-                        <i class="text-2xl text-green-600 fas fa-user-plus"></i>
+            <div class="bank-card p-6 border-l-4 border-l-emerald-400 shadow-xl shadow-emerald-500/5">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center border border-emerald-100">
+                        <i class="fas fa-up-long text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-xs tracking-wide text-gray-600 uppercase">Meilleur Acquéreur</p>
-                        <p class="font-bold text-gray-800">{{ $bestAcquirer['user']->full_name }}</p>
+                        <p class="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest">Moteur de Croissance</p>
+                        <h4 class="text-sm font-black text-slate-800 leading-tight">{{ $growth['user']->full_name }}</h4>
                     </div>
                 </div>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Nouveaux clients:</span>
-                        <span class="font-bold text-green-600">+{{ number_format($bestAcquirer['clients_period']) }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Total clients:</span>
-                        <span class="font-bold">{{ $bestAcquirer['clients_count'] }}</span>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[10px] uppercase font-bold text-slate-500">
+                        <span>Acquisition :</span>
+                        <span class="text-emerald-600">+{{ $growth['clients_period'] }} Entités</span>
                     </div>
                 </div>
             </div>
-            @endif
         @endif
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// Graphique de performance quotidienne
-const dailyPerformanceCtx = document.getElementById('dailyPerformanceChart').getContext('2d');
-new Chart(dailyPerformanceCtx, {
-    type: 'line',
-    data: {
-        labels: {!! json_encode($dailyPerformance->pluck('date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!},
-        datasets: [{
-            label: 'Nombre de Transactions',
-            data: {!! json_encode($dailyPerformance->pluck('count')) !!},
-            borderColor: 'rgb(147, 51, 234)',
-            backgroundColor: 'rgba(147, 51, 234, 0.1)',
-            tension: 0.4,
-            fill: true,
-            yAxisID: 'y'
-        }, {
-            label: 'Montant (FCFA)',
-            data: {!! json_encode($dailyPerformance->pluck('total')) !!},
-            borderColor: 'rgb(34, 197, 94)',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            tension: 0.4,
-            fill: true,
-            yAxisID: 'y1'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            mode: 'index',
-            intersect: false,
+    const dailyCtx = document.getElementById('dailyPerformanceChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($dailyPerformance->pluck('date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d M'))) !!},
+            datasets: [{
+                label: 'Volume Ops',
+                data: {!! json_encode($dailyPerformance->pluck('count')) !!},
+                borderColor: '#9333ea',
+                backgroundColor: 'rgba(147, 51, 234, 0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                yAxisID: 'y'
+            }, {
+                label: 'Flux d\'Actifs (XOF)',
+                data: {!! json_encode($dailyPerformance->pluck('total')) !!},
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                yAxisID: 'y1'
+            }]
         },
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            if (context.datasetIndex === 1) {
-                                label += new Intl.NumberFormat('fr-FR').format(context.parsed.y) + ' FCFA';
-                            } else {
-                                label += context.parsed.y;
-                            }
-                        }
-                        return label;
-                    }
-                }
-            }
-        },
-        scales: {
-            y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                title: {
-                    display: true,
-                    text: 'Nombre de transactions'
-                }
-            },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
-                    display: true,
-                    text: 'Montant (FCFA)'
-                },
-                grid: {
-                    drawOnChartArea: false,
-                }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { size: 9, weight: '700' } } },
+                y1: { position: 'right', grid: { display: false }, ticks: { font: { size: 9, weight: '700' } } },
+                x: { grid: { display: false }, ticks: { font: { size: 9, weight: '700' } } }
             }
         }
-    }
-});
+    });
 </script>
 
 <style>
-@media print {
-    .no-print {
-        display: none !important;
+    @media print {
+        .no-print { display: none !important; }
+        .bank-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
     }
-}
 </style>
 @endsection

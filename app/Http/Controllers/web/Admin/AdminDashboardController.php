@@ -16,6 +16,7 @@ use App\Models\{
     TontineAccount,
     TontineCycle
 };
+use App\Models\StaffPayment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,7 +63,25 @@ class AdminDashboardController extends Controller
         $accountsChartData = $this->prepareAccountsChartData($dashboardData['accounts']);
         $loansChartData = $this->prepareLoansChartData($dashboardData['loans']);
 
+        // Harmonize data for the institutional dashboard view
+        $stats = [
+            'total_clients' => $dashboardData['overview']['clients']['total'],
+            'new_clients_period' => $dashboardData['overview']['clients']['new_period'],
+            'total_balance' => $dashboardData['overview']['financial']['total_deposits'],
+            'total_loans' => $dashboardData['overview']['financial']['loan_portfolio'],
+            'active_loans_count' => $dashboardData['overview']['loans']['active'],
+            
+            'active_tontines_count' => $dashboardData['financial']['tontine_performance']['active_accounts'] ?? 0,
+            'tontine_collections_sum' => $dashboardData['financial']['tontine_performance']['total_collected'] ?? 0,
+            'tontine_payouts_sum' => $dashboardData['financial']['tontine_performance']['total_payouts'] ?? 0,
+            
+            'savings_deposits_sum' => $dashboardData['financial']['savings_performance']['new_deposits'] ?? 0,
+            'savings_withdrawals_sum' => $dashboardData['financial']['savings_performance']['withdrawals'] ?? 0,
+            'savings_net_flow' => $dashboardData['financial']['savings_performance']['net_flow'] ?? 0,
+        ];
+
         return view('admin.dashboard', array_merge($dashboardData, [
+            'stats' => $stats,
             'growthChartData' => $growthChartData,
             'geographicChartData' => $geographicChartData,
             'accountsChartData' => $accountsChartData,
@@ -204,14 +223,63 @@ class AdminDashboardController extends Controller
     private function getFinancialMetrics(int $period): array
     {
         $startDate = Carbon::now()->subDays($period);
+        $endDate = Carbon::now();
 
-        // Revenus par type
-        $revenueByType = Transaction::select('transaction_type', DB::raw('SUM(amount) as total'))
-            ->where('transaction_date', '>=', $startDate)
+        // 1. REVENUS (PNB)
+        // Intérêts de prêts réellement perçus sur la période
+        $loanInterestIncome = LoanPayment::whereBetween('paid_date', [$startDate, $endDate])
+            ->where('status', 'paid')
+            ->sum('interest_amount');
+            
+        $loanPenalties = LoanPayment::whereBetween('paid_date', [$startDate, $endDate])
+            ->where('status', 'paid')
+            ->sum('penalty_amount');
+
+        // Commissions Tontines : 1/31 (Daily/Monthly) ou 1/52 (Weekly)
+        // Selon la logique du AdminTontineController (l.298 et l.473)
+        $tontineRevenue = 0;
+        
+        // Volume collecté pour cycles Daily/Monthly (Commission 1/31)
+        $volumeStandard = TontineCycle::whereBetween('payout_date', [$startDate, $endDate])
             ->where('status', 'completed')
-            ->whereIn('transaction_type', ['interest', 'fee', 'penalty'])
-            ->groupBy('transaction_type')
-            ->pluck('total', 'transaction_type');
+            ->whereHas('tontineAccount', function($q) {
+                $q->whereIn('payment_frequency', ['daily', 'monthly']);
+            })
+            ->sum('target_amount');
+        $tontineRevenue += ($volumeStandard / 31);
+
+        // Volume collecté pour cycles Weekly (Commission 1/52 selon règle 52 semaines)
+        $volumeWeekly = TontineCycle::whereBetween('payout_date', [$startDate, $endDate])
+            ->where('status', 'completed')
+            ->whereHas('tontineAccount', function($q) {
+                $q->where('payment_frequency', 'weekly');
+            })
+            ->sum('target_amount');
+        $tontineRevenue += ($volumeWeekly / 52);
+
+        // Frais divers (Activation de compte, Frais de transaction, Retraits)
+        $accountFees = Account::whereBetween('created_at', [$startDate, $endDate])->sum('activation_fee');
+        $transactionFees = Transaction::whereBetween('transaction_date', [$startDate, $endDate])
+            ->where('status', 'completed')
+            ->whereIn('transaction_type', ['withdrawal', 'transfer_in', 'transfer_out'])
+            ->sum('fee_amount');
+
+        $totalRevenue = $loanInterestIncome + $loanPenalties + $tontineRevenue + $accountFees + $transactionFees;
+
+        // 2. COÛTS (Charges d'exploitation financières)
+        // Intérêts versés aux épargnants sur la période
+        $savingsInterestCost = DB::table('savings_accounts')
+            ->join('accounts', 'accounts.id', '=', 'savings_accounts.account_id')
+            ->where('accounts.status', 'active')
+            ->sum(DB::raw('accounts.balance * savings_accounts.interest_rate / 100 / 365')) * $period;
+
+        $payroll = StaffPayment::whereBetween('payment_date', [$startDate, $endDate])
+            ->where('status', 'paid')
+            ->sum('amount');
+
+        $totalCosts = $savingsInterestCost + $payroll;
+        $netProfit = $totalRevenue - $totalCosts;
+        $profitMargin = $totalRevenue > 0 ? round(($netProfit / $totalRevenue) * 100, 2) : 0;
 
         // Qualité du portefeuille de prêts
         $loanQuality = $this->getLoanQualityMetrics($period);
@@ -220,27 +288,27 @@ class AdminDashboardController extends Controller
         $cashReserves = $this->calculateCashReserves();
         $loanToDepositRatio = $this->calculateLoanToDepositRatio();
 
-        // Performance des comptes d'épargne
-        $savingsPerformance = $this->getSavingsPerformance($period);
-
-        // Performance des tontines
-        $tontinePerformance = $this->getTontinePerformance($period);
-
         return [
             'revenue' => [
-                'interest_income' => $revenueByType['interest'] ?? 0,
-                'fee_income' => $revenueByType['fee'] ?? 0,
-                'penalty_income' => $revenueByType['penalty'] ?? 0,
-                'total' => ($revenueByType['interest'] ?? 0) + ($revenueByType['fee'] ?? 0) + ($revenueByType['penalty'] ?? 0),
+                'loan_interest' => $loanInterestIncome,
+                'loan_penalties' => $loanPenalties,
+                'tontine' => $tontineRevenue,
+                'fees' => $accountFees + $transactionFees,
+                'total' => $totalRevenue,
+            ],
+            'profitability' => [
+                'net_profit' => $netProfit,
+                'total_costs' => $totalCosts,
+                'margin' => $profitMargin,
             ],
             'loan_quality' => $loanQuality,
             'liquidity' => [
                 'cash_reserves' => $cashReserves,
                 'loan_to_deposit_ratio' => $loanToDepositRatio,
-                'available_for_lending' => $cashReserves * 0.8, // 80% ratio prudentiel
+                'available_for_lending' => $cashReserves * 0.8,
             ],
-            'savings_performance' => $savingsPerformance,
-            'tontine_performance' => $tontinePerformance,
+            'savings_performance' => $this->getSavingsPerformance($period),
+            'tontine_performance' => $this->getTontinePerformance($period),
         ];
     }
 
@@ -258,7 +326,7 @@ class AdminDashboardController extends Controller
             ->count();
         $approvalRate = $totalApplications > 0 ? round(($approvedLoans / $totalApplications) * 100, 2) : 0;
 
-        // Taux de défaut
+        // Taux de défaut (Structure critique)
         $totalLoans = Loan::whereIn('status', ['active', 'completed', 'defaulted'])->count();
         $defaultedLoans = Loan::where('status', 'defaulted')->count();
         $defaultRate = $totalLoans > 0 ? round(($defaultedLoans / $totalLoans) * 100, 2) : 0;
@@ -266,8 +334,10 @@ class AdminDashboardController extends Controller
         // Efficacité de recouvrement
         $collectionEfficiency = $this->calculateCollectionEfficiency($period);
 
-        // PAR (Portfolio at Risk) - Prêts en retard > 30 jours
+        // Matrice PAR (Portfolio at Risk) selon les standards institutionnels
+        $par1 = $this->calculatePAR(1);
         $par30 = $this->calculatePAR(30);
+        $par60 = $this->calculatePAR(60);
         $par90 = $this->calculatePAR(90);
 
         // Distribution par niveau de risque
@@ -280,7 +350,9 @@ class AdminDashboardController extends Controller
             'approval_rate' => $approvalRate,
             'default_rate' => $defaultRate,
             'collection_efficiency' => $collectionEfficiency,
+            'par_1' => $par1,
             'par_30' => $par30,
+            'par_60' => $par60,
             'par_90' => $par90,
             'risk_distribution' => $riskDistribution,
         ];
@@ -288,22 +360,24 @@ class AdminDashboardController extends Controller
 
     /**
      * Calcul du PAR (Portfolio at Risk)
+     * Formule : (Encours des prêts avec retard >= X jours / Encours total) * 100
      */
     private function calculatePAR(int $days): float
     {
         $cutoffDate = Carbon::now()->subDays($days);
 
-        $overdueLoans = Loan::whereIn('status', ['active', 'disbursed'])
+        // La règle : Somme du capital restant dû de TOUS les crédits ayant AU MOINS une échéance en retard de X jours
+        $overduePrincipal = Loan::whereIn('status', ['active', 'disbursed'])
             ->whereHas('payments', function ($query) use ($cutoffDate) {
                 $query->where('status', 'overdue')
-                    ->where('due_date', '<', $cutoffDate);
+                    ->where('due_date', '<=', $cutoffDate);
             })
             ->sum('outstanding_principal');
 
-        $totalPortfolio = Loan::whereIn('status', ['active', 'disbursed'])
+        $totalOutstanding = Loan::whereIn('status', ['active', 'disbursed'])
             ->sum('outstanding_principal');
 
-        return $totalPortfolio > 0 ? round(($overdueLoans / $totalPortfolio) * 100, 2) : 0;
+        return $totalOutstanding > 0 ? round(($overduePrincipal / $totalOutstanding) * 100, 2) : 0;
     }
 
     /**

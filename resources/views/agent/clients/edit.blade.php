@@ -77,6 +77,7 @@
                                 @enderror
                             </div>
 
+                            @if(auth()->user()->role !== 'agent_terrain')
                             <div class="col-md-6 mb-3">
                                 <label for="date_of_birth" class="form-label">Date de Naissance <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control @error('date_of_birth') is-invalid @enderror"
@@ -101,6 +102,7 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+                            @endif
 
                             <div class="col-md-6 mb-3">
                                 <label for="profession" class="form-label">Profession</label>
@@ -111,6 +113,7 @@
                                 @enderror
                             </div>
 
+                            @if(auth()->user()->role !== 'agent_terrain')
                             <div class="col-md-6 mb-3">
                                 <label for="monthly_income" class="form-label">Revenu Mensuel (FCFA)</label>
                                 <input type="number" class="form-control @error('monthly_income') is-invalid @enderror"
@@ -120,6 +123,7 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+                            @endif
 
                             <div class="col-12 mb-3">
                                 <label for="address" class="form-label">Adresse</label>
@@ -152,6 +156,7 @@
                 </div>
 
                 <!-- Informations d'identification -->
+                @if(auth()->user()->role !== 'agent_terrain')
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
                         <h6 class="m-0 font-weight-bold text-primary">
@@ -195,6 +200,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <!-- Parrainage (optionnel) -->
                 <div class="card shadow mb-4">

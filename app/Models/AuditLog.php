@@ -15,12 +15,14 @@ class AuditLog extends Model
         'old_values',
         'new_values',
         'ip_address',
-        'user_agent'
+        'user_agent',
+        'additional_data'
     ];
 
     protected $casts = [
         'old_values' => 'json',
         'new_values' => 'json',
+        'additional_data' => 'json',
         'created_at' => 'datetime'
     ];
 

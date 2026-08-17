@@ -1,308 +1,146 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Comparaison des Utilisateurs')
+@section('title', 'Analyse Comparative de Performance - ' . count($comparisons) . ' Entités')
+@section('page-title', 'Protocole / Analyse Comparative')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div class="flex items-center gap-4">
-            <a href="{{ route('admin.reports.users.index') }}"
-               class="flex items-center justify-center w-10 h-10 transition bg-gray-100 rounded-lg hover:bg-gray-200">
-                <i class="text-gray-600 fas fa-arrow-left"></i>
+            <a href="{{ route('admin.reports.users.index') }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
             </a>
             <div>
-                <h2 class="text-2xl font-bold text-gray-800">Comparaison des Utilisateurs</h2>
-                <p class="text-sm text-gray-600">Analyse comparative de {{ count($comparisons) }} utilisateurs</p>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Analyse Comparative du Personnel</h2>
+                <p class="text-slate-500 text-sm font-medium">Audit comparatif de {{ count($comparisons) }} entités d'officiers sur les indicateurs clés de performance</p>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="window.print()"
-                    class="flex items-center gap-2 px-4 py-2 text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
-                <i class="fas fa-print"></i>
-                <span>Imprimer</span>
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="btn-bank btn-bank-primary">
+                <i class="fas fa-print mr-2 text-[10px]"></i> Impression Protocolaire
             </button>
         </div>
     </div>
 
-    <!-- Période -->
-    <div class="p-6 text-white shadow-lg bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-        <div class="flex items-center justify-between">
+    <!-- En-tête de la Fenêtre Comparative -->
+    <div class="bank-card !bg-indigo-900 p-8 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div class="flex flex-wrap items-center justify-between gap-8 relative z-10">
             <div>
-                <p class="text-sm opacity-90">Période d'analyse</p>
-                <p class="mt-1 text-2xl font-bold">{{ $startDate->format('d/m/Y') }} - {{ $endDate->format('d/m/Y') }}</p>
-                <p class="mt-1 text-sm opacity-75">{{ $startDate->diffInDays($endDate) }} jours</p>
+                <p class="text-[9px] font-extrabold text-white/40 uppercase tracking-widest mb-1">Portefeuille de la Fenêtre d'Audit</p>
+                <p class="text-2xl font-black text-white leading-none">{{ $startDate->format('d M Y') }} — {{ $endDate->format('d M Y') }}</p>
+                <p class="text-[10px] font-bold text-indigo-300 mt-2 uppercase">{{ $startDate->diffInDays($endDate) }} Jours du Cycle Opérationnel</p>
             </div>
             <div class="text-right">
-                <p class="text-sm opacity-90">Utilisateurs comparés</p>
-                <p class="text-4xl font-bold">{{ count($comparisons) }}</p>
+                <p class="text-[9px] font-extrabold text-white/40 uppercase tracking-widest mb-1">Poids Comparatif</p>
+                <p class="text-5xl font-black text-white leading-none">{{ count($comparisons) }} <small class="text-xs text-white/30">Entités</small></p>
             </div>
         </div>
     </div>
 
-    <!-- Tableau de comparaison des utilisateurs -->
-    <div class="overflow-hidden bg-white shadow-sm rounded-xl">
+    <!-- Matrice de Comparaison -->
+    <div class="bank-card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="border-b-2 border-purple-200 bg-gradient-to-r from-blue-50 to-purple-50">
-                    <tr>
-                        <th class="sticky left-0 z-10 px-6 py-4 text-sm font-bold text-left text-gray-700 bg-gray-50">
-                            Critère
-                        </th>
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100">
+                        <th class="sticky left-0 z-20 px-8 py-6 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest bg-slate-50 text-left border-r border-slate-100">Protocole d'Audit</th>
                         @foreach($comparisons as $comparison)
-                        <th class="px-6 py-4 text-center min-w-[200px]">
-                            <div class="flex flex-col items-center gap-2">
-                                <div class="flex items-center justify-center w-12 h-12 font-bold text-white rounded-full bg-gradient-to-br from-blue-400 to-purple-500">
+                        <th class="px-8 py-6 min-w-[250px] border-r border-slate-100 last:border-r-0">
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-xs font-black text-white mb-3 shadow-lg shadow-slate-900/10">
                                     {{ strtoupper(substr($comparison['user']->first_name, 0, 1) . substr($comparison['user']->last_name, 0, 1)) }}
                                 </div>
-                                <div>
-                                    <p class="font-bold text-gray-800">{{ $comparison['user']->full_name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $comparison['user']->email }}</p>
-                                    <span class="inline-block px-2 py-1 mt-1 text-xs text-purple-700 bg-purple-100 rounded-full">
-                                        {{ ucfirst(str_replace('_', ' ', $comparison['user']->role)) }}
-                                    </span>
-                                </div>
+                                <h4 class="text-sm font-black text-slate-800 leading-tight text-center">{{ $comparison['user']->full_name }}</h4>
+                                <span class="text-[8px] font-black uppercase text-blue-600 tracking-tighter mt-1">{{ ucfirst(str_replace('_', ' ', $comparison['user']->role)) }}</span>
                             </div>
                         </th>
                         @endforeach
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    <!-- Agence -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-semibold text-gray-700 bg-gray-50">
-                            <i class="mr-2 text-purple-600 fas fa-building"></i>Agence
-                        </td>
+                <tbody class="divide-y divide-slate-100">
+                    <!-- compte Divisionnaire -->
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="sticky left-0 z-20 px-8 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white border-r border-slate-100">compte Divisionnaire</td>
                         @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            @if($comparison['user']->agency)
-                                <div>
-                                    <p class="font-medium text-gray-800">{{ $comparison['user']->agency->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $comparison['user']->agency->city }}</p>
-                                </div>
-                            @else
-                                <span class="italic text-gray-400">Non assigné</span>
-                            @endif
+                        <td class="px-8 py-4 text-center border-r border-slate-100 last:border-r-0">
+                            <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight">{{ $comparison['user']->agency->name ?? 'Siège' }}</p>
+                            <p class="text-[8px] font-bold text-slate-400 uppercase">Division {{ $comparison['user']->agency->city ?? 'Centrale' }}</p>
                         </td>
                         @endforeach
                     </tr>
 
-                    <!-- Séparateur Clients -->
-                    <tr class="bg-blue-50">
-                        <td colspan="{{ count($comparisons) + 1 }}" class="px-6 py-3">
-                            <h3 class="font-bold text-blue-800">
-                                <i class="mr-2 fas fa-users"></i>CLIENTS
-                            </h3>
-                        </td>
+                    <!-- Infrastructure des Adhérents -->
+                    <tr class="bg-blue-50/50">
+                        <td colspan="{{ count($comparisons) + 1 }}" class="px-8 py-2 text-[8px] font-black text-blue-700 uppercase tracking-[0.2em]">Infrastructure des Adhérents</td>
                     </tr>
-
-                    <!-- Total Clients -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Total clients
-                        </td>
-                        @php
-                            $maxClients = collect($comparisons)->max('clients_total');
-                        @endphp
+                    
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="sticky left-0 z-20 px-8 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white border-r border-slate-100">Total Entités Capturées</td>
+                        @php $maxClients = collect($comparisons)->max('clients_total'); @endphp
                         @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg {{ $comparison['clients_total'] == $maxClients ? 'bg-green-100' : 'bg-gray-100' }}">
-                                <span class="text-2xl font-bold {{ $comparison['clients_total'] == $maxClients ? 'text-green-700' : 'text-gray-800' }}">
-                                    {{ number_format($comparison['clients_total']) }}
-                                </span>
-                                @if($comparison['clients_total'] == $maxClients)
-                                <i class="text-yellow-500 fas fa-crown"></i>
-                                @endif
+                        <td class="px-8 py-6 text-center border-r border-slate-100 last:border-r-0">
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl {{ $comparison['clients_total'] == $maxClients ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-800 border border-slate-100' }}">
+                                <span class="text-xl font-black">{{ number_format($comparison['clients_total']) }}</span>
+                                @if($comparison['clients_total'] == $maxClients) <i class="fas fa-crown text-[10px] text-amber-500"></i> @endif
                             </div>
                         </td>
                         @endforeach
                     </tr>
 
-                    <!-- Clients créés (période) -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Clients créés (période)
-                        </td>
-                        @php
-                            $maxClientsPeriod = collect($comparisons)->max('clients_period');
-                        @endphp
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="sticky left-0 z-20 px-8 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white border-r border-slate-100">Validation Conforme (KYC)</td>
                         @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <span class="text-xl font-bold {{ $comparison['clients_period'] == $maxClientsPeriod ? 'text-green-600' : 'text-gray-800' }}">
-                                {{ number_format($comparison['clients_period']) }}
-                            </span>
+                        <td class="px-8 py-6 text-center border-r border-slate-100 last:border-r-0">
+                            <p class="text-lg font-black text-slate-800">{{ number_format($comparison['clients_approved']) }}</p>
+                            <p class="text-[8px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">{{ $comparison['clients_total'] > 0 ? round(($comparison['clients_approved'] / $comparison['clients_total']) * 100) : 0 }}% de Saturation</p>
                         </td>
                         @endforeach
                     </tr>
 
-                    <!-- KYC Approuvés -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            KYC Approuvés
-                        </td>
+                    <!-- Supervision du Portefeuille -->
+                    <tr class="bg-emerald-50/50">
+                        <td colspan="{{ count($comparisons) + 1 }}" class="px-8 py-2 text-[8px] font-black text-emerald-700 uppercase tracking-[0.2em]">Supervision du Portefeuille</td>
+                    </tr>
+
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="sticky left-0 z-20 px-8 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white border-r border-slate-100">comptes d'Actifs Sécurisés</td>
+                        @php $maxAccounts = collect($comparisons)->max('accounts_total'); @endphp
                         @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <div class="space-y-1">
-                                <span class="text-xl font-bold text-green-600">{{ number_format($comparison['clients_approved']) }}</span>
-                                @if($comparison['clients_total'] > 0)
-                                <p class="text-xs text-gray-500">
-                                    {{ round(($comparison['clients_approved'] / $comparison['clients_total']) * 100) }}% du total
-                                </p>
-                                @endif
+                        <td class="px-8 py-6 text-center border-r border-slate-100 last:border-r-0">
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl {{ $comparison['accounts_total'] == $maxAccounts ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-800 border border-slate-100' }}">
+                                <span class="text-xl font-black">{{ number_format($comparison['accounts_total']) }}</span>
                             </div>
                         </td>
                         @endforeach
                     </tr>
 
-                    <!-- Séparateur Comptes -->
-                    <tr class="bg-green-50">
-                        <td colspan="{{ count($comparisons) + 1 }}" class="px-6 py-3">
-                            <h3 class="font-bold text-green-800">
-                                <i class="mr-2 fas fa-wallet"></i>COMPTES
-                            </h3>
-                        </td>
+                    <!-- Débit Opérationnel -->
+                    <tr class="bg-purple-50/50">
+                        <td colspan="{{ count($comparisons) + 1 }}" class="px-8 py-2 text-[8px] font-black text-purple-700 uppercase tracking-[0.2em]">Débit Opérationnel (Fenêtre d'Audit)</td>
                     </tr>
 
-                    <!-- Total Comptes -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Total comptes
-                        </td>
-                        @php
-                            $maxAccounts = collect($comparisons)->max('accounts_total');
-                        @endphp
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="sticky left-0 z-20 px-8 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white border-r border-slate-100">Volume de Commandes Ops</td>
+                        @php $maxTrans = collect($comparisons)->max('transactions_count'); @endphp
                         @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg {{ $comparison['accounts_total'] == $maxAccounts ? 'bg-green-100' : 'bg-gray-100' }}">
-                                <span class="text-2xl font-bold {{ $comparison['accounts_total'] == $maxAccounts ? 'text-green-700' : 'text-gray-800' }}">
-                                    {{ number_format($comparison['accounts_total']) }}
-                                </span>
-                                @if($comparison['accounts_total'] == $maxAccounts)
-                                <i class="text-yellow-500 fas fa-crown"></i>
-                                @endif
+                        <td class="px-8 py-6 text-center border-r border-slate-100 last:border-r-0">
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl {{ $comparison['transactions_count'] == $maxTrans ? 'bg-purple-50 text-purple-700 border border-purple-100' : 'bg-slate-50 text-slate-800 border border-slate-100' }}">
+                                <span class="text-xl font-black">{{ number_format($comparison['transactions_count']) }}</span>
                             </div>
                         </td>
                         @endforeach
                     </tr>
 
-                    <!-- Comptes Actifs -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Comptes actifs
-                        </td>
+                    <tr class="hover:bg-slate-50/30 transition-colors">
+                        <td class="sticky left-0 z-20 px-8 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white border-r border-slate-100">Flux de Capital Cumulé</td>
+                        @php $maxAmt = collect($comparisons)->max('transactions_amount'); @endphp
                         @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <div class="space-y-1">
-                                <span class="text-xl font-bold text-green-600">{{ number_format($comparison['accounts_active']) }}</span>
-                                @if($comparison['accounts_total'] > 0)
-                                <p class="text-xs text-gray-500">
-                                    {{ round(($comparison['accounts_active'] / $comparison['accounts_total']) * 100) }}% du total
-                                </p>
-                                @endif
-                            </div>
-                        </td>
-                        @endforeach
-                    </tr>
-
-                    <!-- Séparateur Transactions -->
-                    <tr class="bg-purple-50">
-                        <td colspan="{{ count($comparisons) + 1 }}" class="px-6 py-3">
-                            <h3 class="font-bold text-purple-800">
-                                <i class="mr-2 fas fa-exchange-alt"></i>TRANSACTIONS (Période)
-                            </h3>
-                        </td>
-                    </tr>
-
-                    <!-- Nombre de transactions -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Nombre de transactions
-                        </td>
-                        @php
-                            $maxTransactions = collect($comparisons)->max('transactions_count');
-                        @endphp
-                        @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg {{ $comparison['transactions_count'] == $maxTransactions ? 'bg-purple-100' : 'bg-gray-100' }}">
-                                <span class="text-2xl font-bold {{ $comparison['transactions_count'] == $maxTransactions ? 'text-purple-700' : 'text-gray-800' }}">
-                                    {{ number_format($comparison['transactions_count']) }}
-                                </span>
-                                @if($comparison['transactions_count'] == $maxTransactions)
-                                <i class="text-yellow-500 fas fa-crown"></i>
-                                @endif
-                            </div>
-                        </td>
-                        @endforeach
-                    </tr>
-
-                    <!-- Dépôts -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Dépôts
-                        </td>
-                        @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <span class="text-lg font-bold text-green-600">{{ number_format($comparison['deposits_count']) }}</span>
-                        </td>
-                        @endforeach
-                    </tr>
-
-                    <!-- Retraits -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Retraits
-                        </td>
-                        @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <span class="text-lg font-bold text-red-600">{{ number_format($comparison['withdrawals_count']) }}</span>
-                        </td>
-                        @endforeach
-                    </tr>
-
-                    <!-- Séparateur Montants -->
-                    <tr class="bg-orange-50">
-                        <td colspan="{{ count($comparisons) + 1 }}" class="px-6 py-3">
-                            <h3 class="font-bold text-orange-800">
-                                <i class="mr-2 fas fa-coins"></i>MONTANTS (Période)
-                            </h3>
-                        </td>
-                    </tr>
-
-                    <!-- Montant total traité -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Montant total traité
-                        </td>
-                        @php
-                            $maxAmount = collect($comparisons)->max('transactions_amount');
-                        @endphp
-                        @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <div class="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-lg {{ $comparison['transactions_amount'] == $maxAmount ? 'bg-orange-100' : 'bg-gray-100' }}">
-                                <span class="text-xl font-bold {{ $comparison['transactions_amount'] == $maxAmount ? 'text-orange-700' : 'text-gray-800' }}">
-                                    {{ number_format($comparison['transactions_amount'], 0, ',', ' ') }}
-                                </span>
-                                <span class="text-xs text-gray-600">FCFA</span>
-                                @if($comparison['transactions_amount'] == $maxAmount)
-                                <i class="mt-1 text-yellow-500 fas fa-crown"></i>
-                                @endif
-                            </div>
-                        </td>
-                        @endforeach
-                    </tr>
-
-                    <!-- Transaction moyenne -->
-                    <tr class="hover:bg-gray-50">
-                        <td class="sticky left-0 z-10 px-6 py-4 font-medium text-gray-700 bg-gray-50">
-                            Transaction moyenne
-                        </td>
-                        @foreach($comparisons as $comparison)
-                        <td class="px-6 py-4 text-center">
-                            <div class="space-y-1">
-                                <span class="text-lg font-bold text-blue-600">
-                                    {{ number_format($comparison['avg_transaction'], 0, ',', ' ') }}
-                                </span>
-                                <p class="text-xs text-gray-500">FCFA</p>
+                        <td class="px-8 py-6 text-center border-r border-slate-100 last:border-r-0">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-lg font-black {{ $comparison['transactions_amount'] == $maxAmt ? 'text-blue-600' : 'text-slate-800' }}">{{ number_format($comparison['transactions_amount'], 0, ',', ' ') }}</span>
+                                <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Matrice XOF</span>
                             </div>
                         </td>
                         @endforeach
@@ -312,227 +150,139 @@
         </div>
     </div>
 
-    <!-- Graphiques de comparaison -->
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <!-- Graphique Clients -->
-        <div class="p-6 bg-white shadow-sm rounded-xl">
-            <h3 class="mb-4 text-lg font-bold text-gray-800">
-                <i class="mr-2 text-blue-600 fas fa-users"></i>
-                Comparaison Clients
+    <!-- Visualiseurs Comparatifs -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bank-card p-8">
+            <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-6 block flex items-center gap-2">
+                <i class="fas fa-users-viewfinder text-blue-600"></i> Comparaison de Capture d'Entités
             </h3>
-            <div class="h-64">
-                <canvas id="clientsChart"></canvas>
-            </div>
+            <div class="h-80"><canvas id="clientsChart"></canvas></div>
         </div>
 
-        <!-- Graphique Comptes -->
-        <div class="p-6 bg-white shadow-sm rounded-xl">
-            <h3 class="mb-4 text-lg font-bold text-gray-800">
-                <i class="mr-2 text-green-600 fas fa-wallet"></i>
-                Comparaison Comptes
+        <div class="bank-card p-8">
+            <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-6 block flex items-center gap-2">
+                <i class="fas fa-money-bill-transfer text-purple-600"></i> Équilibre du Poids Opérationnel
             </h3>
-            <div class="h-64">
-                <canvas id="accountsChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Graphique Transactions -->
-        <div class="p-6 bg-white shadow-sm rounded-xl">
-            <h3 class="mb-4 text-lg font-bold text-gray-800">
-                <i class="mr-2 text-purple-600 fas fa-exchange-alt"></i>
-                Comparaison Transactions
-            </h3>
-            <div class="h-64">
-                <canvas id="transactionsChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Graphique Montants -->
-        <div class="p-6 bg-white shadow-sm rounded-xl">
-            <h3 class="mb-4 text-lg font-bold text-gray-800">
-                <i class="mr-2 text-orange-600 fas fa-coins"></i>
-                Comparaison Montants
-            </h3>
-            <div class="h-64">
-                <canvas id="amountsChart"></canvas>
-            </div>
+            <div class="h-80"><canvas id="amountsChart"></canvas></div>
         </div>
     </div>
 
-    <!-- Analyse comparative -->
-    <div class="p-6 bg-white shadow-sm rounded-xl">
-        <h3 class="mb-4 text-lg font-bold text-gray-800">
-            <i class="mr-2 text-indigo-600 fas fa-chart-bar"></i>
-            Analyse Comparative
-        </h3>
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-            @php
-                $topPerformer = collect($comparisons)->sortByDesc('transactions_amount')->first();
-                $mostActive = collect($comparisons)->sortByDesc('transactions_count')->first();
-                $bestAcquisition = collect($comparisons)->sortByDesc('clients_period')->first();
-            @endphp
+    <!-- Perspectives d'Intelligence Stratégique -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        @php
+            $topVal = collect($comparisons)->sortByDesc('transactions_amount')->first();
+            $topOps = collect($comparisons)->sortByDesc('transactions_count')->first();
+            $topAcq = collect($comparisons)->sortByDesc('clients_period')->first();
+        @endphp
 
-            <div class="p-4 border border-yellow-200 rounded-lg bg-gradient-to-br from-yellow-50 to-orange-50">
-                <div class="flex items-center gap-3 mb-3">
-                    <i class="text-3xl text-yellow-500 fas fa-trophy"></i>
-                    <div>
-                        <p class="text-sm text-gray-600">Meilleur Performer</p>
-                        <p class="font-bold text-gray-800">{{ $topPerformer['user']->full_name }}</p>
-                    </div>
+        <div class="bank-card p-6 border-l-4 border-l-amber-400 bg-slate-50/50">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-amber-500 border border-slate-100">
+                    <i class="fas fa-medal text-xl"></i>
                 </div>
-                <p class="text-2xl font-bold text-orange-600">{{ number_format($topPerformer['transactions_amount'], 0, ',', ' ') }} FCFA</p>
-                <p class="mt-1 text-xs text-gray-500">Volume de transactions le plus élevé</p>
+                <div>
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Lead Actifs du Capital</p>
+                    <h4 class="text-sm font-black text-slate-800">{{ $topVal['user']->full_name }}</h4>
+                </div>
             </div>
+            <p class="text-2xl font-black text-slate-900 leading-none">{{ number_format($topVal['transactions_amount'], 0, ',', ' ') }} <small class="text-xs text-slate-400">XOF</small></p>
+        </div>
 
-            <div class="p-4 border border-blue-200 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50">
-                <div class="flex items-center gap-3 mb-3">
-                    <i class="text-3xl text-blue-500 fas fa-bolt"></i>
-                    <div>
-                        <p class="text-sm text-gray-600">Plus Actif</p>
-                        <p class="font-bold text-gray-800">{{ $mostActive['user']->full_name }}</p>
-                    </div>
+        <div class="bank-card p-6 border-l-4 border-l-blue-400 bg-slate-50/50">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-blue-500 border border-slate-100">
+                    <i class="fas fa-gauge-high text-xl"></i>
                 </div>
-                <p class="text-2xl font-bold text-blue-600">{{ number_format($mostActive['transactions_count']) }}</p>
-                <p class="mt-1 text-xs text-gray-500">Nombre de transactions effectuées</p>
+                <div>
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Lead Efficacité</p>
+                    <h4 class="text-sm font-black text-slate-800">{{ $topOps['user']->full_name }}</h4>
+                </div>
             </div>
+            <p class="text-2xl font-black text-slate-900 leading-none">{{ number_format($topOps['transactions_count']) }} <small class="text-xs text-slate-400">Ops</small></p>
+        </div>
 
-            <div class="p-4 border border-green-200 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50">
-                <div class="flex items-center gap-3 mb-3">
-                    <i class="text-3xl text-green-500 fas fa-user-plus"></i>
-                    <div>
-                        <p class="text-sm text-gray-600">Meilleure Acquisition</p>
-                        <p class="font-bold text-gray-800">{{ $bestAcquisition['user']->full_name }}</p>
-                    </div>
+        <div class="bank-card p-6 border-l-4 border-l-emerald-400 bg-slate-50/50">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-500 border border-slate-100">
+                    <i class="fas fa-chart-line text-xl"></i>
                 </div>
-                <p class="text-2xl font-bold text-green-600">{{ number_format($bestAcquisition['clients_period']) }}</p>
-                <p class="mt-1 text-xs text-gray-500">Nouveaux clients sur la période</p>
+                <div>
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Alpha d'Acquisition</p>
+                    <h4 class="text-sm font-black text-slate-800">{{ $topAcq['user']->full_name }}</h4>
+                </div>
             </div>
+            <p class="text-2xl font-black text-slate-900 leading-none">{{ number_format($topAcq['clients_period']) }} <small class="text-xs text-slate-400">Entités</small></p>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const userNames = {!! json_encode(collect($comparisons)->pluck('user.full_name')) !!};
-const colors = [
-    'rgb(59, 130, 246)',
-    'rgb(168, 85, 247)',
-    'rgb(34, 197, 94)',
-    'rgb(249, 115, 22)',
-    'rgb(236, 72, 153)'
-];
+    const userNames = {!! json_encode(collect($comparisons)->pluck('user.full_name')) !!};
+    const institutionalPalette = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
-// Graphique Clients
-new Chart(document.getElementById('clientsChart'), {
-    type: 'bar',
-    data: {
-        labels: userNames,
-        datasets: [{
-            label: 'Total Clients',
-            data: {!! json_encode(collect($comparisons)->pluck('clients_total')) !!},
-            backgroundColor: colors[0],
-        }, {
-            label: 'KYC Approuvés',
-            data: {!! json_encode(collect($comparisons)->pluck('clients_approved')) !!},
-            backgroundColor: colors[2],
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' }
-        }
-    }
-});
+    // Visual Theme Config
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.weight = '700';
+    Chart.defaults.font.size = 10;
 
-// Graphique Comptes
-new Chart(document.getElementById('accountsChart'), {
-    type: 'bar',
-    data: {
-        labels: userNames,
-        datasets: [{
-            label: 'Total Comptes',
-            data: {!! json_encode(collect($comparisons)->pluck('accounts_total')) !!},
-            backgroundColor: colors[1],
-        }, {
-            label: 'Comptes Actifs',
-            data: {!! json_encode(collect($comparisons)->pluck('accounts_active')) !!},
-            backgroundColor: colors[2],
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' }
-        }
-    }
-});
-
-// Graphique Transactions
-new Chart(document.getElementById('transactionsChart'), {
-    type: 'bar',
-    data: {
-        labels: userNames,
-        datasets: [{
-            label: 'Total Transactions',
-            data: {!! json_encode(collect($comparisons)->pluck('transactions_count')) !!},
-            backgroundColor: colors[1],
-        }, {
-            label: 'Dépôts',
-            data: {!! json_encode(collect($comparisons)->pluck('deposits_count')) !!},
-            backgroundColor: colors[2],
-        }, {
-            label: 'Retraits',
-            data: {!! json_encode(collect($comparisons)->pluck('withdrawals_count')) !!},
-            backgroundColor: colors[3],
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' }
-        }
-    }
-});
-
-// Graphique Montants
-new Chart(document.getElementById('amountsChart'), {
-    type: 'bar',
-    data: {
-        labels: userNames,
-        datasets: [{
-            label: 'Montant Total (FCFA)',
-            data: {!! json_encode(collect($comparisons)->pluck('transactions_amount')) !!},
-            backgroundColor: colors[3],
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' }
+    // Comparaison Clients
+    new Chart(document.getElementById('clientsChart'), {
+        type: 'bar',
+        data: {
+            labels: userNames,
+            datasets: [{
+                label: 'Capture Totale',
+                data: {!! json_encode(collect($comparisons)->pluck('clients_total')) !!},
+                backgroundColor: institutionalPalette[0],
+                borderRadius: 4
+            }, {
+                label: 'Vérifiés (KYC)',
+                data: {!! json_encode(collect($comparisons)->pluck('clients_approved')) !!},
+                backgroundColor: institutionalPalette[2],
+                borderRadius: 4
+            }]
         },
-        scales: {
-            y: {
-                ticks: {
-                    callback: function(value) {
-                        return new Intl.NumberFormat('fr-FR').format(value) + ' FCFA';
-                    }
-                }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 20 } } },
+            scales: { y: { grid: { color: 'rgba(0,0,0,0.03)' } }, x: { grid: { display: false } } }
+        }
+    });
+
+    // Comparaison Montants
+    new Chart(document.getElementById('amountsChart'), {
+        type: 'bar',
+        data: {
+            labels: userNames,
+            datasets: [{
+                label: 'Volume du flux d\'actifs (XOF)',
+                data: {!! json_encode(collect($comparisons)->pluck('transactions_amount')) !!},
+                backgroundColor: institutionalPalette[1],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { 
+                y: { 
+                    grid: { color: 'rgba(0,0,0,0.03)' },
+                    ticks: { callback: v => new Intl.NumberFormat('fr-FR').format(v) }
+                }, 
+                x: { grid: { display: false } } 
             }
         }
-    }
-});
+    });
 </script>
 
 <style>
-@media print {
-    .no-print {
-        display: none !important;
+    @media print {
+        .no-print { display: none !important; }
+        .bank-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+        .sticky { position: static !important; }
     }
-}
 </style>
 @endsection

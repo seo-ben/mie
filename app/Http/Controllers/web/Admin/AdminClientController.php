@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\web\Admin;
+namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class AdminClientController extends Controller
@@ -22,14 +23,15 @@ class AdminClientController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
         $query = Client::query()
             ->with(['accounts', 'agency', 'registeredBy']);
 
-        // Filtrage selon le rôle
-        if ($user->role !== 'administrateur_systeme') {
-            $query->where('registered_by', $user->id);
+        // Filtrage par Agence (Isolation Multi-Agence)
+        if ($user->role !== 'administrateur_systeme' && $user->role !== 'administrateur_reglementaire') {
+            $query->where('agency_id', $user->agency_id);
         }
 
         // Recherche
@@ -63,9 +65,11 @@ class AdminClientController extends Controller
      */
     public function create()
     {
-        $agencies = auth()->user()->role === 'administrateur_systeme'
+        /** @var User $user */
+        $user = Auth::user();
+        $agencies = $user->role === 'administrateur_systeme'
             ? Agency::all()
-            : collect([auth()->user()->agency]);
+            : collect([$user->agency]);
 
         return view('admin.clients.create', compact('agencies'));
     }
@@ -84,15 +88,17 @@ class AdminClientController extends Controller
             $clientData['client_number'] = $this->generateClientNumber();
 
             // Informations d'enregistrement
-            $clientData['registered_by'] = auth()->id();
-            $clientData['agency_id'] = $request->agency_id ?? auth()->user()->agency_id;
+            $clientData['registered_by'] = Auth::id();
+            $clientData['agency_id'] = $request->agency_id ?? (Auth::user()->agency_id ?? null);
             $clientData['registration_channel'] = 'agent_assisted';
             $clientData['registration_status'] = 'pending';
             $clientData['kyc_status'] = 'pending';
 
-            // Hash du mot de passe
-            if (isset($clientData['password'])) {
+            // Hash du mot de passe (par défaut 12@4 si non fourni)
+            if (!empty($clientData['password'])) {
                 $clientData['password'] = Hash::make($clientData['password']);
+            } else {
+                $clientData['password'] = Hash::make('12@4');
             }
 
             // Upload de la photo de profil
@@ -122,19 +128,25 @@ class AdminClientController extends Controller
     /**
      * Afficher un client spécifique
      */
-    public function show($clientId)
+    public function show(Client $client)
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
+        if ($user->role !== 'administrateur_systeme' && $user->role !== 'administrateur_reglementaire') {
+            if ($client->agency_id !== $user->agency_id) {
+                abort(403);
+            }
+        }
 
         // Charger le client avec ses relations et l'utilisateur qui a approuvé le KYC
-        $client = Client::with([
+        $client->load([
             'accounts',
             'loans',
             'documents',
             'agency',
             'registeredBy',
             'approvedBy' // relation vers l'utilisateur qui a approuvé le KYC
-        ])->findOrFail($clientId);
+        ]);
 
         // Calcul du résumé financier
         $totalSavings = $client->accounts->where('account_type', 'savings')->sum('balance');
@@ -160,18 +172,19 @@ class AdminClientController extends Controller
     /**
      * Formulaire d'édition d'un client
      */
-    public function edit($clientId)
+    public function edit(Client $client)
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
+        if ($user->role !== 'administrateur_systeme' && $user->role !== 'administrateur_reglementaire') {
+            if ($client->agency_id !== $user->agency_id) {
+                abort(403);
+            }
+        }
 
-        $client = Client::when($user->role !== 'administrateur_systeme', function($q) use ($user) {
-                return $q->where('registered_by', $user->id);
-            })
-            ->findOrFail($clientId);
-
-        $agencies = auth()->user()->role === 'administrateur_systeme'
+        $agencies = $user->role === 'administrateur_systeme'
             ? Agency::all()
-            : collect([auth()->user()->agency]);
+            : collect([$user->agency]);
 
         return view('admin.clients.edit', compact('client', 'agencies'));
     }
@@ -185,11 +198,12 @@ class AdminClientController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            /** @var User $user */
+            $user = Auth::user();
 
             // Récupérer le client selon le rôle de l'utilisateur
-            $client = Client::when($user->role !== 'administrateur_systeme', function($query) use ($user) {
-                    return $query->where('registered_by', $user->id);
+            $client = Client::when($user->role !== 'administrateur_systeme' && $user->role !== 'administrateur_reglementaire', function($query) use ($user) {
+                    return $query->where('agency_id', $user->agency_id);
                 })
                 ->findOrFail($clientId);
 
@@ -214,7 +228,35 @@ class AdminClientController extends Controller
             // Mise à jour des données
             $client->update($updateData);
 
+            // Auto-validation KYC si demandée par le flux spécial
+            if ($request->has('force_kyc_validation')) {
+                // Vérifier les champs requis pour le KYC
+                $isKycComplete = !empty($client->date_of_birth) && 
+                                !empty($client->gender) && 
+                                !empty($client->address) && 
+                                !empty($client->city) && 
+                                !empty($client->id_type) && 
+                                !empty($client->id_number);
+
+                if ($isKycComplete) {
+                    $client->update([
+                        'kyc_status' => 'approved',
+                        'kyc_approved_at' => now(),
+                        'kyc_expiry_date' => now()->addYears(2),
+                        'kyc_approved_by' => auth()->id(),
+                        'registration_status' => 'approved',
+                    ]);
+                }
+            }
+
             DB::commit();
+
+            // Redirection intelligente : si on vient du flux prêt, on tente de repartir vers le prêt
+            if ($request->has('force_kyc_validation') && $client->kyc_status === 'approved') {
+                return redirect()
+                    ->route('admin.loans.create', ['client_id' => $client->id])
+                    ->with('success', 'Dossier client validé et KYC approuvé. Vous pouvez maintenant initier le prêt.');
+            }
 
             return redirect()
                 ->route('admin.clients.show', $clientId)
@@ -248,7 +290,8 @@ class AdminClientController extends Controller
      */
     public function activationForm($clientId)
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
         $client = Client::when($user->role !== 'administrateur_systeme', function($q) use ($user) {
                 return $q->where('registered_by', $user->id);
@@ -285,7 +328,8 @@ class AdminClientController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            /** @var User $user */
+            $user = Auth::user();
 
             $client = Client::when($user->role !== 'administrateur_systeme', function($q) use ($user) {
                     return $q->where('registered_by', $user->id);
@@ -487,23 +531,37 @@ class AdminClientController extends Controller
      */
     public function approveKyc(Request $request, $clientId)
     {
+        $validated = $request->validate([
+            'date_of_birth'  => 'required|date',
+            'gender'         => 'required|in:M,F,Other',
+            'address'        => 'required|string|max:255',
+            'city'           => 'required|string|max:255',
+            'id_type'        => 'required|in:cni,passport,driving_license,other',
+            'id_number'      => 'required|string|max:255',
+            'id_expiry_date' => 'nullable|date',
+            'monthly_income' => 'nullable|numeric',
+        ], [
+            'date_of_birth.required' => 'La date de naissance est obligatoire pour valider le KYC.',
+            'gender.required'        => 'Le genre est obligatoire pour valider le KYC.',
+            'address.required'       => 'L\'adresse est obligatoire pour valider le KYC.',
+            'city.required'          => 'La ville est obligatoire pour valider le KYC.',
+            'id_type.required'       => 'Le type de pièce est obligatoire pour valider le KYC.',
+            'id_number.required'     => 'Le numéro de pièce est obligatoire pour valider le KYC.',
+        ]);
+
         try {
+            DB::beginTransaction();
             $client = Client::findOrFail($clientId);
 
-            // $client->update([
-            //     'kyc_status' => 'approved',
-            //     'kyc_approved_at' => now(),
-            //     'kyc_approved_by' => auth()->id(),
-            //     'registration_status' => 'approved',
-            //     'is_active' => true
-            // ]);
-
-            $client->update([
+            $client->update(array_merge($validated, [
                 'kyc_status' => 'approved',
                 'kyc_approved_at' => now(),
+                'kyc_expiry_date' => now()->addYears(2),
                 'kyc_approved_by' => auth()->id(),
                 'registration_status' => 'approved',
-            ]);
+            ]));
+
+            DB::commit();
 
 
             return redirect()

@@ -1,1228 +1,579 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Créer un Compte')
+@section('title', 'Injection de Capital Institutionnel')
+@section('page-title', 'Trésorerie / Traitement des Dépôts')
 
 @section('content')
-<div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-    <!-- ===== EN-TÊTE ===== -->
-    <div class="mb-6">
-        <h1 class="mb-2 text-3xl font-bold text-gray-900">
-            <i class="mr-2 text-yellow-500 fas fa-bolt animate-pulse"></i>Dépôt Rapide
-        </h1>
-        <p class="text-gray-600">Recherchez un compte et effectuez un dépôt instantanément</p>
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Terminal de Traitement des Flux</h2>
+            <p class="text-slate-500 text-sm font-medium">Injection fiscale en temps réel dans les portefeuilles actifs</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-extrabold rounded-full border border-emerald-100 uppercase tracking-tighter">
+                <i class="fas fa-shield-halved mr-1"></i> Protocole Sécurisé Actif
+            </span>
+        </div>
     </div>
 
-    <!-- ===== LAYOUT PRINCIPAL : 2 COLONNES ===== -->
-    <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-3">
-
-        <!-- ===== COLONNE GAUCHE : RECHERCHE ===== -->
-        <div class="lg:col-span-1">
-            <div class="sticky bg-white rounded-lg shadow-sm top-4">
-                <div class="p-6">
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        <i class="mr-2 text-blue-600 fas fa-search"></i>Rechercher un compte
-                    </label>
+    <!-- Grille Opérationnelle Principale -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Panneau de Recherche & Contrôle -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bank-card p-6 sticky top-24">
+                <div class="mb-6">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Identification du compte Cible</label>
                     <div class="relative">
-                        <input type="text"
-                               id="searchInput"
-                               class="w-full px-4 py-3 pl-12 transition-all border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Nom, numéro, téléphone..."
-                               autocomplete="off"
-                               autofocus>
-                        <i class="absolute text-gray-400 fas fa-search left-4 top-4"></i>
-                        <div id="searchSpinner" class="absolute hidden right-4 top-4">
-                            <i class="text-blue-600 fas fa-circle-notch fa-spin"></i>
+                        <input type="text" id="searchInput" class="bank-input pl-10 pr-4 py-3 text-sm" placeholder="N° de compte, Nom de l'Adhérent..." autocomplete="off" autofocus>
+                        <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <div id="searchSpinner" class="absolute right-4 top-1/2 -translate-y-1/2 hidden">
+                            <i class="fas fa-circle-notch fa-spin text-blue-600 text-xs"></i>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Instructions -->
-                    <div class="p-4 mt-4 border border-blue-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
-                        <p class="mb-2 text-sm font-semibold text-blue-800">
-                            <i class="mr-1 fas fa-info-circle"></i>Comment rechercher ?
-                        </p>
-                        <ul class="text-xs text-blue-700 space-y-1.5">
-                            <li class="flex items-center">
-                                <i class="mr-2 text-blue-500 fas fa-check-circle"></i>
-                                Numéro de compte
+                <div class="space-y-4">
+                    <div class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                        <h4 class="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-2">Protocole d'Audit de Recherche</h4>
+                        <ul class="space-y-2">
+                            <li class="flex items-start gap-2 text-[10px] font-bold text-blue-700">
+                                <i class="fas fa-check-circle mt-0.5 text-[8px]"></i>
+                                <span>Utiliser l'identité complète pour une résolution précise</span>
                             </li>
-                            <li class="flex items-center">
-                                <i class="mr-2 text-blue-500 fas fa-check-circle"></i>
-                                Numéro client
-                            </li>
-                            <li class="flex items-center">
-                                <i class="mr-2 text-blue-500 fas fa-check-circle"></i>
-                                Nom du client
-                            </li>
-                            <li class="flex items-center">
-                                <i class="mr-2 text-blue-500 fas fa-check-circle"></i>
-                                Numéro de téléphone
+                            <li class="flex items-start gap-2 text-[10px] font-bold text-blue-700">
+                                <i class="fas fa-check-circle mt-0.5 text-[8px]"></i>
+                                <span>Vérifier la concordance avec les registres fiscaux</span>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Raccourcis -->
-                    <div class="pt-4 mt-4 border-t border-gray-200">
-                        <p class="mb-2 text-xs font-semibold tracking-wide text-gray-500">RACCOURCIS</p>
-                        <button onclick="focusSearch()"
-                                class="flex items-center w-full px-3 py-2 text-sm text-left text-gray-700 transition-colors rounded-lg hover:bg-blue-50">
-                            <i class="mr-2 text-gray-400 fas fa-keyboard"></i>Focus recherche (Ctrl+K)
+                    <div class="flex flex-col gap-2 pt-2">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Contrôles Opérationnels</p>
+                        <button onclick="focusSearch()" class="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-white hover:border-blue-200 transition">
+                            <span>Focus Entrée Audit</span>
+                            <span class="px-1.5 py-0.5 bg-slate-200 rounded text-[8px]">CTRL+K</span>
                         </button>
-                        <button onclick="resetAll()"
-                                class="flex items-center w-full px-3 py-2 mt-1 text-sm text-left text-gray-700 transition-colors rounded-lg hover:bg-red-50">
-                            <i class="mr-2 text-gray-400 fas fa-redo"></i>Réinitialiser tout
+                        <button onclick="resetAll()" class="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-red-50 hover:text-red-700 hover:border-red-100 transition">
+                            <span>Purger l'État du Terminal</span>
+                            <i class="fas fa-rotate text-[8px]"></i>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ===== COLONNE DROITE : RÉSULTATS ===== -->
-        <div class="lg:col-span-2">
-            <!-- État initial -->
-            <div id="initialState" class="bg-white rounded-lg shadow-sm">
-                <div class="p-12 text-center">
-                    <div class="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-full shadow-lg bg-gradient-to-br from-blue-100 to-indigo-100">
-                        <i class="text-5xl text-blue-600 fas fa-search"></i>
-                    </div>
-                    <h3 class="mb-2 text-xl font-bold text-gray-900">Recherchez un compte</h3>
-                    <p class="mb-6 text-gray-500">Entrez au moins 2 caractères pour démarrer la recherche</p>
-                    <div class="flex justify-center gap-6 text-sm text-gray-600">
-                        <div class="flex items-center px-4 py-2 rounded-full bg-cyan-50">
-                            <i class="mr-2 fas fa-piggy-bank text-cyan-600"></i>Épargne
-                        </div>
-                        <div class="flex items-center px-4 py-2 rounded-full bg-purple-50">
-                            <i class="mr-2 text-purple-600 fas fa-users"></i>Tontine
-                        </div>
-                    </div>
+        <!-- Zone d'Affichage Dynamique & Formulaire -->
+        <div class="lg:col-span-8 space-y-8">
+            
+            <!-- État Initial -->
+            <div id="initialState" class="bank-card p-16 text-center">
+                <div class="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-300">
+                    <i class="fas fa-vault text-2xl"></i>
                 </div>
+                <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-2">Registre en Attente</h3>
+                <p class="text-xs text-slate-400 font-medium max-w-xs mx-auto">Recherchez un adhérent pour activer le protocole d'injection fiscale</p>
             </div>
 
-            <!-- Résultats de recherche -->
-            <div id="searchResults" class="hidden">
-                <div class="bg-white rounded-lg shadow-sm">
-                    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-bold text-gray-900">
-                                <i class="mr-2 text-blue-600 fas fa-list"></i>Résultats de recherche
-                            </h3>
-                            <span id="resultsCount" class="text-sm font-semibold text-blue-600"></span>
+            <!-- Matrice des Résultats de Recherche -->
+            <div id="searchResults" class="hidden bank-card overflow-hidden">
+                <div class="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="text-[10px] font-black text-slate-700 uppercase tracking-widest">Matrice des comptes Identifiés</h3>
+                    <span id="resultsCount" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded"></span>
+                </div>
+                <div class="p-4 space-y-4" id="accountsList"></div>
+            </div>
+
+            <!-- Message Matrice Vide -->
+            <div id="emptyMessage" class="hidden bank-card p-16 text-center border-dashed border-2">
+                <i class="fas fa-inbox text-3xl text-slate-200 mb-4 block"></i>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aucun compte correspondant dans le registre</p>
+            </div>
+
+            <!-- TERMINAL D'INJECTION FISCALE (Formulaire Principal) -->
+            <div id="depositFormContainer" class="hidden transition-all duration-500 transform translate-y-4">
+                <div id="accountInfoCard" class="mb-6"></div>
+
+                <div class="bank-card overflow-hidden shadow-2xl border-emerald-100">
+                    <div class="px-8 py-5 bg-emerald-600 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-lg">
+                            <i class="fas fa-money-bill-transfer"></i>
                         </div>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-4" id="accountsList"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Message vide -->
-            <div id="emptyMessage" class="hidden bg-white rounded-lg shadow-sm">
-                <div class="p-12 text-center">
-                    <div class="inline-flex items-center justify-center w-24 h-24 mb-6 bg-gray-100 rounded-full">
-                        <i class="text-5xl text-gray-400 fas fa-inbox"></i>
-                    </div>
-                    <h3 class="mb-2 text-xl font-bold text-gray-900">Aucun compte trouvé</h3>
-                    <p class="text-gray-500">Essayez avec d'autres critères de recherche</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== FORMULAIRE DE DÉPÔT (en bas) ===== -->
-    <div id="depositFormContainer" class="hidden mt-8">
-        <div class="pt-8 border-t-4 border-green-500">
-
-            <!-- Carte d'informations du compte -->
-            <div id="accountInfoCard" class="mb-6"></div>
-
-            <!-- Formulaire -->
-            <div class="overflow-hidden bg-white rounded-lg shadow-xl">
-                <div class="px-6 py-5 bg-gradient-to-r from-green-600 to-emerald-700">
-                    <h5 class="text-2xl font-bold text-white">
-                        <i class="mr-2 fas fa-money-bill-wave"></i>Formulaire de Dépôt
-                    </h5>
-                </div>
-
-                <form id="depositForm">
-                    @csrf
-                    <input type="hidden" id="accountId" name="account_id">
-
-                    <div class="p-8 space-y-6">
-                        <!-- Montant -->
                         <div>
-                            <label class="block mb-2 text-sm font-semibold text-gray-700">
-                                Montant du Dépôt <span class="text-red-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <input type="number"
-                                       name="amount"
-                                       id="amount"
-                                       class="w-full px-4 py-4 pr-24 text-xl font-bold transition-all border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                       placeholder="0"
-                                       min="100"
-                                       step="100"
-                                       required>
-                                <span class="absolute text-lg font-bold text-gray-500 right-4 top-4">FCFA</span>
-                            </div>
-                            <div id="amountHint" class="mt-2 text-sm"></div>
-                            <div id="amountError" class="hidden mt-2 text-sm font-semibold text-red-600"></div>
+                            <h3 class="text-xs font-black text-white uppercase tracking-widest leading-none mb-1">Terminal d'Injection Fiscale</h3>
+                            <p class="text-[9px] font-bold text-white/70 uppercase">Nature de l'Actif : Injection Active</p>
                         </div>
+                    </div>
 
-                        <!-- Méthode de paiement -->
-                        <div>
-                            <label class="block mb-3 text-sm font-semibold text-gray-700">
-                                Méthode de Paiement <span class="text-red-500">*</span>
-                            </label>
-                            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                @foreach([
-                                    ['value' => 'cash', 'icon' => 'money-bill-wave', 'color' => 'green', 'label' => 'Espèces', 'desc' => 'Paiement cash'],
-                                    ['value' => 'mobile_money', 'icon' => 'mobile-alt', 'color' => 'blue', 'label' => 'Mobile Money', 'desc' => 'TMoney / Flooz'],
-                                    ['value' => 'bank_transfer', 'icon' => 'university', 'color' => 'purple', 'label' => 'Virement', 'desc' => 'Virement bancaire']
-                                ] as $method)
-                                <label class="relative flex items-center p-4 transition-all border-2 border-gray-300 rounded-lg cursor-pointer payment-method-label hover:bg-gray-50">
-                                    <input type="radio"
-                                           name="payment_method"
-                                           value="{{ $method['value'] }}"
-                                           class="sr-only payment-method-radio"
-                                           {{ $loop->first ? 'checked' : '' }}
-                                           required>
-                                    <div class="flex items-center w-full">
-                                        <i class="fas fa-{{ $method['icon'] }} text-2xl text-{{ $method['color'] }}-600 mr-3"></i>
-                                        <div>
-                                            <p class="font-bold text-gray-900">{{ $method['label'] }}</p>
-                                            <p class="text-sm text-gray-500">{{ $method['desc'] }}</p>
-                                        </div>
-                                    </div>
-                                    <i class="fas fa-check-circle text-2xl text-{{ $method['color'] }}-600 ml-auto hidden check-icon"></i>
+                    <form id="depositForm" class="p-8 space-y-8">
+                        @csrf
+                        <input type="hidden" id="accountId" name="account_id">
+
+                        <div class="space-y-10">
+                            <!-- Matrice de Volume -->
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center justify-between">
+                                    <span>Volume d'Injection (XOF)</span>
+                                    <span class="text-emerald-600 flex items-center gap-1"><i class="fas fa-check-double text-[8px]"></i> Vérification Requise</span>
                                 </label>
-                                @endforeach
+                                <div class="relative">
+                                    <input type="number" name="amount" id="amount" class="w-full bg-slate-50 border-2 border-slate-300 rounded-2xl px-6 py-5 text-4xl font-black text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-200" placeholder="0" min="100" step="100" required>
+                                    <span class="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">XOF</span>
+                                </div>
+                                <div id="amountHint" class="px-2"></div>
+                                <div id="amountError" class="hidden px-2 text-[10px] font-black text-rose-600 uppercase"></div>
                             </div>
-                        </div>
 
-                        <!-- Opérateur Mobile Money -->
-                        <div id="mobile-money-operator-field" class="hidden">
-                            <label class="block mb-3 text-sm font-semibold text-gray-700">
-                                Opérateur Mobile Money <span class="text-red-500">*</span>
-                            </label>
-                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                @foreach([
-                                    ['value' => 'tmoney', 'color' => 'red', 'letter' => 'T', 'name' => 'TMoney', 'provider' => 'Togocom'],
-                                    ['value' => 'flooz', 'color' => 'orange', 'letter' => 'F', 'name' => 'Flooz', 'provider' => 'Moov Africa']
-                                ] as $operator)
-                                <label class="relative flex items-center p-4 transition-all border-2 border-gray-300 rounded-lg cursor-pointer operator-label hover:bg-gray-50">
-                                    <input type="radio"
-                                           name="mobile_money_operator"
-                                           value="{{ $operator['value'] }}"
-                                           class="sr-only operator-radio">
-                                    <div class="flex items-center w-full">
-                                        <div class="w-14 h-14 bg-{{ $operator['color'] }}-100 rounded-lg flex items-center justify-center mr-3 shadow-md">
-                                            <span class="text-{{ $operator['color'] }}-600 font-black text-2xl">{{ $operator['letter'] }}</span>
+                            <!-- Matrice des Canaux de Règlement -->
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Canal de Règlement de Trésorerie</label>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    @foreach([
+                                        ['value' => 'cash', 'icon' => 'money-bill-wave', 'color' => 'emerald', 'label' => 'Espèces Physiques', 'desc' => 'Injection Guichet'],
+                                        ['value' => 'mobile_money', 'icon' => 'mobile-screen', 'color' => 'blue', 'label' => 'Actif Numérique', 'desc' => 'Réseau Mobile'],
+                                        ['value' => 'bank_transfer', 'icon' => 'building-columns', 'color' => 'purple', 'label' => 'Interbancaire', 'desc' => 'Compensation']
+                                    ] as $method)
+                                    <label class="bank-card !p-5 cursor-pointer relative group border-slate-100 hover:border-{{ $method['color'] }}-400 transition-all">
+                                        <input type="radio" name="payment_method" value="{{ $method['value'] }}" class="sr-only payment-method-radio" {{ $loop->first ? 'checked' : '' }} required>
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-12 h-12 rounded-xl bg-{{ $method['color'] }}-50 flex items-center justify-center text-{{ $method['color'] }}-600 border border-{{ $method['color'] }}-100 group-hover:scale-110 transition-transform">
+                                                <i class="fas fa-{{ $method['icon'] }} text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-[11px] font-black text-slate-800 uppercase leading-none">{{ $method['label'] }}</p>
+                                                <p class="text-[9px] font-bold text-slate-400 uppercase mt-1.5">{{ $method['desc'] }}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p class="font-bold text-gray-900">{{ $operator['name'] }}</p>
-                                            <p class="text-sm text-gray-500">{{ $operator['provider'] }}</p>
+                                        <div class="absolute top-3 right-3 hidden check-icon">
+                                            <i class="fas fa-circle-check text-{{ $method['color'] }}-500 text-sm"></i>
                                         </div>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <!-- Opérateurs Mobiles (Conditionnel) -->
+                            <div id="mobile-money-operator-field" class="hidden transition-all duration-300 space-y-4">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Protocole d'Opérateur Numérique</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    @foreach([
+                                        ['value' => 'tmoney', 'color' => 'rose', 'letter' => 'T', 'name' => 'Protocole TMoney', 'provider' => 'Infrastructure Togocom'],
+                                        ['value' => 'flooz', 'color' => 'orange', 'letter' => 'F', 'name' => 'Protocole Flooz', 'provider' => 'compte Moov Africa']
+                                    ] as $operator)
+                                    <label class="bank-card !p-5 cursor-pointer relative group border-slate-100 hover:border-{{ $operator['color'] }}-400 transition-all">
+                                        <input type="radio" name="mobile_money_operator" value="{{ $operator['value'] }}" class="sr-only operator-radio">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-12 h-12 rounded-xl bg-{{ $operator['color'] }}-50 flex items-center justify-center text-{{ $operator['color'] }}-600 border border-{{ $operator['color'] }}-100 group-hover:rotate-6 transition-transform">
+                                                <span class="font-black text-lg">{{ $operator['letter'] }}</span>
+                                            </div>
+                                            <div>
+                                                <p class="text-[11px] font-black text-slate-800 uppercase leading-none">{{ $operator['name'] }}</p>
+                                                <p class="text-[9px] font-bold text-slate-400 uppercase mt-1.5">{{ $operator['provider'] }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="absolute top-3 right-3 hidden operator-check-icon">
+                                            <i class="fas fa-circle-check text-{{ $operator['color'] }}-500 text-sm"></i>
+                                        </div>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Référence d'Audit Externe</label>
+                                    <input type="text" name="payment_reference" class="bank-input text-xs font-bold" placeholder="TRX-compte-XXXX">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mémo du Terminal</label>
+                                    <input type="text" name="description" class="bank-input text-xs font-bold" placeholder="Notes d'audit optionnelles...">
+                                </div>
+                            </div>
+
+                            <!-- Récapitulatif Final -->
+                            <div class="p-8 bg-slate-900 rounded-3xl text-white space-y-6 relative overflow-hidden shadow-2xl">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500 opacity-5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                                <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Pré-Vérification d'Audit</h4>
+                                    <div class="flex gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse delay-75"></span>
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse delay-150"></span>
                                     </div>
-                                    <i class="fas fa-check-circle text-2xl text-{{ $operator['color'] }}-600 ml-auto hidden operator-check-icon"></i>
-                                </label>
-                                @endforeach
+                                </div>
+                                <div id="recapContent" class="space-y-4">
+                                    <!-- Contenu du Recaps Dynamique -->
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Référence de paiement -->
-                        <div>
-                            <label class="block mb-2 text-sm font-semibold text-gray-700">
-                                Référence de Paiement (Optionnel)
-                            </label>
-                            <input type="text"
-                                   name="payment_reference"
-                                   class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                   placeholder="Ex: TRX123456789">
-                            <p class="mt-1 text-sm text-gray-500">
-                                <i class="mr-1 fas fa-info-circle"></i>
-                                Numéro de transaction mobile money ou virement bancaire
-                            </p>
+                        <!-- Contrôles d'Action -->
+                        <div class="flex items-center gap-4 pt-6">
+                            <button type="submit" id="submitBtn" class="flex-1 btn-bank btn-bank-primary !py-5 text-sm uppercase font-black shadow-2xl shadow-emerald-500/20 active:scale-95 transition-all">
+                                <i class="fas fa-shield-check mr-2"></i> Autoriser & Exécuter l'Injection
+                            </button>
+                            <button type="button" onclick="resetAll()" class="btn-bank btn-bank-outline !py-5 px-10 text-xs uppercase font-black">
+                                <i class="fas fa-ban mr-1 text-[10px]"></i> Abandonner
+                            </button>
                         </div>
-
-                        <!-- Description -->
-                        <div>
-                            <label class="block mb-2 text-sm font-semibold text-gray-700">
-                                Notes / Description (Optionnel)
-                            </label>
-                            <textarea name="description"
-                                      rows="3"
-                                      class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                      placeholder="Informations complémentaires..."></textarea>
-                        </div>
-
-                        <!-- Récapitulatif -->
-                        <div class="p-6 border-2 border-blue-300 shadow-lg bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl">
-                            <h6 class="flex items-center mb-4 text-lg font-bold text-gray-900">
-                                <i class="mr-2 text-blue-600 fas fa-clipboard-check"></i>
-                                Récapitulatif du Dépôt
-                            </h6>
-                            <div id="recapContent" class="space-y-3 text-sm">
-                                <!-- Contenu dynamique -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Boutons d'action -->
-                    <div class="flex flex-col gap-3 px-8 py-5 border-t-2 border-gray-200 bg-gray-50 sm:flex-row">
-                        <button type="submit"
-                                id="submitBtn"
-                                class="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                            <i class="mr-2 fas fa-check-circle"></i>Enregistrer le Dépôt
-                        </button>
-                        <button type="button"
-                                onclick="resetAll()"
-                                class="px-6 py-4 font-bold text-gray-800 transition-all bg-gray-300 rounded-lg shadow-md hover:bg-gray-400">
-                            <i class="mr-2 fas fa-times-circle"></i>Annuler
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal de succès -->
-<div id="successModal" class="fixed inset-0 z-50 flex items-center justify-center hidden p-4 bg-black bg-opacity-50">
-    <div class="w-full max-w-md transition-all transform bg-white shadow-2xl rounded-xl">
-        <div class="p-6">
-            <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full">
-                <i class="text-4xl text-green-600 fas fa-check-circle"></i>
-            </div>
-            <h3 class="mb-2 text-2xl font-bold text-center text-gray-900">Dépôt Réussi !</h3>
-            <div id="successMessage" class="mb-6 text-center text-gray-700"></div>
-            <button onclick="closeSuccessModal()"
-                    class="w-full px-6 py-3 font-bold text-white bg-green-600 rounded-lg hover:bg-green-700">
-                Fermer
-            </button>
+<!-- Modal de Confirmation de Succès -->
+<div id="successModal" class="fixed inset-0 z-50 flex items-center justify-center hidden p-6 bg-slate-900/60 backdrop-blur-md">
+    <div class="bank-card w-full max-w-sm p-10 text-center animate-scale-in">
+        <div class="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-emerald-100 shadow-inner">
+            <i class="fas fa-check text-4xl"></i>
         </div>
+        <h3 class="text-xl font-black text-slate-900 uppercase tracking-widest mb-4">Injection Réussie</h3>
+        <p id="successMessage" class="text-xs text-slate-500 font-bold uppercase tracking-tight leading-relaxed mb-8"></p>
+        <button onclick="closeSuccessModal()" class="w-full btn-bank btn-bank-primary !py-4 text-xs font-black uppercase">Accuser Réception Audit</button>
     </div>
 </div>
 
 @push('scripts')
-<script >
+<script>
+    let searchTimeout = null;
+    let selectedAccount = null;
 
+    const SEARCH_DEBOUNCE_MS = 400;
+    const MIN_SEARCH_LENGTH = 2;
+    const MIN_DEPOSIT_AMOUNT = 100;
 
-    /**
- * ==============================================
- * QUICK DEPOSIT - JavaScript Refactorisé
- * ==============================================
- * Gestion complète du dépôt rapide avec :
- * - Recherche avec debounce
- * - Logique multi-cycles tontine
- * - Validation en temps réel
- * - Interface utilisateur fluide
- * ==============================================
- */
-
-// ===== VARIABLES GLOBALES =====
-let searchTimeout = null;
-let selectedAccount = null;
-
-// ===== CONSTANTES =====
-const SEARCH_DEBOUNCE_MS = 500;
-const MIN_SEARCH_LENGTH = 2;
-const MIN_DEPOSIT_AMOUNT = 100;
-
-// ===== INITIALISATION AU CHARGEMENT =====
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEventListeners();
-    initializeKeyboardShortcuts();
-    initializePaymentMethods();
-});
-
-/**
- * Initialiser les écouteurs d'événements
- */
-function initializeEventListeners() {
-    // Recherche avec debounce
-    document.getElementById('searchInput').addEventListener('input', handleSearchInput);
-
-    // Montant - mise à jour du récapitulatif
-    document.getElementById('amount').addEventListener('input', updateRecapAndValidate);
-
-    // Soumission du formulaire
-    document.getElementById('depositForm').addEventListener('submit', handleFormSubmit);
-}
-
-/**
- * Initialiser les raccourcis clavier
- */
-function initializeKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+K : Focus sur recherche
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            focusSearch();
-        }
-
-        // Escape : Réinitialiser
-        if (e.key === 'Escape') {
-            resetAll();
-        }
-    });
-}
-
-/**
- * Initialiser les méthodes de paiement
- */
-function initializePaymentMethods() {
-    // Gestion des méthodes de paiement
-    document.querySelectorAll('.payment-method-radio').forEach(radio => {
-        radio.addEventListener('change', handlePaymentMethodChange);
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTerminal();
     });
 
-    // Gestion des opérateurs
-    document.querySelectorAll('.operator-radio').forEach(radio => {
-        radio.addEventListener('change', handleOperatorChange);
-    });
+    function initializeTerminal() {
+        const searchInput = document.getElementById('searchInput');
+        const amountInput = document.getElementById('amount');
+        const form = document.getElementById('depositForm');
 
-    // Activer le premier par défaut
-    const firstRadio = document.querySelector('.payment-method-radio:checked');
-    if (firstRadio) {
-        firstRadio.dispatchEvent(new Event('change'));
-    }
-}
+        searchInput.addEventListener('input', handleSearch);
+        amountInput.addEventListener('input', updateAuditRecap);
+        form.addEventListener('submit', handleExecution);
 
-/**
- * =============================================
- * SECTION : RECHERCHE DE COMPTES
- * =============================================
- */
+        document.querySelectorAll('.payment-method-radio').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const label = e.target.closest('label');
+                document.querySelectorAll('.payment-method-radio').forEach(r => {
+                    const l = r.closest('label');
+                    l.classList.remove('border-emerald-500', 'bg-emerald-50/10');
+                    l.querySelector('.check-icon')?.classList.add('hidden');
+                });
+                
+                label.classList.add('border-emerald-500', 'bg-emerald-50/10');
+                label.querySelector('.check-icon').classList.remove('hidden');
 
-/**
- * Gérer la saisie de recherche
- */
-function handleSearchInput(e) {
-    const query = e.target.value.trim();
-
-    clearTimeout(searchTimeout);
-
-    if (query.length < MIN_SEARCH_LENGTH) {
-        showInitialState();
-        return;
-    }
-
-    showSearchSpinner(true);
-
-    searchTimeout = setTimeout(() => {
-        searchAccounts(query);
-    }, SEARCH_DEBOUNCE_MS);
-}
-
-/**
- * Rechercher des comptes via API
- */
-async function searchAccounts(query) {
-    try {
-        const response = await fetch(`./quick-deposit-search?query=${encodeURIComponent(query)}`);
-        const data = await response.json();
-
-        showSearchSpinner(false);
-
-        if (data.success && data.data.length > 0) {
-            displaySearchResults(data.data);
-        } else {
-            showEmptyMessage();
-        }
-    } catch (error) {
-        console.error('Erreur de recherche:', error);
-        showSearchSpinner(false);
-        showEmptyMessage();
-        showNotification('Erreur lors de la recherche', 'error');
-    }
-}
-
-/**
- * Afficher les résultats de recherche
- */
-function displaySearchResults(accounts) {
-    const container = document.getElementById('accountsList');
-    container.innerHTML = '';
-
-    accounts.forEach(account => {
-        const card = createAccountCard(account);
-        container.appendChild(card);
-    });
-
-    document.getElementById('initialState').classList.add('hidden');
-    document.getElementById('searchResults').classList.remove('hidden');
-    document.getElementById('emptyMessage').classList.add('hidden');
-    document.getElementById('resultsCount').textContent = `${accounts.length} compte(s) trouvé(s)`;
-}
-
-/**
- * Créer une carte de compte
- */
-function createAccountCard(account) {
-    const div = document.createElement('div');
-
-    const isSavings = account.account_type === 'savings';
-    const typeConfig = isSavings ? {
-        icon: 'fa-piggy-bank',
-        color: 'cyan',
-        label: 'Épargne'
-    } : {
-        icon: 'fa-users',
-        color: 'purple',
-        label: 'Tontine'
-    };
-
-    // Classes de base
-    div.className = `border-2 border-gray-200 rounded-xl p-5 hover:border-${typeConfig.color}-500 hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1`;
-
-    // Informations additionnelles pour tontine
-    let additionalInfo = '';
-    if (!isSavings && account.tontine) {
-        additionalInfo = renderTontineInfo(account.tontine);
-    }
-
-    // Bouton de dépôt
-    const canDeposit = account.can_deposit !== false;
-    const depositButton = canDeposit
-        ? `<button onclick='selectAccount(${JSON.stringify(account).replace(/'/g, "&#39;")})'
-                   class="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-${typeConfig.color}-600 to-${typeConfig.color}-700 text-white rounded-lg hover:from-${typeConfig.color}-700 hover:to-${typeConfig.color}-800 transition-all shadow-md hover:shadow-xl font-bold">
-               <i class="mr-2 fas fa-arrow-down"></i>Déposer
-           </button>`
-        : `<div class="flex-shrink-0 px-6 py-3 font-bold text-gray-600 bg-gray-300 rounded-lg cursor-not-allowed">
-               <i class="mr-2 fas fa-ban"></i>Complet
-           </div>`;
-
-    div.innerHTML = `
-        <div class="flex items-start justify-between gap-4">
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-3 mb-3">
-                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-${typeConfig.color}-100 text-${typeConfig.color}-800 shadow-sm">
-                        <i class="fas ${typeConfig.icon} mr-2"></i>${typeConfig.label}
-                    </span>
-                    <span class="px-3 py-1 font-mono text-sm font-bold text-gray-700 bg-gray-100 rounded-lg">${account.account_number}</span>
-                </div>
-                <p class="mb-2 text-lg font-bold text-gray-900 truncate">${account.client.name}</p>
-                <div class="flex items-center gap-4 mb-3 text-sm text-gray-600">
-                    <span class="flex items-center">
-                        <i class="mr-2 text-gray-400 fas fa-id-badge"></i>${account.client.client_number}
-                    </span>
-                    <span class="flex items-center">
-                        <i class="mr-2 text-gray-400 fas fa-phone"></i>${account.client.phone}
-                    </span>
-                </div>
-                <div class="inline-flex items-center px-4 py-2 rounded-lg shadow-sm bg-gradient-to-r from-green-100 to-emerald-100">
-                    <i class="mr-2 text-lg text-green-600 fas fa-wallet"></i>
-                    <span class="text-xl font-black text-green-700">${formatCurrency(account.balance)}</span>
-                </div>
-                ${additionalInfo}
-                ${!canDeposit ? `<div class="p-3 mt-3 border border-red-200 rounded-lg bg-red-50">
-                    <p class="text-sm font-semibold text-red-700">
-                        <i class="mr-1 fas fa-exclamation-circle"></i>${account.deposit_blocked_reason || 'Dépôt non autorisé'}
-                    </p>
-                </div>` : ''}
-            </div>
-            ${depositButton}
-        </div>
-    `;
-
-    return div;
-}
-
-/**
- * Afficher les informations de tontine
- */
-function renderTontineInfo(tontine) {
-    if (!tontine.active_cycle) {
-        return `
-            <div class="p-3 mt-4 border border-purple-200 rounded-lg bg-purple-50">
-                <p class="text-sm font-semibold text-purple-700">
-                    <i class="mr-1 fas fa-info-circle"></i>${tontine.message || 'Cycle sera créé automatiquement'}
-                </p>
-            </div>
-        `;
-    }
-
-    const cycle = tontine.active_cycle;
-
-    return `
-        <div class="pt-4 mt-4 border-t border-gray-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold tracking-wide text-gray-600 uppercase">Cycle #${cycle.cycle_number}</span>
-                <span class="text-xs font-black text-purple-600">${cycle.progress_percent}%</span>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div class="p-3 text-center rounded-lg bg-gradient-to-br from-purple-50 to-pink-50">
-                    <p class="mb-1 text-xs font-semibold text-gray-600">Collecté</p>
-                    <p class="text-base font-black text-purple-600">${formatCurrency(cycle.collected_amount)}</p>
-                </div>
-                <div class="p-3 text-center rounded-lg bg-gradient-to-br from-orange-50 to-red-50">
-                    <p class="mb-1 text-xs font-semibold text-gray-600">Restant</p>
-                    <p class="text-base font-black text-orange-600">${formatCurrency(cycle.remaining_amount)}</p>
-                </div>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2.5 shadow-inner">
-                <div class="bg-gradient-to-r from-purple-600 to-purple-500 h-2.5 rounded-full transition-all duration-500 shadow-lg"
-                     style="width: ${cycle.progress_percent}%"></div>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * =============================================
- * SECTION : SÉLECTION ET FORMULAIRE
- * =============================================
- */
-
-/**
- * Sélectionner un compte
- */
-function selectAccount(account) {
-    selectedAccount = account;
-
-    // Mettre à jour le formulaire
-    document.getElementById('accountId').value = account.id;
-    document.getElementById('depositForm').action = account.deposit_url;
-
-    // Afficher les infos du compte
-    displayAccountInfo(account);
-
-    // Initialiser le montant
-    initializeDepositAmount(account);
-
-    // Afficher le formulaire
-    document.getElementById('depositFormContainer').classList.remove('hidden');
-
-    // Mettre à jour le récapitulatif
-    updateRecapAndValidate();
-
-    // Scroll vers le formulaire
-    setTimeout(() => {
-        document.getElementById('depositFormContainer').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
+                const mmField = document.getElementById('mobile-money-operator-field');
+                if (e.target.value === 'mobile_money') {
+                    mmField.classList.remove('hidden');
+                } else {
+                    mmField.classList.add('hidden');
+                }
+                updateAuditRecap();
+            });
         });
-    }, 100);
-}
 
-/**
- * Afficher les informations du compte sélectionné
- */
-function displayAccountInfo(account) {
-    const container = document.getElementById('accountInfoCard');
+        document.querySelectorAll('.operator-radio').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                document.querySelectorAll('.operator-radio').forEach(r => {
+                    const l = r.closest('label');
+                    l.classList.remove('border-blue-500', 'bg-blue-50/10');
+                    l.querySelector('.operator-check-icon')?.classList.add('hidden');
+                });
+                const label = e.target.closest('label');
+                label.classList.add('border-blue-500', 'bg-blue-50/10');
+                label.querySelector('.operator-check-icon').classList.remove('hidden');
+                updateAuditRecap();
+            });
+        });
 
-    if (account.account_type === 'savings') {
-        container.innerHTML = renderSavingsAccountInfo(account);
-    } else {
-        container.innerHTML = renderTontineAccountInfo(account);
-    }
-}
+        const first = document.querySelector('.payment-method-radio:checked');
+        if (first) first.dispatchEvent(new Event('change'));
 
-/**
- * Rendu info compte épargne
- */
-function renderSavingsAccountInfo(account) {
-    return `
-        <div class="overflow-hidden border-l-4 shadow-md bg-gradient-to-br from-cyan-50 via-blue-50 to-cyan-50 border-cyan-600 rounded-xl">
-            <div class="p-6">
-                <div class="flex items-start justify-between mb-4">
-                    <h5 class="text-2xl font-bold text-gray-900">
-                        <i class="mr-2 fas fa-piggy-bank text-cyan-600"></i>
-                        Compte d'Épargne
-                    </h5>
-                    <button onclick="resetAll()" class="text-gray-400 transition-colors hover:text-gray-600">
-                        <i class="text-2xl fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div class="p-4 bg-white rounded-lg shadow-sm">
-                        <p class="mb-2 text-sm font-semibold text-gray-600">Client</p>
-                        <p class="text-lg font-bold text-gray-900">${account.client.name}</p>
-                        <p class="text-sm text-gray-500">${account.client.client_number}</p>
-                    </div>
-                    <div class="p-4 bg-white rounded-lg shadow-sm">
-                        <p class="mb-2 text-sm font-semibold text-gray-600">Numéro de Compte</p>
-                        <p class="font-mono text-lg font-bold text-gray-900">${account.account_number}</p>
-                    </div>
-                    <div class="p-4 bg-white border-l-4 rounded-lg shadow-sm border-cyan-600">
-                        <p class="mb-2 text-sm font-semibold text-gray-600">Solde Actuel</p>
-                        <p class="text-2xl font-black text-cyan-600">${formatCurrency(account.balance)}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Rendu info compte tontine
- */
-function renderTontineAccountInfo(account) {
-    const tontine = account.tontine;
-    const cycle = tontine.active_cycle;
-
-    return `
-        <div class="overflow-hidden border-l-4 border-purple-600 shadow-md bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 rounded-xl">
-            <div class="p-6">
-                <div class="flex items-start justify-between mb-4">
-                    <h5 class="text-2xl font-bold text-gray-900">
-                        <i class="mr-2 text-purple-600 fas fa-users"></i>
-                        Tontine ${cycle ? `- Cycle #${cycle.cycle_number}` : ''}
-                    </h5>
-                    <button onclick="resetAll()" class="text-gray-400 transition-colors hover:text-gray-600">
-                        <i class="text-2xl fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 gap-4 mb-4 md:grid-cols-3">
-                    <div class="p-4 bg-white rounded-lg shadow-sm">
-                        <p class="mb-2 text-sm font-semibold text-gray-600">Client</p>
-                        <p class="text-lg font-bold text-gray-900">${account.client.name}</p>
-                        <p class="text-sm text-gray-500">${account.client.client_number}</p>
-                    </div>
-                    <div class="p-4 bg-white rounded-lg shadow-sm">
-                        <p class="mb-2 text-sm font-semibold text-gray-600">Numéro de Compte</p>
-                        <p class="font-mono text-lg font-bold text-gray-900">${account.account_number}</p>
-                    </div>
-                    <div class="p-4 bg-white border-l-4 border-purple-600 rounded-lg shadow-sm">
-                        <p class="mb-2 text-sm font-semibold text-gray-600">Solde Actuel</p>
-                        <p class="text-2xl font-black text-purple-600">${formatCurrency(account.balance)}</p>
-                    </div>
-                </div>
-                ${cycle ? renderCycleProgress(cycle, tontine) : ''}
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Rendu progression cycle
- */
-function renderCycleProgress(cycle, tontine) {
-    return `
-        <div class="p-5 bg-white rounded-lg shadow-sm">
-            <div class="grid grid-cols-3 gap-4 mb-4">
-                <div class="p-3 text-center rounded-lg bg-purple-50">
-                    <p class="mb-1 text-xs font-semibold text-gray-600">Objectif Cycle</p>
-                    <p class="text-lg font-black text-purple-900">${formatCurrency(cycle.target_amount)}</p>
-                </div>
-                <div class="p-3 text-center rounded-lg bg-green-50">
-                    <p class="mb-1 text-xs font-semibold text-gray-600">Déjà Collecté</p>
-                    <p class="text-lg font-black text-green-600">${formatCurrency(cycle.collected_amount)}</p>
-                </div>
-                <div class="p-3 text-center rounded-lg bg-orange-50">
-                    <p class="mb-1 text-xs font-semibold text-gray-600">Reste à Payer</p>
-                    <p class="text-lg font-black text-orange-600">${formatCurrency(cycle.remaining_amount)}</p>
-                </div>
-            </div>
-            <div class="flex justify-between mb-2 text-xs text-gray-600">
-                <span class="font-semibold">Progression Globale</span>
-                <span class="font-bold text-purple-600">${tontine.total_progress}%</span>
-            </div>
-            <div class="w-full h-3 bg-gray-200 rounded-full shadow-inner">
-                <div class="h-3 transition-all duration-500 rounded-full shadow-lg bg-gradient-to-r from-purple-600 via-purple-500 to-pink-500"
-                     style="width: ${tontine.total_progress}%"></div>
-            </div>
-            <div class="flex justify-between mt-3 text-xs text-gray-600">
-                <span>${formatCurrency(tontine.total_paid)}</span>
-                <span class="font-bold">${formatCurrency(tontine.total_expected)}</span>
-            </div>
-        </div>
-    `;
-}
-
-/**
- * Initialiser le montant de dépôt
- */
-function initializeDepositAmount(account) {
-    const amountInput = document.getElementById('amount');
-    const hintEl = document.getElementById('amountHint');
-
-    if (account.account_type === 'savings') {
-        amountInput.value = account.savings.suggested_amount;
-        amountInput.removeAttribute('max');
-        hintEl.innerHTML = `
-            <i class="mr-1 fas fa-info-circle text-cyan-600"></i>
-            <span class="font-semibold text-cyan-700">Montant minimum : <strong>${formatCurrency(MIN_DEPOSIT_AMOUNT)}</strong></span>
-        `;
-    } else {
-        const suggestedAmount = account.tontine.suggested_amount;
-        const maxAmount = account.tontine.max_deposit_amount;
-
-        amountInput.value = suggestedAmount;
-        amountInput.setAttribute('max', maxAmount);
-
-        hintEl.innerHTML = `
-            <i class="mr-1 text-purple-600 fas fa-lightbulb"></i>
-            <span class="font-semibold text-purple-700">Suggéré : <strong>${formatCurrency(suggestedAmount)}</strong></span>
-            <span class="mx-2 text-gray-400">|</span>
-            <span class="font-semibold text-orange-700">Maximum : <strong>${formatCurrency(maxAmount)}</strong></span>
-        `;
-    }
-}
-
-/**
- * =============================================
- * SECTION : RÉCAPITULATIF ET VALIDATION
- * =============================================
- */
-
-/**
- * Mettre à jour le récapitulatif et valider
- */
-function updateRecapAndValidate() {
-    if (!selectedAccount) return;
-
-    const amount = parseFloat(document.getElementById('amount').value) || 0;
-    const isValid = validateDepositAmount(amount);
-
-    if (isValid) {
-        updateRecap(amount);
-    }
-}
-
-/**
- * Valider le montant de dépôt
- */
-function validateDepositAmount(amount) {
-    const errorEl = document.getElementById('amountError');
-    const submitBtn = document.getElementById('submitBtn');
-
-    // Reset
-    errorEl.classList.add('hidden');
-    submitBtn.disabled = false;
-    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-
-    // Montant minimum
-    if (amount < MIN_DEPOSIT_AMOUNT) {
-        showAmountError(`Le montant minimum est de ${formatCurrency(MIN_DEPOSIT_AMOUNT)}`);
-        return false;
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
     }
 
-    // Validation tontine
-    if (selectedAccount.account_type === 'tontine' && selectedAccount.tontine) {
-        const maxAmount = selectedAccount.tontine.max_deposit_amount;
-
-        if (amount > maxAmount) {
-            showAmountError(`Le montant ne peut pas dépasser ${formatCurrency(maxAmount)}`);
-            return false;
+    function handleSearch(e) {
+        const query = e.target.value.trim();
+        clearTimeout(searchTimeout);
+        
+        if (query.length < MIN_SEARCH_LENGTH) {
+            document.getElementById('initialState').classList.remove('hidden');
+            document.getElementById('searchResults').classList.add('hidden');
+            document.getElementById('emptyMessage').classList.add('hidden');
+            return;
         }
 
-        if (selectedAccount.tontine.is_complete) {
-            showAmountError('Cette tontine est complète, aucun dépôt supplémentaire n\'est autorisé');
-            return false;
+        document.getElementById('searchSpinner').classList.remove('hidden');
+        searchTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(`./quick-deposit-search?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                document.getElementById('searchSpinner').classList.add('hidden');
+                
+                if (data.success && data.data.length > 0) {
+                    renderRegistryResults(data.data);
+                } else {
+                    showEmptyMatrix();
+                }
+            } catch (error) {
+                console.error('Échec Audit Recherche:', error);
+                document.getElementById('searchSpinner').classList.add('hidden');
+            }
+        }, SEARCH_DEBOUNCE_MS);
+    }
+
+    function renderRegistryResults(accounts) {
+        const list = document.getElementById('accountsList');
+        list.innerHTML = '';
+        
+        accounts.forEach(acc => {
+            const div = document.createElement('div');
+            div.className = "flex items-center justify-between p-5 bg-slate-50 border border-slate-100 rounded-2xl hover:border-blue-300 hover:bg-white transition-all group";
+            
+            const isSavings = acc.account_type === 'savings';
+            const isLoan = acc.account_type === 'loan';
+            let typeClass = 'text-purple-600 bg-purple-50 border-purple-100'; // Par défaut Tontine
+            let icon = 'fa-rotate';
+            let typeName = 'Tontine';
+            
+            if (isSavings) {
+                typeClass = 'text-blue-600 bg-blue-50 border-blue-100';
+                icon = 'fa-vault';
+                typeName = 'Épargne';
+            } else if (isLoan) {
+                typeClass = 'text-orange-600 bg-orange-50 border-orange-100';
+                icon = 'fa-hand-holding-dollar';
+                typeName = 'Prêt';
+            }
+
+            div.innerHTML = `
+                <div class="flex items-center gap-5">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center border shadow-sm ${typeClass}">
+                        <i class="fas ${icon} text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-[12px] font-black text-slate-800 uppercase leading-none">${acc.client.name}</p>
+                        <div class="flex items-center gap-3 mt-2">
+                            <span class="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-tighter">${acc.account_number}</span>
+                            <span class="text-[8px] font-black px-2 py-0.5 rounded-full border ${typeClass} uppercase shadow-sm">compte ${typeName}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-8">
+                    <div class="text-right">
+                        ${isLoan 
+                            ? `<p class="text-[13px] font-black text-rose-600 font-numeric">${formatCurrency(acc.balance)}</p>
+                               <p class="text-[8px] font-black text-rose-400 uppercase tracking-widest mt-1">Reste à payer</p>`
+                            : `<p class="text-[13px] font-black text-slate-900 font-numeric">${formatCurrency(acc.balance)}</p>
+                               <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Crédit Live</p>`
+                        }
+                    </div>
+                    <div class="flex gap-2">
+                        ${acc.schedule_url ? `<a href="${acc.schedule_url}" class="btn-bank !bg-slate-200 !text-slate-700 !text-[9px] !px-4 !py-2.5 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all shadow-sm hover:scale-105 active:scale-95" title="Détails du prêt"><i class="fas fa-list-ul"></i> Détail</a>` : ''}
+                        <button onclick='initiateInjection(${JSON.stringify(acc).replace(/'/g, "&#39;")})' class="btn-bank btn-bank-primary !text-[9px] !px-6 !py-2.5 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-105 active:scale-95">Sélect. compte</button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+
+        document.getElementById('initialState').classList.add('hidden');
+        document.getElementById('emptyMessage').classList.add('hidden');
+        document.getElementById('searchResults').classList.remove('hidden');
+        document.getElementById('resultsCount').innerText = `${accounts.length} compteS IDENTIFIÉS`;
+    }
+
+    function initiateInjection(acc) {
+        selectedAccount = acc;
+        document.getElementById('accountId').value = acc.id;
+        document.getElementById('depositForm').action = acc.deposit_url;
+
+        const summary = document.getElementById('accountInfoCard');
+        const isLoanInfo = acc.account_type === 'loan';
+        const infoIcon = isLoanInfo ? 'fa-hand-holding-dollar' : (acc.account_type === 'savings' ? 'fa-vault' : 'fa-rotate');
+        const infoColor = isLoanInfo ? 'text-rose-400' : 'text-emerald-400';
+        const labelText = isLoanInfo ? 'Reste à Payé' : 'Solde Consolidé';
+
+        summary.innerHTML = `
+            <div class="bank-card !bg-slate-900 p-6 flex items-center justify-between animate-fade-in shadow-2xl">
+                <div class="flex items-center gap-5">
+                    <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 shadow-inner">
+                        <i class="fas ${infoIcon} text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Cible d'Injection Active</p>
+                        <h4 class="text-xl font-black text-white leading-none mt-2">${acc.client.name}</h4>
+                        <p class="text-[10px] font-mono text-blue-400 font-bold mt-2 uppercase tracking-widest">${acc.account_number} • ${acc.client.client_number}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">${labelText}</p>
+                    <p class="text-3xl font-black ${infoColor} font-numeric leading-none mt-2">${formatCurrency(acc.balance)}</p>
+                </div>
+            </div>
+        `;
+
+        const amountInput = document.getElementById('amount');
+        if (acc.account_type === 'savings') {
+            amountInput.value = acc.savings.suggested_amount;
+            document.getElementById('amountHint').innerHTML = `<p class="text-[10px] font-black text-blue-600 uppercase italic tracking-tighter">Suggestion compte Épargne : ${formatCurrency(acc.savings.suggested_amount)}</p>`;
+        } else if (acc.account_type === 'tontine') {
+            amountInput.value = acc.tontine.suggested_amount;
+            document.getElementById('amountHint').innerHTML = `<p class="text-[10px] font-black text-purple-600 uppercase italic tracking-tighter">Objectif Cycle Tontine : ${formatCurrency(acc.tontine.suggested_amount)}</p>`;
+        } else if (acc.account_type === 'loan') {
+            amountInput.value = ''; // Laisser l'agent sasir le monntant remboursé
+            document.getElementById('amountHint').innerHTML = `<p class="text-[10px] font-black text-orange-600 uppercase italic tracking-tighter">Information: Prêt - Reste à payer ${formatCurrency(acc.balance)}</p>`;
+        }
+
+        document.getElementById('depositFormContainer').classList.remove('hidden');
+        document.getElementById('depositFormContainer').classList.add('translate-y-0');
+        updateAuditRecap();
+        
+        window.scrollTo({
+            top: document.getElementById('depositFormContainer').offsetTop - 100,
+            behavior: 'smooth'
+        });
+    }
+
+    function updateAuditRecap() {
+        if (!selectedAccount) return;
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const method = document.querySelector('[name="payment_method"]:checked')?.value;
+        const recap = document.getElementById('recapContent');
+        
+        const isLoanRecap = selectedAccount.account_type === 'loan';
+        
+        const balanceNumber = parseFloat(selectedAccount.balance) || 0;
+        
+        // Si cest un prêt, le resultat n'est pas "Solde Consolidé" mais "Nouveau Reste à Payer"
+        const finalCalculated = isLoanRecap 
+            ? Math.max(0, balanceNumber - amount)
+            : balanceNumber + amount;
+            
+        recap.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span class="text-white/40 text-[11px] font-bold uppercase tracking-widest">Injection Principale</span>
+                <span class="font-numeric font-black text-emerald-400 text-lg">${formatCurrency(amount)}</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-white/40 text-[11px] font-bold uppercase tracking-widest">Canal de Règlement</span>
+                <span class="font-black text-white uppercase text-[11px] px-3 py-1 bg-white/5 rounded-lg border border-white/10 italic">${method ? method.replace('_', ' ') : 'N/A'}</span>
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-white/5">
+                <span class="text-white/40 text-[11px] font-bold uppercase tracking-widest">Attendu Post-Exécution</span>
+                <span class="font-numeric font-black text-white text-lg">${formatCurrency(finalCalculated)}</span>
+            </div>
+        `;
+
+        const error = document.getElementById('amountError');
+        const submit = document.getElementById('submitBtn');
+        if (amount < 100) {
+            error.innerText = "CRITIQUE : INJECTION MINIMUM DE 100 XOF REQUISE";
+            error.classList.remove('hidden');
+            submit.disabled = true;
+            submit.classList.add('opacity-50', 'grayscale');
+        } else {
+            error.classList.add('hidden');
+            submit.disabled = false;
+            submit.classList.remove('opacity-50', 'grayscale');
         }
     }
 
-    return true;
-}
+    async function handleExecution(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> EXÉCUTION DU PROTOCOLE EN COURS...`;
 
-/**
- * Afficher une erreur de montant
- */
-function showAmountError(message) {
-    const errorEl = document.getElementById('amountError');
-    const submitBtn = document.getElementById('submitBtn');
-
-    errorEl.textContent = message;
-    errorEl.classList.remove('hidden');
-
-    submitBtn.disabled = true;
-    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-}
-
-/**
- * Mettre à jour le récapitulatif
- */
-function updateRecap(amount) {
-    const newBalance = selectedAccount.balance + amount;
-    const typeIcon = selectedAccount.account_type === 'savings'
-        ? '<i class="mr-1 fas fa-piggy-bank text-cyan-600"></i>'
-        : '<i class="mr-1 text-purple-600 fas fa-users"></i>';
-    const typeLabel = selectedAccount.account_type === 'savings' ? 'Épargne' : 'Tontine';
-
-    let content = `
-        <div class="flex items-center justify-between py-2 border-b border-blue-200">
-            <span class="font-semibold text-gray-700">Client :</span>
-            <span class="font-bold text-gray-900">${selectedAccount.client.name}</span>
-        </div>
-        <div class="flex items-center justify-between py-2 border-b border-blue-200">
-            <span class="font-semibold text-gray-700">Type de compte :</span>
-            <span class="font-bold text-gray-900">${typeIcon}${typeLabel}</span>
-        </div>
-    `;
-
-    // Info tontine spécifique
-    if (selectedAccount.account_type === 'tontine' && selectedAccount.tontine && selectedAccount.tontine.active_cycle) {
-        content += renderRecapTontine(amount, selectedAccount.tontine);
-    }
-
-    content += `
-        <div class="my-3 border-t-2 border-blue-300"></div>
-        <div class="flex items-center justify-between py-2">
-            <span class="font-semibold text-gray-700">Solde avant :</span>
-            <span class="font-bold text-gray-900">${formatCurrency(selectedAccount.balance)}</span>
-        </div>
-        <div class="flex items-center justify-between py-2">
-            <span class="font-semibold text-gray-700">Montant dépôt :</span>
-            <span class="text-2xl font-bold text-blue-600">${formatCurrency(amount)}</span>
-        </div>
-    `;
-
-    document.getElementById('recapContent').innerHTML = content;
-}
-
-/**
- * Récapitulatif spécifique tontine
- */
-function renderRecapTontine(amount, tontine) {
-    const cycle = tontine.active_cycle;
-    if (!cycle) return '';
-
-    const newCollected = cycle.collected_amount + amount;
-    const newRemaining = Math.max(0, cycle.target_amount - newCollected);
-    const newProgress = cycle.target_amount > 0 ? Math.round((newCollected / cycle.target_amount) * 100) : 0;
-    const willComplete = newCollected >= cycle.target_amount;
-
-    return `
-        <div class="flex items-center justify-between py-2 border-b border-blue-200">
-            <span class="font-semibold text-gray-700">Cycle actuel :</span>
-            <span class="font-bold text-gray-900">#${cycle.cycle_number}</span>
-        </div>
-        <div class="pt-3 mt-3 border-t-2 border-purple-300">
-            <p class="flex items-center mb-3 text-sm font-bold text-purple-900">
-                <i class="mr-2 fas fa-chart-line"></i>Impact sur le cycle :
-            </p>
-            <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-700">Nouveau collecté :</span>
-                    <span class="font-bold text-purple-600">${formatCurrency(newCollected)}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-700">Restant après dépôt :</span>
-                    <span class="font-bold text-orange-600">${formatCurrency(newRemaining)}</span>
-                </div>
-            </div>
-            <div class="mt-3">
-                <div class="flex justify-between mb-1 text-xs text-gray-600">
-                    <span class="font-semibold">Progression</span>
-                    <span class="font-black text-purple-600">${newProgress}%</span>
-                </div>
-                <div class="w-full h-3 bg-gray-300 rounded-full shadow-inner">
-                    <div class="h-3 transition-all duration-500 rounded-full shadow-lg bg-gradient-to-r from-purple-600 to-purple-500"
-                         style="width: ${newProgress}%"></div>
-                </div>
-            </div>
-            ${willComplete ? `
-                <div class="p-3 mt-3 border-2 border-green-300 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100">
-                    <p class="flex items-center text-sm font-bold text-green-800">
-                        <i class="mr-2 text-lg fas fa-check-circle"></i>
-                        Ce dépôt complètera le cycle #${cycle.cycle_number} !
-                    </p>
-                </div>
-            ` : ''}
-        </div>
-    `;
-}
-
-/**
- * =============================================
- * SECTION : SOUMISSION DU FORMULAIRE
- * =============================================
- */
-
-/**
- * Gérer la soumission du formulaire
- */
-async function handleFormSubmit(e) {
-    e.preventDefault();
-
-    if (!selectedAccount) {
-        showNotification('Veuillez sélectionner un compte', 'error');
-        return;
-    }
-
-    const amount = parseFloat(document.getElementById('amount').value);
-    if (!validateDepositAmount(amount)) {
-        return;
-    }
-
-    // Afficher le loader
-    showSubmitLoader(true);
-
-    try {
         const formData = new FormData(e.target);
+        
+        try {
+            const response = await fetch(e.target.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
 
-        const response = await fetch(selectedAccount.deposit_url, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json',
-            },
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showSuccessModal(data.message);
-            setTimeout(() => {
-                resetAll();
-            }, 3000);
-        } else {
-            showNotification(data.message || 'Erreur lors du dépôt', 'error');
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('successMessage').innerHTML = result.message;
+                
+                const modalInner = document.querySelector('#successModal .bank-card');
+                const existingBtn = modalInner.querySelector('.btn-print-receipt');
+                if(existingBtn) existingBtn.remove();
+                
+                if (result.receipt_url) {
+                    const printBtn = document.createElement('a');
+                    printBtn.href = result.receipt_url;
+                    printBtn.target = '_blank';
+                    printBtn.className = 'w-full btn-bank text-emerald-600 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 !py-4 text-xs font-black uppercase mb-4 block btn-print-receipt';
+                    printBtn.innerHTML = '<i class="fas fa-print mr-2"></i> Imprimer le reçu';
+                    
+                    modalInner.insertBefore(printBtn, modalInner.querySelector('button[onclick="closeSuccessModal()"]'));
+                }
+                
+                document.getElementById('successModal').classList.remove('hidden');
+            } else {
+                alert('Échec de Protocole : ' + (result.message || result.error || 'Exception fiscale inconnue'));            
+                
+            }
+        } catch (error) {
+            console.error('Erreur d\'Exécution :', error);
+            alert('Erreur Environnementale Fatale lors de l\'exécution fiscale.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
         }
-    } catch (error) {
-        console.error('Erreur:', error);
-        showNotification('Erreur lors de la communication avec le serveur', 'error');
-    } finally {
-        showSubmitLoader(false);
-    }
-}
-
-/**
- * =============================================
- * SECTION : MÉTHODES DE PAIEMENT
- * =============================================
- */
-
-/**
- * Gérer le changement de méthode de paiement
- */
-function handlePaymentMethodChange(e) {
-    // Reset tous les labels
-    document.querySelectorAll('.payment-method-label').forEach(label => {
-        label.classList.remove('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
-        label.classList.add('border-gray-300');
-        label.querySelector('.check-icon').classList.add('hidden');
-    });
-
-    // Activer le label sélectionné
-    const label = e.target.closest('.payment-method-label');
-    label.classList.remove('border-gray-300');
-    label.classList.add('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
-    label.querySelector('.check-icon').classList.remove('hidden');
-
-    // Afficher/masquer les opérateurs Mobile Money
-    const operatorField = document.getElementById('mobile-money-operator-field');
-    if (e.target.value === 'mobile_money') {
-        operatorField.classList.remove('hidden');
-    } else {
-        operatorField.classList.add('hidden');
-    }
-}
-
-/**
- * Gérer le changement d'opérateur
- */
-function handleOperatorChange(e) {
-    // Reset tous les labels
-    document.querySelectorAll('.operator-label').forEach(label => {
-        label.classList.remove('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
-        label.classList.add('border-gray-300');
-        label.querySelector('.operator-check-icon').classList.add('hidden');
-    });
-
-    // Activer le label sélectionné
-    const label = e.target.closest('.operator-label');
-    label.classList.remove('border-gray-300');
-    label.classList.add('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
-    label.querySelector('.operator-check-icon').classList.remove('hidden');
-}
-
-/**
- * =============================================
- * SECTION : UTILITAIRES UI
- * =============================================
- */
-
-/**
- * Afficher/masquer le spinner de recherche
- */
-function showSearchSpinner(show) {
-    const spinner = document.getElementById('searchSpinner');
-    if (show) {
-        spinner.classList.remove('hidden');
-    } else {
-        spinner.classList.add('hidden');
-    }
-}
-
-/**
- * Afficher l'état initial
- */
-function showInitialState() {
-    document.getElementById('initialState').classList.remove('hidden');
-    document.getElementById('searchResults').classList.add('hidden');
-    document.getElementById('emptyMessage').classList.add('hidden');
-}
-
-/**
- * Afficher le message vide
- */
-function showEmptyMessage() {
-    document.getElementById('initialState').classList.add('hidden');
-    document.getElementById('searchResults').classList.add('hidden');
-    document.getElementById('emptyMessage').classList.remove('hidden');
-}
-
-/**
- * Focus sur le champ de recherche
- */
-function focusSearch() {
-    document.getElementById('searchInput').focus();
-}
-
-/**
- * Afficher le loader de soumission
- */
-function showSubmitLoader(show) {
-    const btn = document.getElementById('submitBtn');
-
-    if (show) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="mr-2 fas fa-spinner fa-spin"></i>Traitement en cours...';
-        btn.classList.add('opacity-75', 'cursor-not-allowed');
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="mr-2 fas fa-check-circle"></i>Enregistrer le Dépôt';
-        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-    }
-}
-
-/**
- * Afficher une notification toast
- */
-function showNotification(message, type = 'info') {
-    // Créer la notification
-    const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-2xl transform transition-all duration-300 max-w-md`;
-
-    const colors = {
-        success: 'bg-green-600 text-white',
-        error: 'bg-red-600 text-white',
-        warning: 'bg-yellow-600 text-white',
-        info: 'bg-blue-600 text-white'
-    };
-
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-exclamation-circle',
-        warning: 'fa-exclamation-triangle',
-        info: 'fa-info-circle'
-    };
-
-    toast.classList.add(...colors[type].split(' '));
-
-    toast.innerHTML = `
-        <div class="flex items-center">
-            <i class="fas ${icons[type]} text-2xl mr-3"></i>
-            <p class="font-semibold">${message}</p>
-        </div>
-    `;
-
-    document.body.appendChild(toast);
-
-    // Animation d'entrée
-    setTimeout(() => {
-        toast.style.transform = 'translateX(0)';
-    }, 10);
-
-    // Retirer après 5 secondes
-    setTimeout(() => {
-        toast.style.transform = 'translateX(400px)';
-        setTimeout(() => toast.remove(), 300);
-    }, 5000);
-}
-
-/**
- * Afficher la modal de succès
- */
-function showSuccessModal(message) {
-    const modal = document.getElementById('successModal');
-    const messageEl = document.getElementById('successMessage');
-
-    messageEl.innerHTML = message;
-    modal.classList.remove('hidden');
-
-    // Animation
-    setTimeout(() => {
-        modal.querySelector('.bg-white').classList.add('scale-100');
-    }, 10);
-}
-
-/**
- * Fermer la modal de succès
- */
-function closeSuccessModal() {
-    const modal = document.getElementById('successModal');
-    modal.classList.add('hidden');
-}
-
-/**
- * =============================================
- * SECTION : RESET ET NETTOYAGE
- * =============================================
- */
-
-/**
- * Réinitialiser tout
- */
-function resetAll() {
-    // Reset variables
-    selectedAccount = null;
-
-    // Reset formulaire
-    document.getElementById('depositForm').reset();
-    document.getElementById('depositFormContainer').classList.add('hidden');
-
-    // Reset recherche
-    document.getElementById('searchInput').value = '';
-    showInitialState();
-
-    // Reset méthodes de paiement
-    const firstRadio = document.querySelector('.payment-method-radio');
-    if (firstRadio) {
-        firstRadio.checked = true;
-        firstRadio.dispatchEvent(new Event('change'));
     }
 
-    // Scroll vers le haut
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    function resetAll() {
+        selectedAccount = null;
+        document.getElementById('searchInput').value = '';
+        document.getElementById('depositFormContainer').classList.add('hidden');
+        document.getElementById('searchResults').classList.add('hidden');
+        document.getElementById('initialState').classList.remove('hidden');
+        document.getElementById('emptyMessage').classList.add('hidden');
+        document.getElementById('depositForm').reset();
+    }
 
-    // Focus sur recherche
-    setTimeout(() => focusSearch(), 300);
-}
+    function closeSuccessModal() {
+        document.getElementById('successModal').classList.add('hidden');
+        resetAll();
+    }
 
-/**
- * =============================================
- * SECTION : FORMATAGE
- * =============================================
- */
+    function formatCurrency(val) {
+        return new Intl.NumberFormat('fr-FR').format(val) + ' XOF';
+    }
 
-/**
- * Formater un montant en devise
- */
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('fr-FR', {
-        style: 'decimal',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(amount) + ' FCFA';
-}
+    function focusSearch() {
+        document.getElementById('searchInput').focus();
+    }
 
-/**
- * =============================================
- * EXPORTS (si module)
- * =============================================
- */
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        selectAccount,
-        resetAll,
-        focusSearch,
-        closeSuccessModal
-    };
-}
+    function showEmptyMatrix() {
+        document.getElementById('initialState').classList.add('hidden');
+        document.getElementById('searchResults').classList.add('hidden');
+        document.getElementById('emptyMessage').classList.remove('hidden');
+    }
 </script>
 @endpush
-
 @endsection

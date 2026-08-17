@@ -1,908 +1,455 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Dashboard de Rentabilité')
+@section('title', 'Audit de Rentabilité Institutionnelle')
+@section('page-title', 'Protocole / Analyse des Capitaux')
 
 @section('content')
-<div class="py-4 container-fluid">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Intelligence des Revenus & du Capital</h2>
+            <p class="text-slate-500 text-sm font-medium">Fenêtre d'Audit : <span class="text-blue-600 font-bold uppercase">{{ $startDate->format('d M Y') }} — {{ $endDate->format('d M Y') }}</span></p>
+        </div>
+        <div class="flex items-center gap-3">
+            <form method="GET" action="{{ route('admin.profitability.index') }}" id="periodForm">
+                <select name="period" class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase" onchange="this.form.submit()">
+                    <option value="7days" {{ $period == '7days' ? 'selected' : '' }}>Cycle de 7 Jours</option>
+                    <option value="30days" {{ $period == '30days' ? 'selected' : '' }}>Cycle de 30 Jours</option>
+                    <option value="90days" {{ $period == '90days' ? 'selected' : '' }}>Cycle de 90 Jours</option>
+                    <option value="6months" {{ $period == '6months' ? 'selected' : '' }}>Semestriel</option>
+                    <option value="year" {{ $period == 'year' ? 'selected' : '' }}>Audit Annuel</option>
+                </select>
+            </form>
+            <a href="{{ route('admin.profitability.investor-report') }}" class="btn-bank btn-bank-primary">
+                <i class="fas fa-file-invoice-dollar mr-2 text-[10px]"></i> Audit Secondaire
+            </a>
+        </div>
+    </div>
 
-    <!-- En-tête avec filtres de période -->
-    <div class="mb-6">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-                <h2 class="mb-1 text-3xl font-bold text-gray-900">💰 Rentabilité & Performance</h2>
-                <p class="text-sm text-gray-600">
-                    Période: <span class="font-semibold">{{ $startDate->format('d/m/Y') }} - {{ $endDate->format('d/m/Y') }}</span>
-                </p>
+    <!-- Matrice de Vélocité du Capital -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bank-card p-6 border-trust relative overflow-hidden">
+            <div class="flex items-center justify-between mb-4">
+                <span class="kpi-label">Revenu Opérationnel Brut</span>
+                <i class="fas fa-arrow-trend-up text-emerald-500 text-xs"></i>
             </div>
+            <div class="kpi-value !text-3xl mt-1 text-emerald-600">{{ number_format($profitability['total_revenue'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            @if(isset($previousPeriodComparison['revenue_change']))
+            <div class="mt-4 flex items-center gap-2">
+                <span class="text-[9px] font-black uppercase {{ $previousPeriodComparison['revenue_change'] >= 0 ? 'text-emerald-600' : 'text-rose-600' }} border border-current px-2 py-0.5 rounded">
+                    {{ $previousPeriodComparison['revenue_change'] >= 0 ? '↑' : '↓' }} {{ abs($previousPeriodComparison['revenue_change']) }}% Vélocité
+                </span>
+                <span class="text-[8px] font-bold text-slate-400 uppercase">vs Période Préc.</span>
+            </div>
+            @endif
+        </div>
 
-            <div class="flex gap-2">
-                <form method="GET" action="{{ route('admin.profitability.index') }}" class="flex gap-2">
-                    <select name="period"
-                            class="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            onchange="this.form.submit()">
-                        <option value="7days" {{ $period == '7days' ? 'selected' : '' }}>7 derniers jours</option>
-                        <option value="30days" {{ $period == '30days' ? 'selected' : '' }}>30 derniers jours</option>
-                        <option value="90days" {{ $period == '90days' ? 'selected' : '' }}>90 derniers jours</option>
-                        <option value="6months" {{ $period == '6months' ? 'selected' : '' }}>6 mois</option>
-                        <option value="year" {{ $period == 'year' ? 'selected' : '' }}>1 an</option>
-                    </select>
-                </form>
+        <div class="bank-card p-6 border-t-2 border-t-rose-500">
+            <div class="flex items-center justify-between mb-4">
+                <span class="kpi-label">Charge Opérationnelle Totale</span>
+                <i class="fas fa-arrow-trend-down text-rose-500 text-xs"></i>
+            </div>
+            <div class="kpi-value !text-3xl mt-1 text-rose-600">{{ number_format($profitability['total_costs'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            @php
+                $costRatio = $profitability['total_revenue'] > 0 ? ($profitability['total_costs'] / $profitability['total_revenue']) * 100 : 0;
+            @endphp
+            <div class="mt-4">
+                <div class="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-rose-500" style="width:{{ min($costRatio, 100) }}%"></div>
+                </div>
+                <p class="text-[8px] font-black text-rose-400 uppercase mt-2">Ratio de Charge : {{ round($costRatio, 1) }}% du Revenu</p>
+            </div>
+        </div>
 
-                {{-- <a href="{{ route('admin.profitability.investor-report') }}"
-                   class="flex items-center gap-2 px-4 py-2 text-sm text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
-                    <i class="fas fa-file-pdf"></i>
-                    <span>Rapport Investisseurs</span>
-                </a> --}}
+        <div class="bank-card p-6 border-t-2 border-t-blue-500">
+            <div class="flex items-center justify-between mb-4">
+                <span class="kpi-label">Surplus Fiscal Net</span>
+                <i class="fas fa-chart-line text-blue-500 text-xs"></i>
+            </div>
+            <div class="kpi-value !text-3xl mt-1 {{ $profitability['net_profit'] >= 0 ? 'text-blue-600' : 'text-rose-600' }}">
+                {{ number_format($profitability['net_profit'], 0, ',', ' ') }} <small class="text-xs">XOF</small>
+            </div>
+            @if(isset($previousPeriodComparison['profit_change']))
+            <div class="mt-4 flex items-center gap-2">
+                <span class="text-[9px] font-black uppercase {{ $previousPeriodComparison['profit_change'] >= 0 ? 'text-emerald-600' : 'text-rose-600' }} border border-current px-2 py-0.5 rounded">
+                    {{ $previousPeriodComparison['profit_change'] >= 0 ? '↑' : '↓' }} {{ abs($previousPeriodComparison['profit_change']) }}% Alpha
+                </span>
+            </div>
+            @endif
+        </div>
+
+        <div class="bank-card p-6 border-t-2 border-t-cyan-500">
+            <div class="flex items-center justify-between mb-4">
+                <span class="kpi-label">Marge Alpha Institutionnelle</span>
+                <i class="fas fa-percent text-cyan-500 text-xs"></i>
+            </div>
+            <div class="kpi-value !text-3xl mt-1 text-cyan-600">{{ $profitability['profit_margin'] }}%</div>
+            <div class="mt-4 flex items-center justify-between">
+                <span class="text-[8px] font-black text-slate-400 uppercase">Objectif Protocole : 25%</span>
+                <span class="text-[8px] font-black uppercase {{ $profitability['profit_margin'] >= 25 ? 'text-emerald-600' : 'text-amber-600' }}">
+                    {{ $profitability['profit_margin'] >= 25 ? 'Objectif Atteint' : 'Sous l\'Objectif' }}
+                </span>
             </div>
         </div>
     </div>
 
-    <!-- KPIs Principaux en Grid -->
-    <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2 lg:grid-cols-4">
-        <!-- Revenus Totaux -->
-        <div class="relative p-6 overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8 rounded-full opacity-50 bg-green-50"></div>
-            <div class="relative">
-                <div class="flex items-start justify-between mb-3">
-                    <div>
-                        <p class="mb-1 text-xs font-medium text-gray-500 uppercase">Revenus Totaux</p>
-                        <h3 class="text-3xl font-bold text-green-600">
-                            {{ number_format($profitability['total_revenue'], 0, ',', ' ') }}
-                        </h3>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-3 bg-green-100 rounded-xl">
-                        <i class="text-xl text-green-600 fas fa-arrow-trend-up"></i>
-                    </div>
-                </div>
-                @if(isset($previousPeriodComparison['revenue_change']))
-                <div class="flex items-center gap-1 mt-2">
-                    <i class="text-xs {{ $previousPeriodComparison['revenue_change'] >= 0 ? 'text-green-600 fas fa-arrow-up' : 'text-red-600 fas fa-arrow-down' }}"></i>
-                    <span class="text-xs font-semibold {{ $previousPeriodComparison['revenue_change'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ abs($previousPeriodComparison['revenue_change']) }}%
-                    </span>
-                    <span class="text-xs text-gray-500">vs période précédente</span>
-                </div>
-                @endif
-            </div>
+    <!-- Analyse de la Matrice des Revenus -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 bank-card p-8">
+            <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-8 block flex items-center gap-2">
+                <i class="fas fa-chart-pie text-blue-600"></i> Matrice d'Origine des Revenus
+            </h3>
+            <div class="h-80"><canvas id="revenueSourceChart"></canvas></div>
         </div>
 
-        <!-- Coûts Totaux -->
-        <div class="relative p-6 overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8 rounded-full opacity-50 bg-red-50"></div>
-            <div class="relative">
-                <div class="flex items-start justify-between mb-3">
-                    <div>
-                        <p class="mb-1 text-xs font-medium text-gray-500 uppercase">Coûts Totaux</p>
-                        <h3 class="text-3xl font-bold text-red-600">
-                            {{ number_format($profitability['total_costs'], 0, ',', ' ') }}
-                        </h3>
-                        <p class="text-xs text-gray-500">FCFA</p>
+        <div class="bank-card p-0 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                <h3 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Flux de Revenus</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                @php
+                    $totalRevenueSum = array_sum(array_column($revenueBySource, 'amount'));
+                    $colors = [
+                        'loan_interest' => 'bg-blue-600',
+                        'loan_penalties' => 'bg-rose-500',
+                        'fees' => 'bg-amber-500',
+                        'tontine' => 'bg-purple-600'
+                    ];
+                @endphp
+
+                @foreach($revenueBySource as $key => $source)
+                    @php
+                        $pct = $totalRevenueSum > 0 ? round(($source['amount'] / $totalRevenueSum) * 100, 1) : 0;
+                        $color = $colors[$key] ?? 'bg-slate-600';
+                        $translatedLabel = match($key) {
+                            'loan_interest' => 'Intérêts sur Crédit',
+                            'loan_penalties' => 'Pénalités de Retard',
+                            'fees' => 'Frais de Service',
+                            'tontine' => 'Produits de la Tontine',
+                            default => $source['label']
+                        };
+                    @endphp
+                    <div class="p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[10px] font-black text-slate-700 uppercase">{{ $translatedLabel }}</span>
+                            <span class="text-xs font-black text-slate-900">{{ $pct }}%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-white rounded-full overflow-hidden border border-slate-200">
+                            <div class="h-full {{ $color }}" style="width:{{ $pct }}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between mt-3">
+                            <p class="text-sm font-black text-slate-900">{{ number_format($source['amount'], 0, ',', ' ') }} <small class="text-[9px] text-slate-400">XOF</small></p>
+                            <p class="text-[8px] font-bold text-slate-400 tracking-tighter uppercase">{{ number_format($source['amount'] / max($startDate->diffInDays($endDate), 1), 0, ',', ' ') }} / Jour Opérationnel</p>
+                        </div>
                     </div>
-                    <div class="p-3 bg-red-100 rounded-xl">
-                        <i class="text-xl text-red-600 fas fa-arrow-trend-down"></i>
-                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    <!-- Dossier d'Intelligence Investisseur -->
+    <div class="bank-card p-0 overflow-hidden">
+        <div class="px-8 py-6 border-b border-slate-100 bg-slate-900 flex items-center justify-between">
+            <div>
+                <h3 class="text-xs font-extrabold text-white uppercase tracking-widest">Portefeuille de Performance Investisseur</h3>
+                <p class="text-[10px] text-white/50 font-medium mt-1">Évaluation de la Croissance Institutionnelle & des Risques</p>
+            </div>
+            <i class="fas fa-shield-halved text-blue-400 text-xl"></i>
+        </div>
+        <div class="p-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <i class="fas fa-users text-blue-500 mb-3 text-lg"></i>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Adhérents Actifs</p>
+                    <h4 class="text-2xl font-black text-slate-900">{{ number_format($kpis['total_clients']) }}</h4>
                 </div>
-                <div class="mt-2">
-                    <div class="w-full h-1 bg-gray-200 rounded-full">
-                        @php
-                            $costRatio = $profitability['total_revenue'] > 0
-                                ? ($profitability['total_costs'] / $profitability['total_revenue']) * 100
-                                : 0;
-                        @endphp
-                        <div class="h-1 transition-all duration-300 bg-red-600 rounded-full" style="width: {{ min($costRatio, 100) }}%"></div>
-                    </div>
-                    <p class="mt-1 text-xs text-gray-500">{{ round($costRatio, 1) }}% des revenus</p>
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <i class="fas fa-vault text-emerald-500 mb-3 text-lg"></i>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">comptes Opérationnels</p>
+                    <h4 class="text-2xl font-black text-slate-900">{{ number_format($kpis['active_accounts']) }}</h4>
+                </div>
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <i class="fas fa-piggy-bank text-amber-500 mb-3 text-lg"></i>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Dépôts Agrégés</p>
+                    <h4 class="text-2xl font-black text-slate-900">{{ number_format($kpis['total_deposits'] / 1000000, 1) }}M <small class="text-xs">XOF</small></h4>
+                </div>
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <i class="fas fa-handshake-angle text-purple-500 mb-3 text-lg"></i>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Portefeuille de Crédit</p>
+                    <h4 class="text-2xl font-black text-slate-900">{{ number_format($kpis['loan_portfolio'] / 1000000, 1) }}M <small class="text-xs">XOF</small></h4>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl text-center">
+                    <p class="text-[9px] font-black text-emerald-700 uppercase tracking-widest mb-2">Indice ROI</p>
+                    <h4 class="text-3xl font-black text-emerald-600">{{ $kpis['roi'] }}%</h4>
+                    <p class="text-[8px] font-bold text-emerald-500 uppercase mt-1">Retour sur Investissement</p>
+                </div>
+                <div class="p-6 bg-blue-50 border border-blue-100 rounded-2xl text-center">
+                    <p class="text-[9px] font-black text-blue-700 uppercase tracking-widest mb-2">Alpha Net</p>
+                    <h4 class="text-3xl font-black text-blue-600">{{ $kpis['profit_margin'] }}%</h4>
+                    <p class="text-[8px] font-bold text-blue-500 uppercase mt-1">Marge Fiscale</p>
+                </div>
+                <div class="p-6 bg-amber-50 border border-amber-100 rounded-2xl text-center">
+                    <p class="text-[9px] font-black text-amber-700 uppercase tracking-widest mb-2">Indice de Défaut</p>
+                    <h4 class="text-3xl font-black text-amber-600">{{ $kpis['default_rate'] }}%</h4>
+                    <p class="text-[8px] font-bold text-amber-500 uppercase mt-1">Risque du Portefeuille</p>
+                </div>
+                <div class="p-6 bg-cyan-50 border border-cyan-100 rounded-2xl text-center">
+                    <p class="text-[9px] font-black text-cyan-700 uppercase tracking-widest mb-2">comptes de Crédit Actifs</p>
+                    <h4 class="text-3xl font-black text-cyan-600">{{ number_format($kpis['active_loans']) }}</h4>
+                    <p class="text-[8px] font-bold text-cyan-500 uppercase mt-1">Contrats en Cours</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Bénéfice Net -->
-        <div class="relative p-6 overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8 rounded-full opacity-50 bg-blue-50"></div>
-            <div class="relative">
-                <div class="flex items-start justify-between mb-3">
-                    <div>
-                        <p class="mb-1 text-xs font-medium text-gray-500 uppercase">Bénéfice Net</p>
-                        <h3 class="text-3xl font-bold {{ $profitability['net_profit'] >= 0 ? 'text-blue-600' : 'text-red-600' }}">
-                            {{ number_format($profitability['net_profit'], 0, ',', ' ') }}
-                        </h3>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-3 bg-blue-100 rounded-xl">
-                        <i class="text-xl text-blue-600 fas fa-chart-line"></i>
-                    </div>
+    <!-- Trajectoire Fiscale -->
+    <div class="bank-card p-8">
+        <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-8 block flex items-center gap-2">
+            <i class="fas fa-chart-line text-blue-600"></i> Matrice de Trajectoire des Revenus
+        </h3>
+        <div class="h-80"><canvas id="revenueTimelineChart"></canvas></div>
+    </div>
+
+    <!-- Projections d'Intelligence -->
+    <div class="bank-card p-0 overflow-hidden">
+        <div class="px-8 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Intelligence Prédictive Future</h3>
+            <span class="px-2 py-0.5 bg-slate-900 text-white text-[8px] font-black rounded uppercase">Estimations IA</span>
+        </div>
+        <div class="p-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Prévision Proximale (30J)</p>
+                    <p class="text-2xl font-black text-slate-900">{{ number_format($projections['next_month_revenue'] / 1000000, 2) }}M <small class="text-xs">XOF</small></p>
                 </div>
-                @if(isset($previousPeriodComparison['profit_change']))
-                <div class="flex items-center gap-1 mt-2">
-                    <i class="text-xs {{ $previousPeriodComparison['profit_change'] >= 0 ? 'text-green-600 fas fa-arrow-up' : 'text-red-600 fas fa-arrow-down' }}"></i>
-                    <span class="text-xs font-semibold {{ $previousPeriodComparison['profit_change'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ abs($previousPeriodComparison['profit_change']) }}%
-                    </span>
-                    <span class="text-xs text-gray-500">vs période précédente</span>
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Prévision Trimestrielle</p>
+                    <p class="text-2xl font-black text-slate-900">{{ number_format($projections['next_quarter_revenue'] / 1000000, 2) }}M <small class="text-xs">XOF</small></p>
                 </div>
-                @endif
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Capacité de Financement Annuelle</p>
+                    <p class="text-2xl font-black text-slate-900">{{ number_format($projections['annual_revenue'] / 1000000, 2) }}M <small class="text-xs">XOF</small></p>
+                </div>
+                <div class="p-6 bg-blue-600 rounded-2xl text-white shadow-xl shadow-blue-500/20">
+                    <p class="text-[9px] font-black text-white/60 uppercase tracking-widest mb-4">Potentiel de Croissance Institutionnelle</p>
+                    <p class="text-3xl font-black text-white">{{ $projections['growth_potential']['growth_potential'] }}%</p>
+                    <p class="text-[10px] font-bold text-white/50 mt-1 uppercase">Indice d'Expansion du Marché</p>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!-- Marge Bénéficiaire -->
-        <div class="relative p-6 overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8 rounded-full opacity-50 bg-cyan-50"></div>
-            <div class="relative">
-                <div class="flex items-start justify-between mb-3">
-                    <div>
-                        <p class="mb-1 text-xs font-medium text-gray-500 uppercase">Marge Bénéficiaire</p>
-                        <h3 class="text-3xl font-bold text-cyan-600">
-                            {{ $profitability['profit_margin'] }}%
-                        </h3>
-                        <p class="text-xs text-gray-500">Sur revenus</p>
+    <!-- Audit Détaillé des Flux -->
+    <div class="bank-card p-8">
+        <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-8 block flex items-center gap-2">
+            <i class="fas fa-list-check text-blue-600"></i> Audit Granulaire des Flux d'Actifs
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            @php
+                $breakdownLabels = [
+                    'loan_interest' => 'Rendement Crédit',
+                    'loan_penalties' => 'Frais de Recouvrement',
+                    'account_fees' => 'Activation de compte',
+                    'transaction_fees' => 'Frais de Cycle',
+                    'withdrawal_fees' => 'Frais de Règlement',
+                    'transfer_fees' => 'Frais de Protocole',
+                    'monthly_fees' => 'Abo. Service',
+                    'tontine_revenue' => 'Rendement Mutuel'
+                ];
+            @endphp
+            @foreach($breakdownLabels as $key => $label)
+            <div class="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-black text-slate-500 uppercase">{{ $label }}</span>
+                    <span class="text-[9px] font-black text-blue-600">{{ $revenuePercentages[$key] ?? 0 }}%</span>
+                </div>
+                <p class="text-lg font-black text-slate-900">{{ number_format($revenueBreakdown[$key] ?? 0, 0, ',', ' ') }} <small class="text-[10px] text-slate-400">XOF</small></p>
+            </div>
+            @endforeach
+        </div>
+        <div class="p-6 bg-slate-900 rounded-2xl flex items-center justify-between text-white">
+            <div>
+                <p class="text-[9px] font-black text-white/40 uppercase tracking-widest">Revenu Agrégé du Registre</p>
+                <p class="text-[10px] text-blue-400 font-bold mt-1">Données de l'Environnement de Production Vérifiées</p>
+            </div>
+            <p class="text-3xl font-black text-white">{{ number_format($totalRevenueSum, 0, ',', ' ') }} <small class="text-xs text-white/40">XOF</small></p>
+        </div>
+    </div>
+
+    <!-- Analyse de la Matrice des Risques -->
+    @if(isset($riskAnalysis))
+    <div class="bank-card p-8">
+        <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-8 block flex items-center gap-2">
+            <i class="fas fa-triangle-exclamation text-rose-500"></i> Matrice des Risques de Contrepartie & de Portefeuille
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div class="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+                <i class="fas fa-layer-group text-amber-500 mb-3 text-lg"></i>
+                <p class="text-[8px] font-black text-slate-400 uppercase mb-2">Concentration</p>
+                <h4 class="text-2xl font-black text-slate-900">{{ $riskAnalysis['loan_concentration'] }}%</h4>
+                <p class="text-[8px] font-bold text-slate-400 uppercase mt-1">Exposition Top 10</p>
+            </div>
+            <div class="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+                <i class="fas fa-shield-check text-emerald-500 mb-3 text-lg"></i>
+                <p class="text-[8px] font-black text-slate-400 uppercase mb-2">PAR 1 (Alerte)</p>
+                <h4 class="text-2xl font-black text-emerald-600">{{ $riskAnalysis['par_1'] }}%</h4>
+                <p class="text-[8px] font-bold text-slate-400 uppercase mt-1">Retards Mineurs</p>
+            </div>
+            <div class="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+                <i class="fas fa-droplet text-blue-500 mb-3 text-lg"></i>
+                <p class="text-[8px] font-black text-slate-400 uppercase mb-2">PAR 30 (Marché)</p>
+                <h4 class="text-2xl font-black text-blue-600">{{ $riskAnalysis['par_30'] }}%</h4>
+                <p class="text-[8px] font-bold text-slate-400 uppercase mt-1">Benchmark MFI</p>
+            </div>
+            <div class="p-6 border-2 border-orange-200 bg-orange-50 rounded-2xl text-center">
+                <i class="fas fa-biohazard text-orange-500 mb-3 text-lg"></i>
+                <p class="text-[8px] font-black text-orange-700 uppercase mb-2">PAR 60 (Critique)</p>
+                <h4 class="text-2xl font-black text-orange-600">{{ $riskAnalysis['par_60'] }}%</h4>
+                <p class="text-[8px] font-bold text-orange-400 uppercase mt-1">Érosion du Capital</p>
+            </div>
+            <div class="p-6 bg-rose-600 border border-rose-700 rounded-2xl text-center text-white shadow-lg shadow-rose-900/20">
+                <i class="fas fa-fire-flame-curved text-rose-200 mb-3 text-lg"></i>
+                <p class="text-[8px] font-black text-white/60 uppercase mb-2">PAR 90 (Perte Est.)</p>
+                <h4 class="text-2xl font-black text-white">{{ $riskAnalysis['par_90'] }}%</h4>
+                <p class="text-[8px] font-bold text-rose-300 uppercase mt-1">Défaut Institutionnel</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Audit de la Vélocité de Trésorerie -->
+    @if(isset($cashFlow))
+    <div class="bank-card p-0 overflow-hidden">
+        <div class="px-8 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Grand Livre de la Vélocité de Trésorerie Divisionnaire</h3>
+        </div>
+        <div class="p-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center">
+                            <i class="fas fa-arrow-down-left"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-[10px] font-black text-slate-800 uppercase">Entrées Opérationnelles</h4>
+                            <p class="text-[8px] font-bold text-slate-400 uppercase">Liquidités Entrantes</p>
+                        </div>
                     </div>
-                    <div class="p-3 rounded-xl bg-cyan-100">
-                        <i class="text-xl fas fa-percentage text-cyan-600"></i>
+                    @php
+                        $inflowLabels = ['deposits' => 'Dépôts aux Détails', 'loan_repayments' => 'Recouvrement de Crédit', 'fees' => 'Frais Institutionnels', 'tontine_contributions' => 'Capital Mutuel'];
+                    @endphp
+                    @foreach($inflowLabels as $key => $lbl)
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">{{ $lbl }}</span>
+                        <span class="text-sm font-black text-slate-900">{{ number_format(($cashFlow['inflows'][$key] ?? 0) / 1000000, 2) }}M</span>
+                    </div>
+                    @endforeach
+                    <div class="pt-4 flex justify-between items-center">
+                        <span class="text-[10px] font-black text-emerald-600 uppercase">Entrée Totale</span>
+                        <span class="text-xl font-black text-emerald-600">{{ number_format(($cashFlow['total_inflows'] ?? 0) / 1000000, 2) }}M</span>
                     </div>
                 </div>
-                <div class="mt-2">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-gray-600">Objectif: 25%</span>
-                        <span class="font-semibold {{ $profitability['profit_margin'] >= 25 ? 'text-green-600' : 'text-orange-600' }}">
-                            {{ $profitability['profit_margin'] >= 25 ? '✓ Atteint' : '△ En cours' }}
+
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 bg-rose-500 text-white rounded-xl flex items-center justify-center">
+                            <i class="fas fa-arrow-up-right"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-[10px] font-black text-slate-800 uppercase">Sorties Opérationnelles</h4>
+                            <p class="text-[8px] font-bold text-slate-400 uppercase">Liquidités Sortantes</p>
+                        </div>
+                    </div>
+                    @php
+                        $outflowLabels = ['withdrawals' => 'Règlements aux Détails', 'loan_disbursements' => 'Déploiement de Crédit', 'tontine_payouts' => 'Versements Mutuels', 'operational_costs' => 'Charge Institutionnelle'];
+                    @endphp
+                    @foreach($outflowLabels as $key => $lbl)
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">{{ $lbl }}</span>
+                        <span class="text-sm font-black text-slate-900">{{ number_format(($cashFlow['outflows'][$key] ?? 0) / 1000000, 2) }}M</span>
+                    </div>
+                    @endforeach
+                    <div class="pt-4 flex justify-between items-center">
+                        <span class="text-[10px] font-black text-rose-600 uppercase">Sortie Totale</span>
+                        <span class="text-xl font-black text-rose-600">{{ number_format(($cashFlow['total_outflows'] ?? 0) / 1000000, 2) }}M</span>
+                    </div>
+                </div>
+
+                <div class="p-8 bg-slate-900 rounded-3xl text-center flex flex-col justify-center border border-white/10 shadow-2xl shadow-slate-900/40">
+                    <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-4">Vélocité Divisionnaire Nette</p>
+                    <h2 class="text-5xl font-black text-white leading-none mb-2">
+                        {{ number_format(($cashFlow['net_cash_flow'] ?? 0) / 1000000, 2) }}M
+                    </h2>
+                    <p class="text-[10px] font-bold text-white/50 uppercase">Poids du Capital XOF</p>
+                    <div class="mt-8 pt-8 border-t border-white/5">
+                        <span class="px-4 py-1.5 rounded-full {{ ($cashFlow['net_cash_flow'] ?? 0) >= 0 ? 'bg-emerald-600/20 text-emerald-400' : 'bg-rose-600/20 text-rose-400' }} text-[9px] font-black uppercase tracking-widest">
+                            {{ ($cashFlow['net_cash_flow'] ?? 0) >= 0 ? 'Équilibre Surplus' : 'Risque Déficitaire' }}
                         </span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Répartition des Revenus -->
-    <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-3">
-        <!-- Graphique Doughnut -->
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl lg:col-span-2">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h5 class="text-lg font-bold text-gray-900">📊 Répartition des Revenus par Source</h5>
-                <p class="text-sm text-gray-500">Distribution des revenus sur la période</p>
-            </div>
-            <div class="p-6">
-                <div class="relative" style="height: 320px;">
-                    <canvas id="revenueSourceChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Liste des Sources -->
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h5 class="text-lg font-bold text-gray-900">💡 Sources de Revenus</h5>
-                <p class="text-sm text-gray-500">Détails par catégorie</p>
-            </div>
-            <div class="p-6">
-                @php
-                    $totalRevenue = array_sum(array_column($revenueBySource, 'amount'));
-                    $colors = [
-                        'loan_interest' => 'bg-blue-600',
-                        'loan_penalties' => 'bg-green-600',
-                        'fees' => 'bg-yellow-500',
-                        'tontine' => 'bg-purple-600'
-                    ];
-                    $icons = [
-                        'loan_interest' => 'fa-hand-holding-usd',
-                        'loan_penalties' => 'fa-exclamation-triangle',
-                        'fees' => 'fa-money-bill-wave',
-                        'tontine' => 'fa-users'
-                    ];
-                @endphp
-
-                <div class="space-y-4">
-                    @foreach($revenueBySource as $key => $source)
-                        @php
-                            $percentage = $totalRevenue > 0 ? round(($source['amount'] / $totalRevenue) * 100, 1) : 0;
-                            $color = $colors[$key] ?? 'bg-gray-600';
-                            $icon = $icons[$key] ?? 'fa-circle';
-                        @endphp
-                        <div class="p-4 transition-all duration-200 border border-gray-100 rounded-lg hover:border-gray-300 hover:shadow-sm">
-                            <div class="flex items-center gap-3 mb-2">
-                                <div class="p-2 {{ str_replace('bg-', 'bg-opacity-10 bg-', $color) }} rounded-lg">
-                                    <i class="text-sm fas {{ $icon }} {{ str_replace('bg-', 'text-', $color) }}"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-semibold text-gray-700">{{ $source['label'] }}</span>
-                                        <span class="text-sm font-bold text-gray-900">{{ $percentage }}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="w-full h-2 overflow-hidden bg-gray-100 rounded-full">
-                                <div class="h-2 transition-all duration-500 {{ $color }} rounded-full"
-                                     style="width: {{ $percentage }}%"></div>
-                            </div>
-                            <div class="flex items-center justify-between mt-2">
-                                <span class="text-xs font-bold text-gray-900">
-                                    {{ number_format($source['amount'], 0, ',', ' ') }} FCFA
-                                </span>
-                                <span class="text-xs text-gray-500">
-                                    {{ number_format($source['amount'] / max($startDate->diffInDays($endDate), 1), 0, ',', ' ') }} FCFA/jour
-                                </span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- KPIs Investisseurs -->
-    <div class="mb-6">
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h5 class="text-lg font-bold text-gray-900">📈 Indicateurs Clés pour Investisseurs</h5>
-                        <p class="text-sm text-gray-500">Métriques de performance et de croissance</p>
-                    </div>
-                    <a href="{{ route('admin.profitability.investor-report') }}" class="text-sm text-blue-600 hover:text-blue-700">
-                        Voir le rapport complet →
-                    </a>
-                </div>
-            </div>
-            <div class="p-6">
-                <!-- Métriques Opérationnelles -->
-                <div class="mb-6">
-                    <h6 class="mb-4 text-sm font-semibold text-gray-700 uppercase">Métriques Opérationnelles</h6>
-                    <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                        <div class="p-4 text-center transition-all duration-200 border-2 border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md">
-                            <div class="mb-2">
-                                <i class="text-2xl text-blue-600 fas fa-users"></i>
-                            </div>
-                            <p class="mb-1 text-xs font-medium text-gray-500">Clients Actifs</p>
-                            <h4 class="text-2xl font-bold text-gray-900">{{ number_format($kpis['total_clients']) }}</h4>
-                        </div>
-                        <div class="p-4 text-center transition-all duration-200 border-2 border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md">
-                            <div class="mb-2">
-                                <i class="text-2xl text-green-600 fas fa-wallet"></i>
-                            </div>
-                            <p class="mb-1 text-xs font-medium text-gray-500">Comptes Actifs</p>
-                            <h4 class="text-2xl font-bold text-gray-900">{{ number_format($kpis['active_accounts']) }}</h4>
-                        </div>
-                        <div class="p-4 text-center transition-all duration-200 border-2 border-gray-200 rounded-xl hover:border-yellow-300 hover:shadow-md">
-                            <div class="mb-2">
-                                <i class="text-2xl text-yellow-600 fas fa-piggy-bank"></i>
-                            </div>
-                            <p class="mb-1 text-xs font-medium text-gray-500">Dépôts Totaux</p>
-                            <h4 class="text-lg font-bold text-gray-900">{{ number_format($kpis['total_deposits'] / 1000000, 1) }}M</h4>
-                            <p class="text-xs text-gray-500">FCFA</p>
-                        </div>
-                        <div class="p-4 text-center transition-all duration-200 border-2 border-gray-200 rounded-xl hover:border-purple-300 hover:shadow-md">
-                            <div class="mb-2">
-                                <i class="text-2xl text-purple-600 fas fa-hand-holding-usd"></i>
-                            </div>
-                            <p class="mb-1 text-xs font-medium text-gray-500">Portfolio Prêts</p>
-                            <h4 class="text-lg font-bold text-gray-900">{{ number_format($kpis['loan_portfolio'] / 1000000, 1) }}M</h4>
-                            <p class="text-xs text-gray-500">FCFA</p>
-                        </div>
-                    </div>
-                </div>
-
-                <hr class="my-6 border-gray-200">
-
-                <!-- Métriques Financières -->
-                <div>
-                    <h6 class="mb-4 text-sm font-semibold text-gray-700 uppercase">Métriques Financières</h6>
-                    <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                        <div class="p-5 text-center transition-all duration-200 border-2 border-green-200 rounded-xl bg-green-50 hover:shadow-lg">
-                            <p class="mb-2 text-xs font-semibold text-green-700 uppercase">ROI</p>
-                            <h4 class="mb-1 text-3xl font-bold text-green-600">{{ $kpis['roi'] }}%</h4>
-                            <p class="text-xs text-green-600">Return on Investment</p>
-                        </div>
-                        <div class="p-5 text-center transition-all duration-200 border-2 border-blue-200 rounded-xl bg-blue-50 hover:shadow-lg">
-                            <p class="mb-2 text-xs font-semibold text-blue-700 uppercase">Marge Nette</p>
-                            <h4 class="mb-1 text-3xl font-bold text-blue-600">{{ $kpis['profit_margin'] }}%</h4>
-                            <p class="text-xs text-blue-600">Net Profit Margin</p>
-                        </div>
-                        <div class="p-5 text-center transition-all duration-200 border-2 border-yellow-200 rounded-xl bg-yellow-50 hover:shadow-lg">
-                            <p class="mb-2 text-xs font-semibold text-yellow-700 uppercase">Taux de Défaut</p>
-                            <h4 class="mb-1 text-3xl font-bold text-yellow-600">{{ $kpis['default_rate'] }}%</h4>
-                            <p class="text-xs text-yellow-600">Default Rate</p>
-                        </div>
-                        <div class="p-5 text-center transition-all duration-200 border-2 rounded-xl border-cyan-200 bg-cyan-50 hover:shadow-lg">
-                            <p class="mb-2 text-xs font-semibold uppercase text-cyan-700">Prêts Actifs</p>
-                            <h4 class="mb-1 text-3xl font-bold text-cyan-600">{{ number_format($kpis['active_loans']) }}</h4>
-                            <p class="text-xs text-cyan-600">Active Loans</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Évolution Temporelle -->
-    <div class="mb-6">
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h5 class="text-lg font-bold text-gray-900">📅 Évolution des Revenus</h5>
-                        <p class="text-sm text-gray-500">Tendance quotidienne sur la période</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200">
-                            Revenus
-                        </button>
-                        <button class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
-                            Frais
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6">
-                <div class="relative" style="height: 280px;">
-                    <canvas id="revenueTimelineChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Projections Futures -->
-    <div class="mb-6">
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center gap-2">
-                    <h5 class="text-lg font-bold text-gray-900">🔮 Projections</h5>
-                    <span class="px-2 py-1 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full">Prévisionnel</span>
-                </div>
-                <p class="text-sm text-gray-500">Estimations basées sur les tendances actuelles</p>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <div class="p-5 text-center transition-all duration-200 border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md bg-gradient-to-br from-white to-blue-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-blue-600 fas fa-calendar-day"></i>
-                        </div>
-                        <p class="mb-2 text-xs font-medium text-gray-600">Mois Prochain</p>
-                        <h5 class="text-xl font-bold text-gray-900">{{ number_format($projections['next_month_revenue'] / 1000000, 2) }}M</h5>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-5 text-center transition-all duration-200 border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md bg-gradient-to-br from-white to-green-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-green-600 fas fa-calendar-week"></i>
-                        </div>
-                        <p class="mb-2 text-xs font-medium text-gray-600">Prochain Trimestre</p>
-                        <h5 class="text-xl font-bold text-gray-900">{{ number_format($projections['next_quarter_revenue'] / 1000000, 2) }}M</h5>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-5 text-center transition-all duration-200 border border-gray-200 rounded-xl hover:border-yellow-300 hover:shadow-md bg-gradient-to-br from-white to-yellow-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-yellow-600 fas fa-calendar-alt"></i>
-                        </div>
-                        <p class="mb-2 text-xs font-medium text-gray-600">Revenu Annuel</p>
-                        <h5 class="text-xl font-bold text-gray-900">{{ number_format($projections['annual_revenue'] / 1000000, 2) }}M</h5>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-5 text-center transition-all duration-200 border border-gray-200 rounded-xl hover:border-purple-300 hover:shadow-md bg-gradient-to-br from-white to-purple-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-purple-600 fas fa-chart-line"></i>
-                        </div>
-                        <p class="mb-2 text-xs font-medium text-gray-600">Potentiel de Croissance</p>
-                        <h5 class="text-xl font-bold text-purple-600">{{ $projections['growth_potential']['growth_potential'] }}%</h5>
-                        <p class="text-xs text-gray-500">Market Potential</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Breakdown Détaillé des Revenus -->
-    <div class="mb-6">
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h5 class="text-lg font-bold text-gray-900">💎 Analyse Détaillée des Revenus</h5>
-                <p class="text-sm text-gray-500">Décomposition complète par type de revenu</p>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <!-- Intérêts sur Prêts -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Intérêts Prêts</span>
-                            <span class="text-xs font-medium text-blue-600">{{ $revenuePercentages['loan_interest'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['loan_interest'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-
-                    <!-- Pénalités -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Pénalités</span>
-                            <span class="text-xs font-medium text-orange-600">{{ $revenuePercentages['loan_penalties'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['loan_penalties'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-
-                    <!-- Frais de Compte -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Frais Activation</span>
-                            <span class="text-xs font-medium text-green-600">{{ $revenuePercentages['account_fees'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['account_fees'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-
-                    <!-- Frais de Transaction -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Frais Transaction</span>
-                            <span class="text-xs font-medium text-purple-600">{{ $revenuePercentages['transaction_fees'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['transaction_fees'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-
-                    <!-- Frais de Retrait -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Frais Retrait</span>
-                            <span class="text-xs font-medium text-yellow-600">{{ $revenuePercentages['withdrawal_fees'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['withdrawal_fees'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-
-                    <!-- Frais de Transfert -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Frais Transfert</span>
-                            <span class="text-xs font-medium text-pink-600">{{ $revenuePercentages['transfer_fees'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['transfer_fees'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-
-                    <!-- Frais Mensuels Épargne -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Frais Mensuels</span>
-                            <span class="text-xs font-medium text-indigo-600">{{ $revenuePercentages['monthly_fees'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['monthly_fees'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-
-                    <!-- Revenus Tontines -->
-                    <div class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-gray-700">Tontines</span>
-                            <span class="text-xs font-medium text-cyan-600">{{ $revenuePercentages['tontine_revenue'] }}%</span>
-                        </div>
-                        <h4 class="mb-1 text-xl font-bold text-gray-900">
-                            {{ number_format($revenueBreakdown['tontine_revenue'], 0, ',', ' ') }}
-                        </h4>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                </div>
-
-                <!-- Total -->
-                <div class="p-4 mt-4 border-2 border-blue-200 rounded-lg bg-blue-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-sm font-semibold text-blue-900">Total des Revenus</span>
-                            <p class="text-xs text-blue-700">Sur la période sélectionnée</p>
-                        </div>
-                        <div class="text-right">
-                            <h3 class="text-2xl font-bold text-blue-900">
-                                {{ number_format($totalRevenue, 0, ',', ' ') }}
-                            </h3>
-                            <p class="text-xs text-blue-700">FCFA</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Analyse des Risques -->
-    @if(isset($riskAnalysis))
-    <div class="mb-6">
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h5 class="text-lg font-bold text-gray-900">⚠️ Analyse des Risques</h5>
-                <p class="text-sm text-gray-500">Indicateurs de risque et qualité du portefeuille</p>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                    <!-- Concentration des Prêts -->
-                    <div class="p-4 text-center border-2 border-yellow-200 rounded-lg bg-yellow-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-yellow-600 fas fa-layer-group"></i>
-                        </div>
-                        <p class="mb-1 text-xs font-medium text-yellow-700">Concentration</p>
-                        <h4 class="text-2xl font-bold text-yellow-900">{{ $riskAnalysis['loan_concentration'] }}%</h4>
-                        <p class="text-xs text-yellow-600">Top 10 prêts</p>
-                    </div>
-
-                    <!-- Qualité Portefeuille -->
-                    <div class="p-4 text-center border-2 border-green-200 rounded-lg bg-green-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-green-600 fas fa-shield-alt"></i>
-                        </div>
-                        <p class="mb-1 text-xs font-medium text-green-700">Qualité</p>
-                        <h4 class="text-2xl font-bold text-green-900">{{ $riskAnalysis['portfolio_quality'] }}%</h4>
-                        <p class="text-xs text-green-600">Performing</p>
-                    </div>
-
-                    <!-- Ratio de Liquidité -->
-                    <div class="p-4 text-center border-2 border-blue-200 rounded-lg bg-blue-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-blue-600 fas fa-tint"></i>
-                        </div>
-                        <p class="mb-1 text-xs font-medium text-blue-700">Liquidité</p>
-                        <h4 class="text-2xl font-bold text-blue-900">{{ $riskAnalysis['liquidity_ratio'] }}%</h4>
-                        <p class="text-xs text-blue-600">Ratio</p>
-                    </div>
-
-                    <!-- NPL Ratio -->
-                    <div class="p-4 text-center border-2 border-red-200 rounded-lg bg-red-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-red-600 fas fa-exclamation-triangle"></i>
-                        </div>
-                        <p class="mb-1 text-xs font-medium text-red-700">NPL Ratio</p>
-                        <h4 class="text-2xl font-bold text-red-900">{{ $riskAnalysis['npl_ratio'] }}%</h4>
-                        <p class="text-xs text-red-600">Non-performing</p>
-                    </div>
-
-                    <!-- Exposition Risque Élevé -->
-                    <div class="p-4 text-center border-2 border-orange-200 rounded-lg bg-orange-50">
-                        <div class="mb-2">
-                            <i class="text-2xl text-orange-600 fas fa-fire"></i>
-                        </div>
-                        <p class="mb-1 text-xs font-medium text-orange-700">Risque Élevé</p>
-                        <h4 class="text-2xl font-bold text-orange-900">
-                            {{ $riskAnalysis['risk_exposure']['high'] + $riskAnalysis['risk_exposure']['very_high'] }}%
-                        </h4>
-                        <p class="text-xs text-orange-600">Exposition</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
     @endif
-
-    <!-- Flux de Trésorerie -->
-    @if(isset($cashFlow))
-    <div class="mb-6">
-        <div class="bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h5 class="text-lg font-bold text-gray-900">💸 Flux de Trésorerie</h5>
-                <p class="text-sm text-gray-500">Entrées et sorties sur la période</p>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <!-- Entrées -->
-                    <div class="p-5 border-2 border-green-200 rounded-xl bg-green-50">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-3 bg-green-600 rounded-lg">
-                                <i class="text-xl text-white fas fa-arrow-down"></i>
-                            </div>
-                            <div>
-                                <h6 class="text-sm font-bold text-green-900">Entrées</h6>
-                                <p class="text-xs text-green-700">Cash Inflows</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-green-700">Dépôts</span>
-                                <span class="font-semibold text-green-900">{{ number_format($cashFlow['inflows']['deposits'] / 1000000, 2) }}M</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-green-700">Remboursements</span>
-                                <span class="font-semibold text-green-900">{{ number_format($cashFlow['inflows']['loan_repayments'] / 1000000, 2) }}M</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-green-700">Frais</span>
-                                <span class="font-semibold text-green-900">{{ number_format($cashFlow['inflows']['fees'] / 1000000, 2) }}M</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-green-700">Tontines</span>
-                                <span class="font-semibold text-green-900">{{ number_format($cashFlow['inflows']['tontine_contributions'] / 1000000, 2) }}M</span>
-                            </div>
-                        </div>
-                        <div class="pt-3 mt-3 border-t-2 border-green-300">
-                            <div class="flex justify-between">
-                                <span class="text-sm font-bold text-green-900">Total</span>
-                                <span class="text-lg font-bold text-green-900">{{ number_format($cashFlow['total_inflows'] / 1000000, 2) }}M</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sorties -->
-                    <div class="p-5 border-2 border-red-200 rounded-xl bg-red-50">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-3 bg-red-600 rounded-lg">
-                                <i class="text-xl text-white fas fa-arrow-up"></i>
-                            </div>
-                            <div>
-                                <h6 class="text-sm font-bold text-red-900">Sorties</h6>
-                                <p class="text-xs text-red-700">Cash Outflows</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-red-700">Retraits</span>
-                                <span class="font-semibold text-red-900">{{ number_format($cashFlow['outflows']['withdrawals'] / 1000000, 2) }}M</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-red-700">Décaissements</span>
-                                <span class="font-semibold text-red-900">{{ number_format($cashFlow['outflows']['loan_disbursements'] / 1000000, 2) }}M</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-red-700">Paiements Tontines</span>
-                                <span class="font-semibold text-red-900">{{ number_format($cashFlow['outflows']['tontine_payouts'] / 1000000, 2) }}M</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-red-700">Coûts Opérationnels</span>
-                                <span class="font-semibold text-red-900">{{ number_format($cashFlow['outflows']['operational_costs'] / 1000000, 2) }}M</span>
-                            </div>
-                        </div>
-                        <div class="pt-3 mt-3 border-t-2 border-red-300">
-                            <div class="flex justify-between">
-                                <span class="text-sm font-bold text-red-900">Total</span>
-                                <span class="text-lg font-bold text-red-900">{{ number_format($cashFlow['total_outflows'] / 1000000, 2) }}M</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Flux Net -->
-                    <div class="p-5 border-2 rounded-xl {{ $cashFlow['net_cash_flow'] >= 0 ? 'border-blue-200 bg-blue-50' : 'border-orange-200 bg-orange-50' }}">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-3 rounded-lg {{ $cashFlow['net_cash_flow'] >= 0 ? 'bg-blue-600' : 'bg-orange-600' }}">
-                                <i class="text-xl text-white fas fa-balance-scale"></i>
-                            </div>
-                            <div>
-                                <h6 class="text-sm font-bold {{ $cashFlow['net_cash_flow'] >= 0 ? 'text-blue-900' : 'text-orange-900' }}">Flux Net</h6>
-                                <p class="text-xs {{ $cashFlow['net_cash_flow'] >= 0 ? 'text-blue-700' : 'text-orange-700' }}">Net Cash Flow</p>
-                            </div>
-                        </div>
-                        <div class="py-6 text-center">
-                            <h2 class="text-4xl font-bold {{ $cashFlow['net_cash_flow'] >= 0 ? 'text-blue-900' : 'text-orange-900' }}">
-                                {{ number_format($cashFlow['net_cash_flow'] / 1000000, 2) }}M
-                            </h2>
-                            <p class="mt-2 text-sm {{ $cashFlow['net_cash_flow'] >= 0 ? 'text-blue-700' : 'text-orange-700' }}">FCFA</p>
-                        </div>
-                        <div class="pt-3 mt-3 border-t-2 {{ $cashFlow['net_cash_flow'] >= 0 ? 'border-blue-300' : 'border-orange-300' }}">
-                            <div class="text-xs text-center {{ $cashFlow['net_cash_flow'] >= 0 ? 'text-blue-700' : 'text-orange-700' }}">
-                                {{ $cashFlow['net_cash_flow'] >= 0 ? 'Position positive' : 'Position déficitaire' }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
 </div>
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// Configuration commune pour les graphiques
-const commonOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            labels: {
-                font: {
-                    family: "'Inter', sans-serif",
-                    size: 12
-                },
-                padding: 15,
-                usePointStyle: true
-            }
-        },
-        tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: 12,
-            titleFont: {
-                size: 13,
-                weight: 'bold'
-            },
-            bodyFont: {
-                size: 12
-            },
-            cornerRadius: 8
-        }
-    }
-};
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.weight = '700';
 
-// Graphique répartition des revenus (Doughnut)
-const revenueSourceCtx = document.getElementById('revenueSourceChart').getContext('2d');
-new Chart(revenueSourceCtx, {
-    type: 'doughnut',
-    data: {
-        labels: [
-            @foreach($revenueBySource as $source)
-                '{{ $source["label"] }}',
-            @endforeach
-        ],
-        datasets: [{
-            data: [
-                @foreach($revenueBySource as $source)
-                    {{ $source['amount'] }},
-                @endforeach
-            ],
-            backgroundColor: [
-                '#3b82f6', // blue
-                '#10b981', // green
-                '#fbbf24', // yellow
-                '#8b5cf6'  // purple
-            ],
-            borderWidth: 2,
-            borderColor: '#ffffff',
-            hoverOffset: 15
-        }]
-    },
-    options: {
-        ...commonOptions,
-        cutout: '65%',
-        plugins: {
-            ...commonOptions.plugins,
-            legend: {
-                position: 'bottom',
-                labels: {
-                    ...commonOptions.plugins.legend.labels,
-                    padding: 20
-                }
-            },
-            tooltip: {
-                ...commonOptions.plugins.tooltip,
-                callbacks: {
-                    label: function(context) {
-                        const label = context.label || '';
-                        const value = context.parsed || 0;
-                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((value / total) * 100).toFixed(1);
-                        return `${label}: ${new Intl.NumberFormat('fr-FR').format(value)} FCFA (${percentage}%)`;
-                    }
-                }
+    // Matrice d'Origine des Revenus
+    new Chart(document.getElementById('revenueSourceChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: [{!! collect($revenueBySource)->map(fn($s, $k) => match($k) { 'loan_interest' => 'Intérêts Crédit', 'loan_penalties' => 'Pénalités', 'fees' => 'Frais', 'tontine' => 'Tontine', default => $s['label'] })->map(fn($l) => "'$l'")->implode(',') !!}],
+            datasets: [{
+                data: [{!! collect($revenueBySource)->pluck('amount')->implode(',') !!}],
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                borderWidth: 0,
+                cutout: '75%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 25, font: { size: 9 } } }
             }
         }
-    }
-});
-
-// Graphique évolution temporelle (Line)
-const timelineCtx = document.getElementById('revenueTimelineChart').getContext('2d');
-const gradient = timelineCtx.createLinearGradient(0, 0, 0, 250);
-gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
-gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-
-new Chart(timelineCtx, {
-    type: 'line',
-    data: {
-        labels: [
-            @foreach($revenueTimeline as $day)
-                '{{ \Carbon\Carbon::parse($day["date"])->format("d/m") }}',
-            @endforeach
-        ],
-        datasets: [{
-            label: 'Revenus (FCFA)',
-            data: [
-                @foreach($revenueTimeline as $day)
-                    {{ $day['revenue'] ?? 0 }},
-                @endforeach
-            ],
-            borderColor: '#3b82f6',
-            backgroundColor: gradient,
-            fill: true,
-            tension: 0.4,
-            borderWidth: 3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#3b82f6',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointHoverBackgroundColor: '#1e40af',
-            pointHoverBorderColor: '#ffffff'
-        }]
-    },
-    options: {
-        ...commonOptions,
-        interaction: {
-            mode: 'index',
-            intersect: false
-        },
-        plugins: {
-            ...commonOptions.plugins,
-            legend: {
-                display: false
-            },
-            tooltip: {
-                ...commonOptions.plugins.tooltip,
-                callbacks: {
-                    label: function(context) {
-                        return `Revenus: ${new Intl.NumberFormat('fr-FR').format(context.parsed.y)} FCFA`;
-                    }
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.05)',
-                    drawBorder: false
-                },
-                ticks: {
-                    font: {
-                        size: 11
-                    },
-                    color: '#6b7280',
-                    callback: function(value) {
-                        if (value >= 1000000) {
-                            return (value / 1000000).toFixed(1) + 'M';
-                        }
-                        return new Intl.NumberFormat('fr-FR').format(value);
-                    }
-                }
-            },
-            x: {
-                grid: {
-                    display: false,
-                    drawBorder: false
-                },
-                ticks: {
-                    font: {
-                        size: 11
-                    },
-                    color: '#6b7280',
-                    maxRotation: 0,
-                    autoSkip: true,
-                    maxTicksLimit: 15
-                }
-            }
-        }
-    }
-});
-
-// Animation au chargement
-document.addEventListener('DOMContentLoaded', function() {
-    // Animer les chiffres
-    const animateValue = (element, start, end, duration) => {
-        const range = end - start;
-        const increment = range / (duration / 16);
-        let current = start;
-
-        const timer = setInterval(() => {
-            current += increment;
-            if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-                current = end;
-                clearInterval(timer);
-            }
-            element.textContent = Math.floor(current).toLocaleString('fr-FR');
-        }, 16);
-    };
-
-    // Appliquer l'animation aux KPIs principaux
-    document.querySelectorAll('[data-animate-value]').forEach(el => {
-        const finalValue = parseInt(el.getAttribute('data-animate-value'));
-        animateValue(el, 0, finalValue, 1000);
     });
-});
+
+    // Matrice de Trajectoire
+    const timelineCtx = document.getElementById('revenueTimelineChart').getContext('2d');
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: [{!! collect($revenueTimeline)->pluck('date')->map(fn($d) => "'".\Carbon\Carbon::parse($d)->format('d M')."'")->implode(',') !!}],
+            datasets: [{
+                label: 'Flux d\'Actifs',
+                data: [{!! collect($revenueTimeline)->pluck('total')->implode(',') !!}],
+                borderColor: '#3b82f6',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(59, 130, 246, 0.05)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: 'rgba(0,0,0,0.02)' }, ticks: { font: { size: 9 } } },
+                x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+            }
+        }
+    });
 </script>
 @endpush
-
 @endsection

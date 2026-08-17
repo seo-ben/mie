@@ -189,29 +189,47 @@
             </div>
         </div>
 
-        <div class="p-6 bg-white rounded-lg shadow-sm">
+        <div class="p-6 bg-white rounded-lg shadow-sm border-l-4 border-red-500">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Montants en Souffrance</h3>
-                <i class="text-red-500 fas fa-exclamation-triangle"></i>
+                <h3 class="text-lg font-semibold text-gray-900 uppercase tracking-tighter">Surveillance du Risque (PAR)</h3>
+                <i class="text-red-500 fas fa-shield-virus"></i>
             </div>
-            <div class="text-center">
-                <p class="text-4xl font-bold text-red-600">{{ number_format($stats['overdue_amount'], 0, ',', ' ') }}</p>
-                <p class="mt-2 text-sm text-gray-600">FCFA</p>
-            </div>
-            <div class="pt-4 mt-4 space-y-2 border-t border-gray-200">
-                @php
-                    $overdueRate = $stats['active_portfolio'] > 0 ? ($stats['overdue_amount'] / $stats['active_portfolio']) * 100 : 0;
-                @endphp
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">PAR (Portfolio at Risk):</span>
-                    <span class="font-semibold {{ $overdueRate <= 5 ? 'text-green-600' : ($overdueRate <= 10 ? 'text-orange-600' : 'text-red-600') }}">
-                        {{ number_format($overdueRate, 1) }}%
-                    </span>
+            
+            <div class="space-y-4">
+                <!-- PAR 30 principal -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase">PAR 30 (Benchmark)</p>
+                        <p class="text-3xl font-black text-red-600 font-numeric">{{ number_format($stats['par_30'], 1) }}%</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-bold text-gray-500 uppercase">PAR 90 (Critique)</p>
+                        <p class="text-xl font-black text-rose-800 font-numeric">{{ number_format($stats['par_90'], 1) }}%</p>
+                    </div>
                 </div>
-                <div class="w-full h-2 mt-2 bg-gray-200 rounded-full">
-                    <div class="h-2 transition-all duration-300 {{ $overdueRate <= 5 ? 'bg-green-600' : ($overdueRate <= 10 ? 'bg-orange-600' : 'bg-red-600') }} rounded-full"
-                         style="width: {{ min($overdueRate, 100) }}%"></div>
+
+                <!-- Barre de progression Matrice -->
+                <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex shadow-inner">
+                    <div class="bg-amber-400 h-full border-r border-white/20" style="width: {{ $stats['par_1'] }}%" title="PAR 1: {{ $stats['par_1'] }}%"></div>
+                    <div class="bg-orange-500 h-full border-r border-white/20" style="width: {{ $stats['par_30'] }}%" title="PAR 30: {{ $stats['par_30'] }}%"></div>
+                    <div class="bg-red-600 h-full" style="width: {{ $stats['par_90'] }}%" title="PAR 90: {{ $stats['par_90'] }}%"></div>
                 </div>
+
+                <!-- Détails Matrice -->
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">PAR 1 Jours +</span>
+                        <span class="text-xs font-bold text-amber-600">{{ number_format($stats['par_1'], 1) }}%</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">PAR 60 Jours +</span>
+                        <span class="text-xs font-bold text-orange-700">{{ number_format($stats['par_60'], 1) }}%</span>
+                    </div>
+                </div>
+                
+                <p class="text-[9px] text-gray-400 italic font-medium leading-tight">
+                    * Le PAR représente la part de l'encours total des crédits dont au moins une échéance est en retard de plus de X jours.
+                </p>
             </div>
         </div>
     </div>

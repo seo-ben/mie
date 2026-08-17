@@ -146,7 +146,7 @@ class AgentDashboardController extends Controller
     {
         $dateRange = $this->getDateRange($period);
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)
@@ -183,15 +183,9 @@ class AgentDashboardController extends Controller
     private function getCollectionStats($agentId, $period)
     {
         $dateRange = $this->getDateRange($period);
-        $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
-            ->pluck('id');
 
-        $accountIds = Account::whereIn('client_id', $clientIds)
-            ->where('status', 'active')
-            ->pluck('id');
-
-        $transactions = Transaction::whereIn('account_id', $accountIds)
+        // On se base sur ce que l'agent a RÉELLEMENT traité (processed_by)
+        $transactions = Transaction::where('processed_by', $agentId)
             ->whereBetween('created_at', $dateRange)
             ->where('status', 'completed');
 
@@ -202,6 +196,23 @@ class AgentDashboardController extends Controller
             ->get()
             ->pluck('total', 'transaction_type');
 
+        // Récupérer les 10 dernières collectes pour l'affichage mobile
+        $recent = (clone $transactions)
+            ->with(['account.client'])
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(function($t) {
+                return [
+                    'id' => $t->id,
+                    'amount' => $t->amount,
+                    'client_name' => $t->account->client->full_name ?? 'Client inconnu',
+                    'transaction_type' => $t->transaction_type,
+                    'created_at' => $t->created_at,
+                    'description' => $t->description
+                ];
+            });
+
         return [
             'total_collected'    => (clone $transactions)
                 ->where('transaction_type', 'like', '%deposit%')
@@ -210,6 +221,10 @@ class AgentDashboardController extends Controller
                 ->where('transaction_type', 'withdrawal')
                 ->sum('amount'),
             'transaction_count' => (clone $transactions)->count(),
+            'count'             => (clone $transactions)->count(), // Double mapping pour compatibilité mobile
+            'collections_count' => (clone $transactions)->where('transaction_type', 'like', '%deposit%')->count(),
+            'target'            => 100000, // Objectif fictif flexible ou à lier aux paramètres agence
+            'recent'            => $recent,
             'savings_deposits'  => $depositsByType['savings_deposit'] ?? 0,
             'tontine_deposits'  => $depositsByType['tontine_deposit'] ?? 0,
             'loan_repayments'   => (clone $transactions)
@@ -232,9 +247,6 @@ class AgentDashboardController extends Controller
         return [
             'total'            => (clone $clients)->where('registration_status', 'approved')->count(),
             'pending'           => (clone $clients)->where('registration_status', 'pending')->count(),
-            'rejected'          => (clone $clients)->where('registration_status', 'rejected')->count(),
-            'kyc_pending'       => (clone $clients)->where('kyc_status', 'pending')->count(),
-            'kyc_approved'     => (clone $clients)->where('kyc_status', 'approved')->count(),
             'with_loans'        => (clone $clients)
                 ->whereHas('loans', function($q){ $q->whereIn('status', ['active','disbursed']); })
                 ->count(),
@@ -250,7 +262,7 @@ class AgentDashboardController extends Controller
     private function getReminders($agentId)
     {
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $today      = Carbon::today();
@@ -363,7 +375,7 @@ class AgentDashboardController extends Controller
     private function getRecentActivities($agentId, $limit = 15)
     {
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)
@@ -399,7 +411,7 @@ class AgentDashboardController extends Controller
     private function getChartData($agentId)
     {
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)

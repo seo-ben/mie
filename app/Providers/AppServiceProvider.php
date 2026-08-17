@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use App\Http\ViewComposers\AdminLayoutComposer;
 use Illuminate\Support\Facades\View;
 
+use Carbon\Carbon;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -21,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Carbon::setLocale('fr');
+        setlocale(LC_TIME, 'fr_FR.utf8', 'fr_FR', 'fr');
         View::composer('layouts.app_admin', AdminLayoutComposer::class);
     }
 }

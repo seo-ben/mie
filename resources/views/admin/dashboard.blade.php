@@ -1,563 +1,328 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Tableau de Bord Admin')
+@section('title', 'Pilotage Stratégique - Dashboard')
+@section('page-title', 'Supervision du Marché et Performance')
+
 @section('content')
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Total Clients -->
-                <div class="metric-card bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-users text-blue-600 text-xl"></i>
-                        </div>
-                        <span class="{{ $overview['clients']['growth'] >= 0 ? 'stat-up' : 'stat-down' }} text-sm font-semibold">
-                            <i class="fas fa-arrow-{{ $overview['clients']['growth'] >= 0 ? 'up' : 'down' }}"></i> {{ number_format(abs($overview['clients']['growth']), 1) }}%
-                        </span>
-                    </div>
-                    <h3 class="text-gray-500 text-sm font-medium mb-1">Total Clients</h3>
-                    <p class="text-3xl font-bold text-gray-800">{{ number_format($overview['clients']['total']) }}</p>
-                    <p class="text-sm text-gray-500 mt-2">
-                        <span class="text-green-600 font-semibold">+{{ number_format($overview['clients']['new_period']) }}</span> sur {{ $period }}j
-                        <span class="text-xs text-gray-400 ml-2">• {{ number_format($overview['clients']['kyc_approval_rate'], 1) }}% KYC</span>
-                    </p>
-                </div>
+<div class="space-y-8">
+    <!-- Contrôle de la Période d'Audit -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Console de Pilotage Stratégique</h2>
+            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Analyse de Performance & Rentabilité • Fenêtre de {{ $period }} Jours</p>
+        </div>
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            @foreach([7, 30, 90, 365] as $p)
+                <a href="?period={{ $p }}" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all {{ ($period ?? 30) == $p ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700' }}">
+                    {{ $p == 365 ? 'An' : $p.'J' }}
+                </a>
+            @endforeach
+        </div>
+    </div>
 
-                <!-- Comptes Actifs -->
-                <div class="metric-card bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-wallet text-green-600 text-xl"></i>
-                        </div>
-                        <span class="stat-up text-sm font-semibold">
-                            <i class="fas fa-arrow-up"></i> {{ number_format($overview['accounts']['activation_rate'], 1) }}%
-                        </span>
-                    </div>
-                    <h3 class="text-gray-500 text-sm font-medium mb-1">Comptes Actifs</h3>
-                    <p class="text-3xl font-bold text-gray-800">{{ number_format($overview['accounts']['active']) }}</p>
-                    <p class="text-sm text-gray-500 mt-2">
-                        Sur {{ number_format($overview['accounts']['total']) }} comptes
-                        <span class="text-xs text-gray-400 ml-2">• {{ number_format($overview['loans']['active']) }} prêts</span>
-                    </p>
-                </div>
-
-                <!-- Dépôts Totaux -->
-                <div class="metric-card bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-piggy-bank text-purple-600 text-xl"></i>
-                        </div>
-                        <span class="stat-up text-sm font-semibold">
-                            <i class="fas fa-chart-line"></i> Liquidité
-                        </span>
-                    </div>
-                    <h3 class="text-gray-500 text-sm font-medium mb-1">Dépôts Totaux</h3>
-                    <p class="text-3xl font-bold text-gray-800">{{ number_format($overview['financial']['total_deposits'] / 1000000, 1) }}M</p>
-                    <p class="text-sm text-gray-500 mt-2">
-                        FCFA
-                        <span class="text-xs text-gray-400 ml-2">• Épargne: {{ number_format($financial['savings_performance']['total_balance'] / 1000000, 1) }}M</span>
-                    </p>
-                </div>
-
-                <!-- Portefeuille Prêts -->
-                <div class="metric-card bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-hand-holding-usd text-orange-600 text-xl"></i>
-                        </div>
-                        <span class="text-sm font-semibold" style="color: {{ $overview['financial']['loan_to_deposit_ratio'] > 80 ? '#EF4444' : '#10B981' }}">
-                            <i class="fas fa-percentage"></i> {{ number_format($overview['financial']['loan_to_deposit_ratio'], 1) }}%
-                        </span>
-                    </div>
-                    <h3 class="text-gray-500 text-sm font-medium mb-1">Portefeuille Prêts</h3>
-                    <p class="text-3xl font-bold text-gray-800">{{ number_format($overview['loans']['portfolio_value'] / 1000000, 1) }}M</p>
-                    <p class="text-sm text-gray-500 mt-2">
-                        FCFA
-                        <span class="text-xs text-gray-400 ml-2">• +{{ number_format($overview['loans']['new_period']) }} nouveaux</span>
-                    </p>
+    <!-- Cockpit de Rentabilité Stratégique -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <!-- BÉNÉFICE NET (Estimé) -->
+        <div class="bank-card p-6 border-l-4 border-emerald-600 bg-emerald-50/10">
+            <div class="flex items-center justify-between mb-4">
+                <span class="kpi-label text-emerald-700">Profit Net (Bénéfices)</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                    <i class="fas fa-chart-line text-xs"></i>
                 </div>
             </div>
+            <div class="kpi-value font-numeric text-emerald-900">{{ number_format($financial['profitability']['net_profit'] ?? 0, 0, ',', ' ') }} <small class="text-sm">XOF</small></div>
+            <div class="flex items-center gap-2 mt-2">
+                <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-black uppercase tracking-widest">
+                    Marge : {{ $financial['profitability']['margin'] ?? 0 }}%
+                </span>
+            </div>
+        </div>
 
-            <!-- Charts Row -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Croissance -->
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">Croissance</h3>
-                            <p class="text-xs text-gray-500">Évolution sur {{ $period }} jours</p>
-                        </div>
+        <!-- CHIFFRE D'AFFAIRES (PNB) -->
+        <div class="bank-card p-6 border-l-4 border-blue-600 bg-blue-50/10">
+            <div class="flex items-center justify-between mb-4">
+                <span class="kpi-label text-blue-700">Chiffre d'Affaires (PNB)</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                    <i class="fas fa-vault text-xs"></i>
+                </div>
+            </div>
+            <div class="kpi-value font-numeric text-blue-900">{{ number_format($financial['revenue']['total'] ?? 0, 0, ',', ' ') }} <small class="text-sm">XOF</small></div>
+            <div class="flex items-center gap-2 mt-2">
+                <span class="text-[9px] text-slate-400 font-bold uppercase">Architecture des Revenus</span>
+            </div>
+        </div>
+
+        <!-- Surveillance du Risque (Matrice PAR) -->
+        <div class="bank-card p-6 border-l-4 border-rose-600 bg-rose-50/10">
+            <div class="flex items-center justify-between mb-2">
+                <span class="kpi-label text-rose-700 uppercase tracking-tighter">Surveillance du Risque (PAR)</span>
+                <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600">
+                    <i class="fas fa-triangle-exclamation text-xs"></i>
+                </div>
+            </div>
+            
+            <div class="space-y-3 mt-2">
+                <!-- PAR 30 (L'indice pivot) -->
+                <div class="flex items-end justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-500 uppercase">PAR 30 (Pivot)</span>
+                        <div class="kpi-value font-numeric text-rose-900 leading-none">{{ number_format($financial['loan_quality']['par_30'] ?? 0, 1) }}%</div>
                     </div>
-                    <div class="chart-container">
-                        <canvas id="growthChart"></canvas>
+                    <div class="text-right">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">PAR 90 (Critique)</span>
+                        <div class="text-sm font-black text-rose-700">{{ number_format($financial['loan_quality']['par_90'] ?? 0, 1) }}%</div>
                     </div>
                 </div>
 
-                <!-- Répartition Géographique -->
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">Répartition Géographique</h3>
-                            <p class="text-xs text-gray-500">Clients par région</p>
-                        </div>
+                <!-- Barre de progression comparative -->
+                <div class="flex h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div class="bg-amber-400 h-full border-r border-white/20" style="width: {{ $financial['loan_quality']['par_1'] ?? 0 }}%"></div>
+                    <div class="bg-orange-500 h-full border-r border-white/20" style="width: {{ $financial['loan_quality']['par_30'] ?? 0 }}%"></div>
+                    <div class="bg-rose-600 h-full" style="width: {{ $financial['loan_quality']['par_90'] ?? 0 }}%"></div>
+                </div>
+
+                <!-- Légende Matrice -->
+                <div class="grid grid-cols-2 gap-2 pt-1 border-t border-rose-200/50">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                        <span class="text-[9px] font-bold text-slate-500">PAR 1 : {{ number_format($financial['loan_quality']['par_1'] ?? 0, 1) }}%</span>
                     </div>
-                    <div class="chart-container">
-                        <canvas id="geographicChart"></canvas>
+                    <div class="flex items-center gap-1.5 justify-end">
+                        <div class="w-2 h-2 rounded-full bg-rose-700"></div>
+                        <span class="text-[9px] font-bold text-rose-800 uppercase">Perte Sèche Est.</span>
                     </div>
                 </div>
             </div>
-            <!-- Tontines & Épargne Performance -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Performance Tontines -->
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">Performance Tontines</h3>
-                            <p class="text-xs text-gray-500">{{ $period }} derniers jours</p>
-                        </div>
-                        <span class="text-xs bg-purple-100 text-purple-600 px-3 py-1 rounded-full font-semibold">
-                            {{ $financial['tontine_performance']['collection_rate'] }}% collecte
-                        </span>
-                    </div>
+        </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Cycles Actifs</p>
-                            <p class="text-3xl font-bold text-purple-600">{{ $financial['tontine_performance']['active_cycles'] }}</p>
-                        </div>
-                        <div class="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Complétés</p>
-                            <p class="text-3xl font-bold text-green-600">{{ $financial['tontine_performance']['completed_cycles'] }}</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center text-sm">
-                            <span class="text-gray-600">Total Collecté</span>
-                            <span class="font-bold text-gray-800">{{ number_format($financial['tontine_performance']['total_collected'] / 1000000, 2) }}M FCFA</span>
-                        </div>
-                        <div class="flex justify-between items-center text-sm">
-                            <span class="text-gray-600">Payouts Distribués</span>
-                            <span class="font-bold text-gray-800">{{ number_format($financial['tontine_performance']['total_payouts'] / 1000000, 2) }}M FCFA</span>
-                        </div>
-                        <div class="flex justify-between items-center text-sm">
-                            <span class="text-gray-600">Valeur Moyenne</span>
-                            <span class="font-bold text-gray-800">{{ number_format($financial['tontine_performance']['average_cycle_value']) }} FCFA</span>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 pt-4 border-t">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm text-gray-600">Progression Collecte</span>
-                            <span class="text-sm font-bold text-purple-600">{{ $financial['tontine_performance']['collection_rate'] }}%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-3">
-                            <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-500" style="width: {{ min($financial['tontine_performance']['collection_rate'], 100) }}%"></div>
-                        </div>
-                    </div>
+        <!-- Efficacité de la Trésorerie -->
+        <div class="bank-card p-6 border-l-4 border-indigo-600">
+            <div class="flex items-center justify-between mb-4">
+                <span class="kpi-label text-indigo-700">Liquidité Disponible</span>
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <i class="fas fa-scale-balanced text-xs"></i>
                 </div>
+            </div>
+            <div class="kpi-value font-numeric text-indigo-900">{{ number_format($financial['liquidity']['cash_reserves'], 0, ',', ' ') }} <small class="text-sm">XOF</small></div>
+            <div class="flex items-center gap-2 mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                Ratio Prêts/Dépôts : {{ number_format($financial['liquidity']['loan_to_deposit_ratio'] ?? 0, 1) }}%
+            </div>
+        </div>
+    </div>
 
-                <!-- Performance Épargne -->
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800">Performance Épargne</h3>
-                            <p class="text-xs text-gray-500">{{ $period }} derniers jours</p>
-                        </div>
-                        <span class="text-xs bg-green-100 text-green-600 px-3 py-1 rounded-full font-semibold">
-                            {{ $financial['savings_performance']['total_accounts'] }} comptes
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Balance Totale</p>
-                            <p class="text-2xl font-bold text-green-600">{{ number_format($financial['savings_performance']['total_balance'] / 1000000, 1) }}M</p>
-                        </div>
-                        <div class="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-1">Balance Moy.</p>
-                            <p class="text-2xl font-bold text-blue-600">{{ number_format($financial['savings_performance']['average_balance']) }}</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-arrow-down text-green-600"></i>
-                                <span class="text-sm text-gray-700">Nouveaux Dépôts</span>
-                            </div>
-                            <span class="font-bold text-green-600">+{{ number_format($financial['savings_performance']['new_deposits'] / 1000000, 2) }}M</span>
-                        </div>
-
-                        <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-arrow-up text-orange-600"></i>
-                                <span class="text-sm text-gray-700">Retraits</span>
-                            </div>
-                            <span class="font-bold text-orange-600">-{{ number_format($financial['savings_performance']['withdrawals'] / 1000000, 2) }}M</span>
-                        </div>
-
-                        <div class="flex items-center justify-between p-3 {{ $financial['savings_performance']['net_flow'] >= 0 ? 'bg-blue-50' : 'bg-red-50' }} rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-exchange-alt {{ $financial['savings_performance']['net_flow'] >= 0 ? 'text-blue-600' : 'text-red-600' }}"></i>
-                                <span class="text-sm text-gray-700">Flux Net</span>
-                            </div>
-                            <span class="font-bold {{ $financial['savings_performance']['net_flow'] >= 0 ? 'text-blue-600' : 'text-red-600' }}">
-                                {{ $financial['savings_performance']['net_flow'] >= 0 ? '+' : '' }}{{ number_format($financial['savings_performance']['net_flow'] / 1000000, 2) }}M
-                            </span>
-                        </div>
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <!-- Analyses de Croissance -->
+        <div class="xl:col-span-2 bank-card">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Expansion Opérationnelle</h3>
+                    <p class="text-[11px] text-slate-400 font-medium">Trajectoire des indicateurs clés de performance</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Acquisitions</span>
                     </div>
                 </div>
             </div>
+            <div class="p-6">
+                <div class="h-[350px] relative">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+        </div>
 
-            <!-- Top Performers & Geographic Details -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Top Agents Performance -->
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Top Agents ({{ $period }}j)</h3>
-                    <div class="space-y-3">
-                        @foreach($operational['agents_performance']->take(5) as $index => $agent)
-                        <div class="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition">
-                            <div class="w-10 h-10 rounded-full {{ $index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : ($index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400' : 'bg-gradient-to-br from-orange-400 to-red-500') }} flex items-center justify-center text-white font-bold">
-                                {{ $index + 1 }}
+        <!-- Distribution Régionale -->
+        <div class="bank-card">
+            <div class="p-6 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-800">Poids du Réseau</h3>
+                <p class="text-[11px] text-slate-400 font-medium">Concentration géographique de l'adhésion</p>
+            </div>
+            <div class="p-8">
+                <div class="h-[300px] relative mb-6">
+                    <canvas id="geographicChart"></canvas>
+                </div>
+                <!-- Légende -->
+                <div class="space-y-3">
+                    @foreach($geographicChartData['labels'] as $index => $label)
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full" style="background-color: {{ ['#2563EB', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777'][$index % 6] }}"></div>
+                                <span class="text-xs font-semibold text-slate-600">{{ $label }}</span>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="font-semibold text-gray-800 truncate">{{ $agent['name'] }}</p>
-                                <p class="text-sm text-gray-500 truncate">{{ $agent['agency'] }} • {{ ucfirst(str_replace('_', ' ', $agent['role'])) }}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-gray-800">{{ $agent['clients_registered'] }}</p>
-                                <p class="text-xs text-gray-500">{{ $agent['approval_rate'] }}% KYC</p>
-                            </div>
+                            <span class="text-xs font-bold text-slate-900">{{ $geographicChartData['percentages'][$index] }}%</span>
                         </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- Geographic Distribution Details -->
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Distribution Régionale</h3>
-                    <div class="space-y-4">
-                        @foreach($geographic as $region)
-                        <div>
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-map-marker-alt text-blue-500 text-sm"></i>
-                                    <span class="font-medium text-gray-800">{{ $region['region'] }}</span>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-sm font-bold text-gray-800">{{ number_format($region['clients']) }}</span>
-                                    <span class="text-xs text-gray-500 ml-1">({{ $region['percentage'] }}%)</span>
-                                </div>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                                <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all" style="width: {{ $region['percentage'] }}%"></div>
-                            </div>
-                            <div class="flex justify-between text-xs text-gray-500">
-                                <span>{{ $region['active_accounts'] }} comptes actifs</span>
-                                <span>{{ number_format($region['total_deposits'] / 1000000, 1) }}M FCFA</span>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
+                    @endforeach
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Agencies Performance -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">Performance des Agences</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agence</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Clients</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Agents</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Comptes Actifs</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Localisation</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($operational['agencies_performance'] as $agency)
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                                            {{ strtoupper(substr($agency['name'], 0, 2)) }}
-                                        </div>
-                                        <div class="ml-3">
-                                            <p class="text-sm font-medium text-gray-900">{{ $agency['name'] }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <p class="text-sm text-gray-900">{{ $agency['manager'] }}</p>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="text-sm font-semibold text-gray-900">{{ number_format($agency['total_clients']) }}</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="text-sm text-gray-900">{{ $agency['total_agents'] }}</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                        {{ number_format($agency['active_accounts']) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <p class="text-sm text-gray-500">{{ $agency['city'] }}</p>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+    <!-- Sections de Supervision Spécialisées -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Performance Tontines -->
+        <div class="bank-card">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Épargne Mutuelle (Tontines)</h3>
+                    <p class="text-[11px] text-slate-400 font-medium">Participation aux cycles et flux de trésorerie</p>
+                </div>
+                <i class="fas fa-rotate text-emerald-500"></i>
+            </div>
+            <div class="p-6 divide-y divide-slate-100 font-numeric">
+                <div class="py-4 flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-500">Volume des Collectes</span>
+                    <span class="text-sm font-bold text-slate-800">{{ number_format($stats['tontine_collections_sum'], 0, ',', ' ') }} XOF</span>
+                </div>
+                <div class="py-4 flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-500">Commissions Générées (2%)</span>
+                    <span class="text-sm font-bold text-emerald-600">+{{ number_format($financial['revenue']['tontine'], 0, ',', ' ') }} XOF</span>
+                </div>
+                <div class="py-4 flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-500">Décaissements (Mises à disposition)</span>
+                    <span class="text-sm font-bold text-rose-600">-{{ number_format($stats['tontine_payouts_sum'], 0, ',', ' ') }} XOF</span>
+                </div>
+                <div class="py-4 flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-500">Indice de Vitalité</span>
+                    <span class="text-sm font-extrabold text-blue-600">82.4%</span>
                 </div>
             </div>
+        </div>
 
-            <!-- Additional Performance Indicators -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- ROA -->
-                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white">
-                    <div class="flex items-center justify-between mb-4">
-                        <i class="fas fa-chart-line text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">KPI</span>
+        <!-- Architecture des Bénéfices -->
+        <div class="bank-card shadow-xl border-t-4 border-emerald-500">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-emerald-50/20">
+                <div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">Architecture des Bénéfices</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Origine des flux de profit net</p>
+                </div>
+                <i class="fas fa-coins text-emerald-600"></i>
+            </div>
+            <div class="p-6 space-y-5 font-numeric">
+                <!-- Source : Intérêts Prêts -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-tighter">
+                        <span class="text-slate-500">Intérêts & Pénalités (Prêts)</span>
+                        <span class="text-emerald-600">+{{ number_format(($financial['revenue']['loan_interest'] ?? 0) + ($financial['revenue']['loan_penalties'] ?? 0), 0, ',', ' ') }}</span>
                     </div>
-                    <h3 class="text-sm opacity-90 mb-1">ROA (Return on Assets)</h3>
-                    <p class="text-3xl font-bold">{{ number_format($performance['roa'], 2) }}%</p>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        @php $loanScale = ($financial['revenue']['total'] ?? 0) > 0 ? ((($financial['revenue']['loan_interest'] ?? 0) + ($financial['revenue']['loan_penalties'] ?? 0)) / $financial['revenue']['total']) * 100 : 0; @endphp
+                        <div class="bg-emerald-500 h-full" style="width: {{ $loanScale }}%"></div>
+                    </div>
                 </div>
 
-                <!-- Taux d'Utilisation -->
-                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
-                    <div class="flex items-center justify-between mb-4">
-                        <i class="fas fa-percentage text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">Liquidité</span>
+                <!-- Source : Commissions Tontine -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-tighter">
+                        <span class="text-slate-500">Commissions Tontines</span>
+                        <span class="text-blue-600">+{{ number_format($financial['revenue']['tontine'] ?? 0, 0, ',', ' ') }}</span>
                     </div>
-                    <h3 class="text-sm opacity-90 mb-1">Taux d'Utilisation</h3>
-                    <p class="text-3xl font-bold">{{ number_format($performance['utilization_rate'], 1) }}%</p>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        @php $tontineScale = ($financial['revenue']['total'] ?? 0) > 0 ? (($financial['revenue']['tontine'] ?? 0) / $financial['revenue']['total']) * 100 : 0; @endphp
+                        <div class="bg-blue-500 h-full" style="width: {{ $tontineScale }}%"></div>
+                    </div>
                 </div>
 
-                <!-- Rétention Client -->
-                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-sm p-6 text-white">
-                    <div class="flex items-center justify-between mb-4">
-                        <i class="fas fa-user-check text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">Fidélité</span>
+                <!-- Source : Frais de Service -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-tighter">
+                        <span class="text-slate-500">Frais de Service & Tenue</span>
+                        <span class="text-indigo-600">+{{ number_format($financial['revenue']['fees'] ?? 0, 0, ',', ' ') }}</span>
                     </div>
-                    <h3 class="text-sm opacity-90 mb-1">Taux de Rétention</h3>
-                    <p class="text-3xl font-bold">{{ number_format($performance['client_retention_rate'], 1) }}%</p>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        @php $feesScale = ($financial['revenue']['total'] ?? 0) > 0 ? (($financial['revenue']['fees'] ?? 0) / $financial['revenue']['total']) * 100 : 0; @endphp
+                        <div class="bg-indigo-500 h-full" style="width: {{ $feesScale }}%"></div>
+                    </div>
                 </div>
 
-                <!-- Prêt Moyen -->
-                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-sm p-6 text-white">
-                    <div class="flex items-center justify-between mb-4">
-                        <i class="fas fa-coins text-3xl opacity-80"></i>
-                        <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">Moyenne</span>
+                <!-- Coûts de Trésorerie -->
+                <div class="pt-4 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-black text-rose-400 uppercase tracking-widest">Charges de Trésorerie (-)</span>
+                        <span class="text-xs font-bold text-rose-600">-{{ number_format($financial['profitability']['total_costs'] ?? 0, 0, ',', ' ') }}</span>
                     </div>
-                    <h3 class="text-sm opacity-90 mb-1">Prêt Moyen</h3>
-                    <p class="text-3xl font-bold">{{ number_format($performance['average_loan_size'] / 1000) }}K</p>
+                    <p class="text-[9px] text-slate-400 italic mt-1 leading-tight">Inclut les intérêts créditeurs versés aux épargnants et les règlements salariaux du personnel sur la période d'audit.</p>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
 
-        <script>
-            // Growth Chart with real data from controller
-            const growthCtx = document.getElementById('growthChart').getContext('2d');
-            const growthChart = new Chart(growthCtx, {
-                type: 'line',
-                data: {
-                    labels: @json($growthChartData['labels']),
-                    datasets: [
-                        {
-                            label: 'Nouveaux Clients',
-                            data: @json($growthChartData['datasets'][0]['data']),
-                            borderColor: '#3B82F6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 0,
-                            pointHoverRadius: 6,
-                            borderWidth: 3
-                        },
-                        {
-                            label: 'Nouveaux Comptes',
-                            data: @json($growthChartData['datasets'][1]['data']),
-                            borderColor: '#10B981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 0,
-                            pointHoverRadius: 6,
-                            borderWidth: 3
-                        },
-                        {
-                            label: 'Demandes de Prêt',
-                            data: @json($growthChartData['datasets'][2]['data']),
-                            borderColor: '#F59E0B',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 0,
-                            pointHoverRadius: 6,
-                            borderWidth: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 15,
-                                font: {
-                                    size: 12,
-                                    family: 'Inter'
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: {
-                                size: 14,
-                                family: 'Inter'
-                            },
-                            bodyFont: {
-                                size: 13,
-                                family: 'Inter'
-                            },
-                            cornerRadius: 8
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                font: {
-                                    size: 11,
-                                    family: 'Inter'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                maxRotation: 0,
-                                font: {
-                                    size: 11,
-                                    family: 'Inter'
-                                }
-                            }
-                        }
-                    }
+<script>
+    // graphique de Croissance
+    const growthCtx = document.getElementById('growthChart').getContext('2d');
+    const growthChart = new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: @json($growthChartData['labels']),
+            datasets: [
+                {
+                    label: 'Nouvelles Acquisitions',
+                    data: @json($growthChartData['datasets'][0]['data']),
+                    borderColor: '#2563EB',
+                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                    tension: 0,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderWidth: 2,
+                    borderWidth: 2
                 }
-            });
-
-            // Geographic Chart with real data from controller
-            const geographicCtx = document.getElementById('geographicChart').getContext('2d');
-            const geographicChart = new Chart(geographicCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: @json($geographicChartData['labels']),
-                    datasets: [{
-                        data: @json($geographicChartData['clients']),
-                        backgroundColor: [
-                            '#3B82F6',
-                            '#10B981',
-                            '#F59E0B',
-                            '#EF4444',
-                            '#8B5CF6',
-                            '#EC4899'
-                        ],
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'right',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 15,
-                                font: {
-                                    size: 12,
-                                    family: 'Inter'
-                                },
-                                generateLabels: function(chart) {
-                                    const data = chart.data;
-                                    if (data.labels.length && data.datasets.length) {
-                                        return data.labels.map((label, i) => {
-                                            const value = data.datasets[0].data[i];
-                                            const percentages = @json($geographicChartData['percentages']);
-                                            return {
-                                                text: `${label} (${percentages[i]}%)`,
-                                                fillStyle: data.datasets[0].backgroundColor[i],
-                                                hidden: false,
-                                                index: i
-                                            };
-                                        });
-                                    }
-                                    return [];
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: {
-                                size: 14,
-                                family: 'Inter'
-                            },
-                            bodyFont: {
-                                size: 13,
-                                family: 'Inter'
-                            },
-                            cornerRadius: 8,
-                            callbacks: {
-                                label: function(context) {
-                                    const percentages = @json($geographicChartData['percentages']);
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    label += context.parsed.toLocaleString('fr-FR') + ' clients (' + percentages[context.dataIndex] + '%)';
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '65%'
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1E293B',
+                    titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                    bodyFont: { family: 'Inter', size: 12 },
+                    padding: 12,
+                    cornerRadius: 8
                 }
-            });
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: '#F1F5F9' },
+                    ticks: { font: { family: 'Inter', size: 10 }, color: '#64748B' }
+                },
+                x: { 
+                    grid: { display: false },
+                    ticks: { font: { family: 'Inter', size: 10 }, color: '#64748B' }
+                }
+            }
+        }
+    });
 
-            // Sidebar active link management
-            const sidebarLinks = document.querySelectorAll('.sidebar-link');
-            sidebarLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    if (link.getAttribute('href') === '#') {
-                        e.preventDefault();
-                    }
-                });
-            });
-
-            // Responsive chart resize
-            window.addEventListener('resize', () => {
-                growthChart.resize();
-                geographicChart.resize();
-            });
-        </script>
+    // Graphique Géo institutionnel
+    const geographicCtx = document.getElementById('geographicChart').getContext('2d');
+    new Chart(geographicCtx, {
+        type: 'doughnut',
+        data: {
+            labels: @json($geographicChartData['labels']),
+            datasets: [{
+                data: @json($geographicChartData['clients']),
+                backgroundColor: ['#2563EB', '#059669', '#D97706', '#DC2626', '#7C3AED', '#DB2777'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1E293B',
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            }
+        }
+    });
+</script>
 @endsection

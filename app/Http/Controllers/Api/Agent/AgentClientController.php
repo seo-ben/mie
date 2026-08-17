@@ -55,9 +55,8 @@ class AgentClientController extends Controller
         // Statistiques rapides
         $stats = [
             'total' => Client::where('registered_by', $user->id)->count(),
-            'pending_kyc' => Client::where('registered_by', $user->id)->where('kyc_status', 'pending')->count(),
-            'approved' => Client::where('registered_by', $user->id)->where('kyc_status', 'approved')->count(),
             'today' => Client::where('registered_by', $user->id)->whereDate('created_at', today())->count(),
+            'this_week' => Client::where('registered_by', $user->id)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
         ];
 
         return response()->json([
@@ -93,9 +92,11 @@ class AgentClientController extends Controller
             $clientData['registration_status'] = 'pending';
             $clientData['kyc_status'] = 'pending';
 
-            // Hash du mot de passe
-            if (isset($clientData['password'])) {
+            // Hash du mot de passe (par défaut 12@4 si non fourni)
+            if (!empty($clientData['password'])) {
                 $clientData['password'] = Hash::make($clientData['password']);
+            } else {
+                $clientData['password'] = Hash::make('12@4');
             }
 
             // Upload de la photo de profil
@@ -167,7 +168,6 @@ class AgentClientController extends Controller
                 'active_loans_amount' => $activeLoansAmount,
                 'total_accounts' => $totalAccounts,
                 'active_accounts' => $activeAccounts,
-                'suspended_accounts' => $suspendedAccounts,
             ];
 
             // Transactions récentes
@@ -519,36 +519,22 @@ class AgentClientController extends Controller
             $user = auth()->user();
 
             // Statistiques des clients
+            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+
             $stats = [
                 'total_clients' => Client::where('registered_by', $user->id)->count(),
-                'kyc_approved' => Client::where('registered_by', $user->id)
-                    ->where('kyc_status', 'approved')->count(),
-                'kyc_pending' => Client::where('registered_by', $user->id)
-                    ->where('kyc_status', 'pending')->count(),
-                'kyc_rejected' => Client::where('registered_by', $user->id)
-                    ->where('kyc_status', 'rejected')->count(),
                 'new_today' => Client::where('registered_by', $user->id)
                     ->whereDate('created_at', today())->count(),
                 'new_this_week' => Client::where('registered_by', $user->id)
                     ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
-                'new_this_month' => Client::where('registered_by', $user->id)
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)->count(),
+                'total_accounts' => Account::whereIn('client_id', $clientIds)->count(),
+                'active_accounts' => Account::whereIn('client_id', $clientIds)
+                    ->where('status', 'active')->count(),
+                'total_savings' => Account::whereIn('client_id', $clientIds)
+                    ->where('account_type', 'savings')->sum('balance'),
+                'total_tontine' => Account::whereIn('client_id', $clientIds)
+                    ->where('account_type', 'tontine')->sum('balance'),
             ];
-
-            // Statistiques des comptes des clients de l'agent
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
-
-            $stats['total_accounts'] = Account::whereIn('client_id', $clientIds)->count();
-            $stats['active_accounts'] = Account::whereIn('client_id', $clientIds)
-                ->where('status', 'active')->count();
-            $stats['suspended_accounts'] = Account::whereIn('client_id', $clientIds)
-                ->where('status', 'suspended')->count();
-
-            $stats['total_savings'] = Account::whereIn('client_id', $clientIds)
-                ->where('account_type', 'savings')->sum('balance');
-            $stats['total_tontine'] = Account::whereIn('client_id', $clientIds)
-                ->where('account_type', 'tontine')->sum('balance');
 
             $stats['accounts_activated_today'] = Account::whereIn('client_id', $clientIds)
                 ->whereDate('activated_at', today())->count();

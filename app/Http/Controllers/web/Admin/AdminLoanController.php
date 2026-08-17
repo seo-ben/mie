@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\LoanStatusChanged;
 
 class AdminLoanController extends Controller
 {
@@ -24,11 +26,10 @@ class AdminLoanController extends Controller
 
         $query = Loan::with(['client', 'approvedBy', 'disbursedBy']);
 
-        // Filtrage selon le rôle
-        if ($user->role !== 'administrateur_systeme') {
+        // Filtrage par Agence (Isolation Multi-Agence)
+        if ($user->role !== 'administrateur_systeme' && $user->role !== 'administrateur_reglementaire') {
             $query->whereHas('client', function($q) use ($user) {
-                $q->where('registered_by', $user->id)
-                  ->orWhere('agency_id', $user->agency_id);
+                $q->where('agency_id', $user->agency_id);
             });
         }
 
@@ -121,6 +122,7 @@ class AdminLoanController extends Controller
             'client_id' => 'required|exists:clients,id',
             'requested_amount' => 'required|numeric|min:1000|max:5000000',
             'duration_months' => 'required|integer|min:3|max:24',
+            'loan_type' => 'required|string|max:100',
             'purpose' => 'required|string|max:500',
             'collateral_description' => 'nullable|string|max:1000',
             'guarantor_name' => 'nullable|string|max:255',
@@ -149,6 +151,7 @@ class AdminLoanController extends Controller
                 'requested_amount' => $request->requested_amount,
                 'interest_rate' => $interestRate,
                 'duration_months' => $request->duration_months,
+                'loan_type' => $request->loan_type,
                 'purpose' => $request->purpose,
                 'collateral_description' => $request->collateral_description,
                 'guarantor_name' => $request->guarantor_name,
@@ -200,7 +203,10 @@ class AdminLoanController extends Controller
             'remaining' => $loan->outstanding_principal + $loan->outstanding_interest,
         ];
 
-        return view('admin.loans.show', compact('loan', 'stats'));
+        // Analyse intelligente automatique
+        $analysis = $this->performLoanAnalysis($loan);
+
+        return view('admin.loans.show', compact('loan', 'stats', 'analysis'));
     }
 
     /**
@@ -275,6 +281,22 @@ class AdminLoanController extends Controller
 
             DB::commit();
 
+            // 📧 Notification Email (Approbation)
+            if ($loan->client->email) {
+                try {
+                    $emailMessage = "Nous avons le plaisir de vous informer que votre demande de prêt #{$loan->loan_number} a été approuvée.\n\n" .
+                                   "Montant accordé : " . number_format($request->approved_amount, 0, ',', ' ') . " XOF\n" .
+                                   "Taux d'intérêt : {$request->interest_rate}%\n" .
+                                   "Durée : {$request->duration_months} mois\n\n" .
+                                   "Veuillez passer en agence pour la signature des contrats.";
+
+                    Mail::to($loan->client->email)->send(new LoanStatusChanged($loan, 'approved', $emailMessage));
+                } catch (\Exception $e) {
+                    \Log::error("Erreur d'envoi d'email pour le prêt {$loan->id}: " . $e->getMessage());
+                    // On ne casse pas le flux si l'email échoue
+                }
+            }
+
             return redirect()
                 ->route('admin.loans.show', $loanId)
                 ->with('success', 'Prêt approuvé avec succès. Montant: ' . number_format($request->approved_amount, 0, ',', ' ') . ' FCFA');
@@ -313,6 +335,19 @@ class AdminLoanController extends Controller
             ]);
 
             DB::commit();
+
+            // 📧 Notification Email (Rejet)
+            if ($loan->client->email) {
+                try {
+                    $emailMessage = "Nous regrettons de vous informer que votre demande de prêt #{$loan->loan_number} n'a pas pu être retenue pour le motif suivant :\n\n" .
+                                   "Motif : {$request->rejection_reason}\n\n" .
+                                   "Nous vous invitons à contacter votre conseiller pour plus d'informations.";
+
+                    Mail::to($loan->client->email)->send(new LoanStatusChanged($loan, 'rejected', $emailMessage));
+                } catch (\Exception $e) {
+                    \Log::error("Erreur d'envoi d'email de rejet pour le prêt {$loan->id}: " . $e->getMessage());
+                }
+            }
 
             return redirect()
                 ->route('admin.loans.show', $loanId)
@@ -366,10 +401,18 @@ class AdminLoanController extends Controller
             // Générer l'échéancier de paiement
             $this->generatePaymentSchedule($loan);
 
+            // Tenter de trouver un compte pour la transaction (priorité Épargne)
+            $targetAccount = $loan->client->accounts->where('account_type', 'savings')->first() 
+                            ?? $loan->client->accounts->first();
+
+            if (!$targetAccount) {
+                throw new \Exception("L'adhérent ne possède aucun compte actif pour recevoir le décaissement.");
+            }
+
             // Créer une transaction de décaissement
             Transaction::create([
                 'transaction_reference' => $this->generateTransactionReference(),
-                'account_id' => $loan->client->accounts->where('account_type', 'savings')->first()->id ?? null,
+                'account_id' => $targetAccount->id,
                 'transaction_type' => 'payout',
                 'amount' => $loan->approved_amount,
                 'payment_method' => $request->disbursement_method,
@@ -377,6 +420,7 @@ class AdminLoanController extends Controller
                 'description' => "Décaissement prêt {$loan->loan_number}",
                 'status' => 'completed',
                 'processed_by' => auth()->id(),
+                'agency_id' => auth()->user()->agency_id ?? 1, // Fallback agence
                 'processed_at' => now(),
                 'transaction_date' => $disbursementDate,
             ]);
@@ -412,64 +456,99 @@ class AdminLoanController extends Controller
         try {
             DB::beginTransaction();
 
-            $loan = Loan::findOrFail($loanId);
-            $payment = LoanPayment::where('id', $request->payment_id)
-                ->where('loan_id', $loanId)
-                ->firstOrFail();
-
-            if ($payment->status === 'paid') {
-                throw new \Exception('Ce paiement a déjà été effectué.');
-            }
+            $loan = Loan::with(['client', 'payments' => function($q) {
+                $q->whereIn('status', ['pending', 'overdue', 'partial'])->orderBy('payment_number');
+            }])->lockForUpdate()->findOrFail($loanId);
 
             $paidAmount = $request->paid_amount;
-            $paidDate = now();
-
-            // Calculer les pénalités si en retard
-            $penaltyAmount = 0;
-            if ($paidDate->gt($payment->due_date)) {
-                $daysLate = $paidDate->diffInDays($payment->due_date);
-                $penaltyAmount = ($payment->expected_amount * 0.01) * $daysLate; // 1% par jour
-            }
-
+            $remainingToDistribute = $paidAmount;
             $user = auth()->id();
-            // Mettre à jour le paiement
-            $payment->update([
-                'paid_amount' => $paidAmount,
-                'penalty_amount' => $penaltyAmount,
-                'payment_method' => $request->payment_method,
-                'payment_reference' => $request->payment_reference,
-                'payment_notes' => $request->payment_notes,
-                'paid_date' => $paidDate,
-                'status' => 'paid',
-                'processed_by' => $user,
-                'processed_at' => now(),
-            ]);
-
-            // Mettre à jour le prêt
-            $loan->increment('total_paid', $paidAmount);
-            $loan->decrement('outstanding_principal', $payment->principal_amount);
-            $loan->decrement('outstanding_interest', $payment->interest_amount);
-            $loan->increment('penalty_amount', $penaltyAmount);
-
-            // Vérifier si le prêt est soldé
-            if ($loan->fresh()->outstanding_principal <= 0 && $loan->fresh()->outstanding_interest <= 0) {
-                $loan->update(['status' => 'completed']);
-            }
-
-            // Créer une transaction
-            Transaction::create([
+            
+            // Transaction Globale
+            $transaction = Transaction::create([
                 'transaction_reference' => $this->generateTransactionReference(),
-                'account_id' => $loan->client->accounts->where('account_type', 'savings')->first()->id ?? null,
-                'transaction_type' => 'deposit',
+                'loan_id' => $loan->id,
+                'transaction_type' => 'loan_repayment',
                 'amount' => $paidAmount,
                 'payment_method' => $request->payment_method,
                 'payment_reference' => $request->payment_reference,
-                'description' => "Remboursement prêt {$loan->loan_number} - Échéance #{$payment->payment_number}",
+                'description' => "Remboursement prêt {$loan->loan_number} " . ($request->payment_notes ? " - ".$request->payment_notes : ""),
                 'status' => 'completed',
-                'processed_by' => auth()->id(),
+                'processed_by' => $user,
+                'agency_id' => auth()->user()->agency_id ?? 1,
                 'processed_at' => now(),
-                'transaction_date' => $paidDate,
+                'transaction_date' => now(),
             ]);
+
+            // 🔥 RÉPARTITION INTELLIGENTE SUR LES ÉCHÉANCES
+            foreach ($loan->payments as $payment) {
+                if ($remainingToDistribute <= 0) break;
+
+                // Calcul de pénalités si en retard et non calculées
+                $penaltyAmount = $payment->penalty_amount;
+                if (now()->gt($payment->due_date) && !in_array($payment->status, ['paid'])) {
+                    $daysLate = now()->diffInDays($payment->due_date);
+                    $penaltyRate = \App\Models\SystemParameter::where('parameter_key', 'loan_late_penalty_rate')->value('parameter_value') ?? 0.01;
+                    $penaltyAmount = ($payment->expected_amount * $penaltyRate) * $daysLate;
+                }
+
+                $amountNeededForThisPayment = ($payment->expected_amount + $penaltyAmount) - $payment->paid_amount;
+                
+                if ($amountNeededForThisPayment <= 0) continue;
+
+                $payForThis = min($remainingToDistribute, $amountNeededForThisPayment);
+                
+                $remainingToDistribute -= $payForThis;
+                $newPaidAmount = $payment->paid_amount + $payForThis;
+                
+                $status = ($newPaidAmount >= ($payment->expected_amount + $penaltyAmount)) ? 'paid' : 'partial';
+
+                $payment->update([
+                    'paid_amount' => $newPaidAmount,
+                    'penalty_amount' => $penaltyAmount,
+                    'payment_method' => $request->payment_method,
+                    'payment_reference' => $transaction->payment_reference,
+                    'payment_notes' => $request->payment_notes,
+                    'paid_date' => now(),
+                    'status' => $status,
+                    'processed_by' => $user,
+                    'processed_at' => now(),
+                ]);
+            }
+
+            // Surplus (Paiement par anticipation)
+            if ($remainingToDistribute > 0) {
+                \App\Models\LoanPayment::create([
+                    'loan_id' => $loan->id,
+                    'payment_number' => \App\Models\LoanPayment::where('loan_id', $loan->id)->max('payment_number') + 1,
+                    'due_date' => now(),
+                    'expected_amount' => 0,
+                    'principal_amount' => 0,
+                    'interest_amount' => 0,
+                    'paid_date' => now(),
+                    'paid_amount' => $remainingToDistribute,
+                    'payment_method' => $request->payment_method,
+                    'payment_reference' => $transaction->payment_reference,
+                    'payment_notes' => $request->payment_notes,
+                    'processed_by' => $user,
+                    'status' => 'paid',
+                    'processed_at' => now(),
+                ]);
+            }
+
+            // Mettre à jour les totaux du prêt
+            $loan->increment('total_paid', $paidAmount);
+            
+            $reductionPrincipal = min($loan->outstanding_principal, $paidAmount);
+            $reductionInterest = min($loan->outstanding_interest, $paidAmount - $reductionPrincipal);
+            
+            $loan->decrement('outstanding_principal', $reductionPrincipal);
+            $loan->decrement('outstanding_interest', $reductionInterest);
+
+            // Si le prêt est totalement payé
+            if ($loan->total_paid >= $loan->total_amount_due) {
+                $loan->update(['status' => 'completed']);
+            }
 
             DB::commit();
 
@@ -518,6 +597,12 @@ class AdminLoanController extends Controller
             });
         }
 
+        // Matrice PAR (Portfolio at Risk) selon les standards institutionnels
+        $par1 = $this->calculatePAR(1, $user);
+        $par30 = $this->calculatePAR(30, $user);
+        $par60 = $this->calculatePAR(60, $user);
+        $par90 = $this->calculatePAR(90, $user);
+
         // Statistiques principales
         $stats = [
             'total_loans' => (clone $baseQuery)
@@ -535,7 +620,7 @@ class AdminLoanController extends Controller
                 ->count(),
 
             'total_disbursed' => (clone $baseQuery)
-                ->whereIn('status', ['deposit', 'active', 'completed'])
+                ->whereIn('status', ['disbursed', 'active', 'completed']) // Correction status decaisse
                 ->whereBetween('disbursed_at', [$startDate, $endDate])
                 ->sum('approved_amount'),
 
@@ -565,6 +650,11 @@ class AdminLoanController extends Controller
                 ->where('status', 'rejected')
                 ->whereBetween('application_date', [$startDate, $endDate])
                 ->count(),
+
+            'par_1' => $par1,
+            'par_30' => $par30,
+            'par_60' => $par60,
+            'par_90' => $par90,
         ];
 
         // Prêts par statut
@@ -670,7 +760,36 @@ class AdminLoanController extends Controller
             'active_portfolio' => (clone $query)->whereIn('status', ['disbursed', 'active'])->sum('outstanding_principal'),
             'total_collected' => LoanPayment::where('status', 'paid')->sum('paid_amount'),
             'overdue_count' => LoanPayment::where('status', 'overdue')->count(),
+            'par_30' => $this->calculatePAR(30, $user),
+            'par_90' => $this->calculatePAR(90, $user),
         ];
+    }
+
+    /**
+     * Calcul du PAR (Portfolio at Risk) pour les rapports
+     */
+    private function calculatePAR(int $days, $user): float
+    {
+        $cutoffDate = Carbon::now()->subDays($days);
+
+        $query = Loan::whereIn('status', ['active', 'disbursed']);
+
+        if ($user->role !== 'administrateur_systeme') {
+            $query->whereHas('client', function($q) use ($user) {
+                $q->where('registered_by', $user->id)
+                  ->orWhere('agency_id', $user->agency_id);
+            });
+        }
+
+        $overduePrincipal = (clone $query)->whereHas('payments', function ($q) use ($cutoffDate) {
+                $q->where('status', 'overdue')
+                  ->where('due_date', '<=', $cutoffDate);
+            })
+            ->sum('outstanding_principal');
+
+        $totalOutstanding = (clone $query)->sum('outstanding_principal');
+
+        return $totalOutstanding > 0 ? round(($overduePrincipal / $totalOutstanding) * 100, 2) : 0;
     }
 
     private function calculateEligibilityScore($client, $requestedAmount)
@@ -717,12 +836,21 @@ class AdminLoanController extends Controller
 
     private function getInterestRateByRisk($riskLevel)
     {
+        // Tenter de récupérer depuis la configuration système
+        $paramKey = "loan_interest_rate_{$riskLevel}";
+        $configuredRate = \App\Models\SystemParameter::where('parameter_key', $paramKey)->value('parameter_value');
+
+        if ($configuredRate !== null) {
+            return (float) $configuredRate;
+        }
+
+        // Valeurs par défaut si non configuré
         return match($riskLevel) {
-            'low' => 8.0,
-            'medium' => 12.0,
-            'high' => 18.0,
-            'very_high' => 24.0,
-            default => 15.0,
+            'low' => 12.0,
+            'medium' => 17.0,
+            'high' => 20.0,
+            'very_high' => 25.0,
+            default => 17.0,
         };
     }
 
@@ -762,6 +890,22 @@ class AdminLoanController extends Controller
     private function performLoanAnalysis($loan)
     {
         $client = $loan->client;
+        $totalBalance = $client->accounts->sum('balance');
+        $coverageRatio = $loan->requested_amount > 0 ? round(($totalBalance / $loan->requested_amount) * 100, 2) : 0;
+        
+        $insights = [];
+        
+        // Signaux Positifs
+        if ($client->kyc_status === 'approved') $insights['positive'][] = "Dossier KYC validé et conforme.";
+        if ($client->created_at->diffInMonths(now()) >= 6) $insights['positive'][] = "Adhérent fidèle (> 6 mois).";
+        if ($coverageRatio >= 50) $insights['positive'][] = "Excellente couverture par l'épargne ($coverageRatio%).";
+        if ($client->loans->where('status', 'completed')->count() > 0) $insights['positive'][] = "Historique de remboursement exemplaire.";
+        
+        // Points de Vigilance
+        if ($coverageRatio < 20) $insights['warning'][] = "Faible garantie financière par l'épargne.";
+        if ($client->kyc_status !== 'approved') $insights['warning'][] = "Risque réglementaire : KYC non finalisé.";
+        if ($client->loans->where('status', 'defaulted')->count() > 0) $insights['warning'][] = "ALERTE : Antécédents de défaut de paiement.";
+        if ($totalBalance < ($loan->requested_amount * 0.1)) $insights['warning'][] = "Capacité d'autofinancement critique.";
 
         return [
             'client_profile' => [
@@ -770,11 +914,9 @@ class AdminLoanController extends Controller
                 'kyc_status' => $client->kyc_status,
             ],
             'savings_analysis' => [
-                'total_balance' => $client->accounts->sum('balance'),
+                'total_balance' => $totalBalance,
                 'savings_balance' => $client->accounts->where('account_type', 'savings')->sum('balance'),
-                'coverage_ratio' => $client->accounts->sum('balance') > 0
-                    ? round(($client->accounts->sum('balance') / $loan->requested_amount) * 100, 2)
-                    : 0,
+                'coverage_ratio' => $coverageRatio,
             ],
             'loan_history' => [
                 'total_loans' => $client->loans->count(),
@@ -787,6 +929,7 @@ class AdminLoanController extends Controller
                     $q->where('client_id', $client->id);
                 })->where('created_at', '>=', now()->subMonths(6))->count(),
             ],
+            'insights' => $insights,
             'recommendation' => $this->getRecommendation($loan->eligibility_score),
         ];
     }

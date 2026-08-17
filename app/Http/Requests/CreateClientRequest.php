@@ -18,19 +18,20 @@ class CreateClientRequest extends FormRequest
             'first_name'       => 'required|string|max:255',
             'last_name'        => 'required|string|max:255',
             'phone'            => 'required|string|max:20|unique:clients,phone',
+            'address'          => 'required|string|max:255',
             'email'            => 'nullable|email|unique:clients,email',
-            'password'         => 'required|string|min:6|confirmed',
-            'date_of_birth'    => 'required|date',
-            'gender'           => 'required|in:M,F,Other',
+            'password'         => 'nullable|string|min:6|confirmed',
+            'date_of_birth'    => 'nullable|date',
+            'gender'           => 'nullable|in:M,F,Other',
             'profession'       => 'nullable|string|max:255',
-            'address'          => 'nullable|string|max:255',
-            'city'             => 'required|string|max:255',
+            'city'             => 'nullable|string|max:255',
             'region'           => 'nullable|string|max:255',
             'monthly_income'   => 'nullable|numeric',
-            'id_type'          => 'required|in:cni,passport,driving_license,other',
-            'id_number'        => 'required|string|max:255',
+            'id_type'          => 'nullable|in:cni,passport,driving_license,other',
+            'id_number'        => 'nullable|string|max:255',
             'id_expiry_date'   => 'nullable|date',
             'profile_photo'    => 'nullable|image|max:10048',
+            'is_leader_or_elected' => 'sometimes|boolean',
         ];
     }
 
@@ -67,10 +68,10 @@ class CreateClientRequest extends FormRequest
             'profession.string'      => 'La profession doit être une chaîne de caractères.',
             'profession.max'         => 'La profession ne peut pas dépasser 255 caractères.',
 
+            'address.required'       => 'L’adresse est obligatoire.',
             'address.string'         => 'L’adresse doit être une chaîne de caractères.',
             'address.max'            => 'L’adresse ne peut pas dépasser 255 caractères.',
 
-            'city.required'          => 'La ville est obligatoire.',
             'city.string'            => 'La ville doit être une chaîne de caractères.',
             'city.max'               => 'La ville ne peut pas dépasser 255 caractères.',
 
@@ -79,10 +80,8 @@ class CreateClientRequest extends FormRequest
 
             'monthly_income.numeric' => 'Le revenu mensuel doit être un nombre.',
 
-            'id_type.required'       => 'Le type de pièce est obligatoire.',
             'id_type.in'             => 'Le type de pièce sélectionné n’est pas valide.',
 
-            'id_number.required'     => 'Le numéro de pièce est obligatoire.',
             'id_number.string'       => 'Le numéro de pièce doit être une chaîne de caractères.',
             'id_number.max'          => 'Le numéro de pièce ne peut pas dépasser 255 caractères.',
 

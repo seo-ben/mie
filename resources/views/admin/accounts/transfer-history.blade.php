@@ -1,245 +1,201 @@
 @extends('layouts.app_admin')
 
+@section('title', 'Registres des Migrations d\'Actifs')
+@section('page-title', 'Trésorerie / Historique des Flux')
+
 @section('content')
-<div class="min-h-screen py-8 bg-gray-50">
-    <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Archives des Migrations Inter-comptes</h2>
+            <p class="text-slate-500 text-sm font-medium">Répertoire centralisé des flux d'actifs consolidés</p>
+        </div>
+        <a href="{{ route('admin.accounts.transfer.form') }}" class="btn-bank btn-bank-primary px-8 py-3">
+            <i class="fas fa-plus mr-2 text-[10px]"></i> Nouvelle Migration
+        </a>
+    </div>
 
-        <!-- En-tête -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Historique des Transferts</h1>
-                    <p class="mt-2 text-sm text-gray-600">Liste de tous les transferts effectués</p>
-                </div>
-                <a href="{{ route('admin.accounts.transfer.form') }}"
-                   class="inline-flex items-center px-4 py-2 font-medium text-white transition bg-blue-600 rounded-lg shadow hover:bg-blue-700">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Nouveau Transfert
-                </a>
+    <!-- Matrice de Performance des Flux -->
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div class="bank-card p-6 border-slate-100 flex flex-col justify-between">
+            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-4">Total Flux</p>
+            <div class="flex items-end justify-between">
+                <span class="text-2xl font-black text-slate-900 leading-none">{{ number_format($stats['total_transfers']) }}</span>
+                <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 italic font-black text-[10px]">#</div>
             </div>
         </div>
 
-        <!-- Statistiques -->
-        <div class="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-5">
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Total Transferts</p>
-                        <p class="mt-2 text-3xl font-bold text-gray-900">{{ number_format($stats['total_transfers']) }}</p>
-                    </div>
-                    <div class="p-3 bg-blue-100 rounded-lg">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Montant Envoyé</p>
-                        <p class="mt-2 text-2xl font-bold text-red-600">{{ number_format($stats['total_amount_sent'], 0, ',', ' ') }}</p>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-3 bg-red-100 rounded-lg">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Montant Reçu</p>
-                        <p class="mt-2 text-2xl font-bold text-green-600">{{ number_format($stats['total_amount_received'], 0, ',', ' ') }}</p>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-3 bg-green-100 rounded-lg">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Frais Collectés</p>
-                        <p class="mt-2 text-2xl font-bold text-purple-600">{{ number_format($stats['total_fees_collected'], 0, ',', ' ') }}</p>
-                        <p class="text-xs text-gray-500">FCFA</p>
-                    </div>
-                    <div class="p-3 bg-purple-100 rounded-lg">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Aujourd'hui</p>
-                        <p class="mt-2 text-3xl font-bold text-gray-900">{{ number_format($stats['transfers_today']) }}</p>
-                    </div>
-                    <div class="p-3 bg-yellow-100 rounded-lg">
-                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
+        <div class="bank-card p-6 border-rose-100 bg-rose-50/20 flex flex-col justify-between">
+            <p class="text-[9px] font-black text-rose-800/40 uppercase tracking-widest leading-none mb-4">Migré (Sortant)</p>
+            <div class="flex items-end justify-between">
+                <span class="text-xl font-black text-rose-600 leading-none">{{ number_format($stats['total_amount_sent'], 0, ',', ' ') }} <small class="text-[10px]">XOF</small></span>
+                <i class="fas fa-arrow-up-from-bracket text-rose-300"></i>
             </div>
         </div>
 
-        <!-- Filtres -->
-        <div class="p-6 mb-6 bg-white rounded-lg shadow">
-            <form method="GET" action="{{ route('admin.accounts.transfer.history') }}" class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Recherche</label>
-                    <input type="text"
-                           name="search"
-                           value="{{ request('search') }}"
-                           placeholder="Référence, client..."
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Type</label>
-                    <select name="type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Tous</option>
-                        <option value="transfer_out" {{ request('type') == 'transfer_out' ? 'selected' : '' }}>Envoyés</option>
-                        <option value="transfer_in" {{ request('type') == 'transfer_in' ? 'selected' : '' }}>Reçus</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Date début</label>
-                    <input type="date"
-                           name="date_from"
-                           value="{{ request('date_from') }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Date fin</label>
-                    <input type="date"
-                           name="date_to"
-                           value="{{ request('date_to') }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div class="flex items-end space-x-2 md:col-span-4">
-                    <button type="submit"
-                            class="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
-                        Filtrer
-                    </button>
-                    <a href="{{ route('admin.accounts.transfer.history') }}"
-                       class="px-6 py-2 text-gray-700 transition border border-gray-300 rounded-lg hover:bg-gray-50">
-                        Réinitialiser
-                    </a>
-                </div>
-            </form>
+        <div class="bank-card p-6 border-emerald-100 bg-emerald-50/20 flex flex-col justify-between">
+            <p class="text-[9px] font-black text-emerald-800/40 uppercase tracking-widest leading-none mb-4">Migré (Entrant)</p>
+            <div class="flex items-end justify-between">
+                <span class="text-xl font-black text-emerald-600 leading-none">{{ number_format($stats['total_amount_received'], 0, ',', ' ') }} <small class="text-[10px]">XOF</small></span>
+                <i class="fas fa-arrow-down-to-bracket text-emerald-300"></i>
+            </div>
         </div>
 
-        <!-- Liste des transferts -->
-        <div class="overflow-hidden bg-white rounded-lg shadow">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Date</th>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Référence</th>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Type</th>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Compte</th>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Contrepartie</th>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">Montant</th>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">Frais</th>
-                            <th class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse($transfers as $transfer)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                                    {{ $transfer->transaction_date->format('d/m/Y') }}
-                                    <span class="block text-xs text-gray-500">{{ $transfer->transaction_date->format('H:i') }}</span>
-                                </td>
-                                <td class="px-6 py-4 font-mono text-sm text-gray-900 whitespace-nowrap">
-                                    {{ $transfer->payment_reference }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @if($transfer->transaction_type === 'transfer_out')
-                                        <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                                            </svg>
-                                            Envoyé
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center px-3 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                            </svg>
-                                            Reçu
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-sm whitespace-nowrap">
-                                    <div class="font-medium text-gray-900">{{ $transfer->account->client->first_name }} {{ $transfer->account->client->last_name }}</div>
-                                    <div class="text-gray-500">{{ $transfer->account->account_number }}</div>
-                                </td>
-                                <td class="px-6 py-4 text-sm whitespace-nowrap">
-                                    @if($transfer->relatedAccount)
-                                        <div class="font-medium text-gray-900">{{ $transfer->relatedAccount->client->first_name }} {{ $transfer->relatedAccount->client->last_name }}</div>
-                                        <div class="text-gray-500">{{ $transfer->relatedAccount->account_number }}</div>
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-sm font-semibold text-right whitespace-nowrap">
-                                    <span class="{{ $transfer->transaction_type === 'transfer_out' ? 'text-red-600' : 'text-green-600' }}">
-                                        {{ $transfer->transaction_type === 'transfer_out' ? '-' : '+' }}
-                                        {{ number_format($transfer->amount, 0, ',', ' ') }} FCFA
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-sm text-right text-gray-900 whitespace-nowrap">
-                                    {{ number_format($transfer->fee_amount, 0, ',', ' ') }} FCFA
-                                </td>
-                                <td class="px-6 py-4 text-sm text-center whitespace-nowrap">
-                                    <a href="{{ route('admin.accounts.transfer.details', $transfer->id) }}"
-                                       class="text-blue-600 hover:text-blue-900">
-                                        Détails
-                                    </a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                    </svg>
-                                    <p class="text-lg font-medium">Aucun transfert trouvé</p>
-                                    <p class="mt-1 text-sm">Commencez par effectuer votre premier transfert</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        <div class="bank-card p-6 border-purple-100 bg-purple-50/20 flex flex-col justify-between">
+            <p class="text-[9px] font-black text-purple-800/40 uppercase tracking-widest leading-none mb-4">Taxes d'Audit</p>
+            <div class="flex items-end justify-between">
+                <span class="text-xl font-black text-purple-600 leading-none">{{ number_format($stats['total_fees_collected'], 0, ',', ' ') }} <small class="text-[10px]">XOF</small></span>
+                <i class="fas fa-vault text-purple-300"></i>
+            </div>
+        </div>
+
+        <div class="bank-card p-6 border-blue-100 bg-blue-50/20 flex flex-col justify-between shadow-xl shadow-blue-500/5">
+            <p class="text-[9px] font-black text-blue-800/40 uppercase tracking-widest leading-none mb-4">Flux (24H)</p>
+            <div class="flex items-end justify-between">
+                <span class="text-2xl font-black text-blue-600 leading-none">{{ number_format($stats['transfers_today']) }}</span>
+                <i class="fas fa-calendar-day text-blue-300"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interface Filtres d'Audit -->
+    <div class="bank-card p-8">
+        <form method="GET" action="{{ route('admin.accounts.transfer.history') }}" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Référence / Titulaire</label>
+                <div class="relative">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="TRX-MIGN-XXXX..." class="bank-input pl-10 text-[11px] font-bold">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]"></i>
+                </div>
             </div>
 
-            <!-- Pagination -->
-            @if($transfers->hasPages())
-                <div class="px-6 py-4 border-t border-gray-200">
-                    {{ $transfers->links() }}
-                </div>
-            @endif
+            <div class="space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vecteur de Flux</label>
+                <select name="type" class="bank-input text-[11px] font-bold">
+                    <option value="">Tous les Vecteurs</option>
+                    <option value="transfer_out" {{ request('type') == 'transfer_out' ? 'selected' : '' }}>Émissions Sortantes</option>
+                    <option value="transfer_in" {{ request('type') == 'transfer_in' ? 'selected' : '' }}>Réceptions Entrantes</option>
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fenêtre (Début)</label>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" class="bank-input text-[11px] font-bold">
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fenêtre (Fin)</label>
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="bank-input text-[11px] font-bold">
+            </div>
+
+            <div class="flex items-center gap-3 pt-4 md:col-span-4 justify-end border-t border-slate-50 mt-2">
+                <button type="submit" class="btn-bank btn-bank-primary !py-2.5 px-10 text-[10px] font-black uppercase">Filtrer le Registre</button>
+                <a href="{{ route('admin.accounts.transfer.history') }}" class="btn-bank btn-bank-outline !py-2.5 px-8 text-[10px] font-black uppercase">Purge Filtres</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Registre des Flux (Tableau) -->
+    <div class="bank-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/50 border-b border-slate-100">
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timestamp Audit</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Référence Flux</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vecteur</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">compte Principal</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contrepartie</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Volume</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Arbitrage</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50 italic">
+                    @forelse($transfers as $transfer)
+                    <tr class="hover:bg-slate-50/50 transition-colors group">
+                        <td class="px-8 py-5">
+                            <span class="block text-[11px] font-black text-slate-700 leading-none">{{ $transfer->transaction_date->format('d/m/Y') }}</span>
+                            <span class="block text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ $transfer->transaction_date->format('H:i:s') }}</span>
+                        </td>
+                        <td class="px-8 py-5">
+                            <span class="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">{{ $transfer->payment_reference }}</span>
+                        </td>
+                        <td class="px-8 py-5">
+                            @if($transfer->transaction_type === 'transfer_out')
+                                <span class="flex items-center gap-1.5 text-[9px] font-black text-rose-600 uppercase">
+                                    <i class="fas fa-circle-arrow-up text-[10px]"></i> Sortant
+                                </span>
+                            @else
+                                <span class="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 uppercase">
+                                    <i class="fas fa-circle-arrow-down text-[10px]"></i> Entrant
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-8 py-5">
+                            @if($transfer->account && $transfer->account->client)
+                            <div class="space-y-1">
+                                <p class="text-[11px] font-black text-slate-800 uppercase leading-none">{{ $transfer->account->client->full_name }}</p>
+                                <p class="text-[9px] font-mono font-bold text-slate-400">{{ $transfer->account->account_number }}</p>
+                            </div>
+                            @elseif($transfer->account)
+                            <div class="space-y-1">
+                                <p class="text-[11px] font-black text-slate-800 uppercase leading-none">Client Inconnu</p>
+                                <p class="text-[9px] font-mono font-bold text-slate-400">{{ $transfer->account->account_number }}</p>
+                            </div>
+                            @else
+                            <span class="text-[10px] font-black text-slate-300 uppercase italic">Compte Inconnu</span>
+                            @endif
+                        </td>
+                        <td class="px-8 py-5">
+                            @if($transfer->relatedAccount && $transfer->relatedAccount->client)
+                            <div class="space-y-1">
+                                <p class="text-[11px] font-black text-slate-600 uppercase leading-none italic">{{ $transfer->relatedAccount->client->full_name }}</p>
+                                <p class="text-[9px] font-mono font-bold text-slate-400/60 tracking-tighter">{{ $transfer->relatedAccount->account_number }}</p>
+                            </div>
+                            @elseif($transfer->relatedAccount)
+                            <div class="space-y-1">
+                                <p class="text-[11px] font-black text-slate-600 uppercase leading-none italic">Client Inconnu</p>
+                                <p class="text-[9px] font-mono font-bold text-slate-400/60 tracking-tighter">{{ $transfer->relatedAccount->account_number }}</p>
+                            </div>
+                            @else
+                            <span class="text-[10px] font-black text-slate-300 uppercase italic">N/A</span>
+                            @endif
+                        </td>
+                        <td class="px-8 py-5 text-right">
+                            <span class="text-[13px] font-black {{ $transfer->transaction_type === 'transfer_out' ? 'text-rose-600' : 'text-emerald-600' }}">
+                                {{ $transfer->transaction_type === 'transfer_out' ? '-' : '+' }} {{ number_format($transfer->amount, 0, ',', ' ') }}
+                            </span>
+                            <span class="text-[8px] font-black text-slate-400 ml-1 uppercase">XOF</span>
+                        </td>
+                        <td class="px-8 py-5 text-right font-numeric text-[11px] font-black text-slate-900 shadow-inner bg-slate-50/30">
+                            {{ number_format($transfer->fee_amount, 0, ',', ' ') }}
+                        </td>
+                        <td class="px-8 py-5 text-center">
+                            <a href="{{ route('admin.accounts.transfer.details', $transfer->id) }}" class="btn-bank btn-bank-outline !py-1.5 !px-4 !text-[9px] uppercase font-black tracking-widest opacity-0 group-hover:opacity-100 transition-all">Audit</a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="8" class="px-8 py-20 text-center">
+                            <div class="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-300">
+                                <i class="fas fa-inbox text-2xl"></i>
+                            </div>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Néant dans le Registre de Migration</h4>
+                            <p class="text-[10px] font-bold text-slate-300 mt-2 italic px-8 max-w-xs mx-auto">Aucun flux n'a été identifié pour les critères d'audit fournis.</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+
+        @if($transfers->hasPages())
+        <div class="px-8 py-5 bg-slate-50/50 border-t border-slate-100">
+            {{ $transfers->links() }}
+        </div>
+        @endif
     </div>
 </div>
 @endsection

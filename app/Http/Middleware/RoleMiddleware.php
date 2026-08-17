@@ -12,10 +12,11 @@ class RoleMiddleware
      * Les rôles listés sont ceux que chaque rôle supérieur peut gérer
      */
     private static array $roleHierarchy = [
-        'administrateur_systeme' => ['administrateur_reglementaire', 'gestionnaire_superviseur', 'gestionnaire_credit', 'agent_terrain', 'agent_agence'],
-        'administrateur_reglementaire' => ['gestionnaire_superviseur', 'gestionnaire_credit', 'agent_terrain', 'agent_agence'],
-        'gestionnaire_superviseur' => ['gestionnaire_credit', 'agent_terrain', 'agent_agence'],
-        'gestionnaire_credit' => ['agent_terrain', 'agent_agence'],
+        'administrateur_systeme' => ['administrateur_reglementaire', 'gestionnaire_superviseur', 'gestionnaire_credit', 'caissier', 'agent_terrain', 'agent_agence'],
+        'administrateur_reglementaire' => ['gestionnaire_superviseur', 'gestionnaire_credit', 'caissier', 'agent_terrain', 'agent_agence'],
+        'gestionnaire_superviseur' => ['gestionnaire_credit', 'caissier', 'agent_terrain', 'agent_agence'],
+        'gestionnaire_credit' => ['caissier', 'agent_terrain', 'agent_agence'],
+        'caissier' => ['agent_terrain'],
         'agent_terrain' => [],
         'agent_agence' => []
     ];

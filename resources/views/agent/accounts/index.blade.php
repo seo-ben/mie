@@ -1,4 +1,4 @@
-@extends('layouts.agent')
+@extends($layout ?? 'layouts.agent')
 
 @section('title', 'Mes Comptes Tontine')
 
@@ -68,7 +68,7 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1 text-muted small">Comptes Actifs</h6>
+                            <h6 class="mb-1 text-muted small">Clients Actifs</h6>
                             <h3 class="mb-0 fw-bold text-success">{{ $stats['active_accounts'] }}</h3>
                         </div>
                     </div>
@@ -81,13 +81,13 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
-                            <div class="p-3 bg-warning bg-opacity-10 rounded-circle">
-                                <i class="fas fa-pause-circle fa-2x text-warning"></i>
+                            <div class="p-3 bg-info bg-opacity-10 rounded-circle">
+                                <i class="fas fa-history fa-2x text-info"></i>
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1 text-muted small">Suspendus</h6>
-                            <h3 class="mb-0 fw-bold text-warning">{{ $stats['suspended_accounts'] }}</h3>
+                            <h6 class="mb-1 text-muted small">Dernière Collecte</h6>
+                            <h3 class="mb-0 fw-bold text-info">{{ now()->format('d/m') }}</h3>
                         </div>
                     </div>
                 </div>
@@ -131,11 +131,10 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select name="status" class="form-select">
-                        <option value="">-- Tous les statuts --</option>
-                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Actif</option>
-                        <option value="suspended" {{ request('status') == 'suspended' ? 'selected' : '' }}>Suspendu</option>
-                    </select>
+                    <div class="alert alert-soft-primary mb-0 py-2">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Tous les comptes sont opérationnels</small>
+                    </div>
                 </div>
                 <div class="col-md-3">
                     <div class="gap-2 d-grid d-md-flex">
@@ -195,15 +194,7 @@
                                     <i class="fas fa-users me-1"></i>Tontine
                                 </span>
                                 <div class="mb-1 fw-bold font-monospace small">{{ $account->account_number }}</div>
-                                @if($account->status === 'active')
-                                    <span class="badge bg-success-soft text-success">
-                                        <i class="fas fa-check-circle me-1"></i>Actif
-                                    </span>
-                                @else
-                                    <span class="badge bg-warning-soft text-warning">
-                                        <i class="fas fa-pause-circle me-1"></i>Suspendu
-                                    </span>
-                                @endif
+                                <div class="mb-1 fw-bold font-monospace small">{{ $account->account_number }}</div>
                             </div>
                         </div>
 
@@ -263,13 +254,6 @@
                                        data-bs-toggle="tooltip"
                                        title="Faire un dépôt">
                                         <i class="fas fa-plus-circle"></i>
-                                    </a>
-                                @else
-                                    <a href="{{ route('agent.accounts.activate.form', $account->id) }}"
-                                       class="btn btn-sm btn-outline-warning"
-                                       data-bs-toggle="tooltip"
-                                       title="Activer le compte">
-                                        <i class="fas fa-play-circle"></i>
                                     </a>
                                 @endif
                             </div>

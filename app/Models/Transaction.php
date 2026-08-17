@@ -20,10 +20,17 @@ class Transaction extends Model
         'status',
         'balance_before',
         'balance_after',
-        'processed_by', // ✅ à ajouter si manquant
+        'processed_by',
+        'agency_id',
+        'cashier_session_id',
         'processed_at',
         'transaction_date',
     ];
+
+    public function cashierSession()
+    {
+        return $this->belongsTo(CashierSession::class);
+    }
 
     protected $casts = [
         'amount' => 'decimal:2',
@@ -33,6 +40,11 @@ class Transaction extends Model
         'processed_at' => 'datetime',
         'transaction_date' => 'datetime'
     ];
+
+    public function agency()
+    {
+        return $this->belongsTo(Agency::class);
+    }
 
     public function account()
     {

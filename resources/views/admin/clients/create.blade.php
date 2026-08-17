@@ -1,251 +1,254 @@
 @extends('layouts.app_admin')
 
-@section('content')
-<div class="min-h-screen py-8 bg-gray-50">
-    <div class="max-w-4xl px-4 mx-auto sm:px-6 lg:px-8">
+@section('title', 'Enregistrement de Nouvelle Entité Adhérente')
+@section('page-title', 'Protocole / Captation d\'Adhérent')
 
-        <!-- En-tête -->
-        <div class="mb-8">
-            <a href="{{ route('admin.clients.index') }}" class="inline-flex items-center mb-4 text-sm text-gray-500 hover:text-gray-700">
-                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                Retour à la liste
+@section('content')
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex items-center justify-between no-print">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.clients.index') }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
             </a>
-            <h1 class="text-3xl font-bold text-gray-900">Nouveau Client</h1>
-            <p class="mt-2 text-sm text-gray-600">Enregistrez un nouveau client dans le système</p>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Captation d'Adhérent</h2>
+                <p class="text-slate-500 text-sm font-medium">Initialisation d'une nouvelle entité dans le registre institutionnel</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertes de Validation -->
+    @if ($errors->any())
+        <div class="bank-card !border-rose-200 !bg-rose-50/50 p-6">
+            <div class="flex gap-3">
+                <i class="fas fa-triangle-exclamation text-rose-500 mt-1"></i>
+                <div>
+                    <h3 class="text-sm font-black text-rose-900 uppercase tracking-widest leading-none">Anomalies de Protocole</h3>
+                    <ul class="mt-3 space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li class="text-[11px] font-bold text-rose-700 list-disc list-inside">{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Formulaire de Captation -->
+    <form action="{{ route('admin.clients.store') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+        @csrf
+
+        <!-- Segment : Identité Civile -->
+        <div class="bank-card p-8">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">Attributs d'Identité Civile</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Données obligatoires pour l'audit KYC</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Prénoms de l'Entité *</label>
+                    <input type="text" name="first_name" value="{{ old('first_name') }}" required class="bank-input" placeholder="Ex: Jean Paul">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nom Patronymique *</label>
+                    <input type="text" name="last_name" value="{{ old('last_name') }}" required class="bank-input" placeholder="Ex: KOFFI">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Canal Téléphonique *</label>
+                    <input type="tel" name="phone" value="{{ old('phone') }}" required placeholder="+228 XX XX XX XX" class="bank-input font-mono">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Courrier Électronique</label>
+                    <input type="email" name="email" value="{{ old('email') }}" class="bank-input" placeholder="entite@finance.tg">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date de Naissance</label>
+                    <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" class="bank-input">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Genre / Sexe</label>
+                    <select name="gender" class="bank-input uppercase">
+                        <option value="">Sélectionner...</option>
+                        <option value="M" {{ old('gender') == 'M' ? 'selected' : '' }}>Masculin (M)</option>
+                        <option value="F" {{ old('gender') == 'F' ? 'selected' : '' }}>Féminin (F)</option>
+                        <option value="Other" {{ old('gender') == 'Other' ? 'selected' : '' }}>Autre</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Secteur d'Activité / Profession</label>
+                    <input type="text" name="profession" value="{{ old('profession') }}" class="bank-input" placeholder="Ex: Commerçant, Fonctionnaire...">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Revenu Mensuel Estimé (XOF)</label>
+                    <input type="number" name="monthly_income" value="{{ old('monthly_income') }}" step="1" class="bank-input font-bold" placeholder="0">
+                </div>
+
+
+            </div>
         </div>
 
-        <!-- Messages d'erreur -->
-        @if ($errors->any())
-            <div class="p-4 mb-6 border-l-4 border-red-500 rounded bg-red-50">
-                <div class="flex">
-                    <svg class="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                    </svg>
-                    <div>
-                        <h3 class="font-medium text-red-800">Erreurs de validation</h3>
-                        <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
+        <!-- Segment : Localisation Géographique -->
+        <div class="bank-card p-8">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
+                    <i class="fas fa-location-dot"></i>
                 </div>
-            </div>
-        @endif
-
-        <!-- Formulaire -->
-        <form action="{{ route('admin.clients.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
-            @csrf
-
-            <!-- Informations personnelles -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                    Informations Personnelles
-                </h2>
-
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Prénom *</label>
-                        <input type="text" name="first_name" value="{{ old('first_name') }}" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Nom *</label>
-                        <input type="text" name="last_name" value="{{ old('last_name') }}" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Téléphone *</label>
-                        <input type="tel" name="phone" value="{{ old('phone') }}" required
-                               placeholder="+228 XX XX XX XX"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" name="email" value="{{ old('email') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Date de naissance *</label>
-                        <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Genre *</label>
-                        <select name="gender" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="">Sélectionner...</option>
-                            <option value="M" {{ old('gender') == 'M' ? 'selected' : '' }}>Masculin</option>
-                            <option value="F" {{ old('gender') == 'F' ? 'selected' : '' }}>Féminin</option>
-                            <option value="Other" {{ old('gender') == 'Other' ? 'selected' : '' }}>Autre</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Profession</label>
-                        <input type="text" name="profession" value="{{ old('profession') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Adresse</label>
-                        <input type="text" name="address" value="{{ old('address') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Ville *</label>
-                        <input type="text" name="city" value="{{ old('city') }}" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Région</label>
-                        <input type="text" name="region" value="{{ old('region') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Revenu mensuel (FCFA)</label>
-                        <input type="number" name="monthly_income" value="{{ old('monthly_income') }}" step="0.01"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pièce d'identité -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/>
-                    </svg>
-                    Pièce d'Identité
-                </h2>
-
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Type de pièce *</label>
-                        <select name="id_type" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="">Sélectionner...</option>
-                            <option value="cni" {{ old('id_type') == 'cni' ? 'selected' : '' }}>Carte d'identité nationale</option>
-                            <option value="passport" {{ old('id_type') == 'passport' ? 'selected' : '' }}>Passeport</option>
-                            <option value="driving_license" {{ old('id_type') == 'driving_license' ? 'selected' : '' }}>Permis de conduire</option>
-                            <option value="other" {{ old('id_type') == 'other' ? 'selected' : '' }}>Autre</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Numéro de pièce *</label>
-                        <input type="text" name="id_number" value="{{ old('id_number') }}" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Date d'expiration</label>
-                        <input type="date" name="id_expiry_date" value="{{ old('id_expiry_date') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Photo de profil</label>
-                        <input type="file" name="profile_photo" accept="image/*"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG (max 2MB)</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Parrainage (optionnel) -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Parrainage (Optionnel)
-                </h2>
-
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Numéro du parrain</label>
-                        <input type="text" name="referred_by" value="{{ old('referred_by') }}"
-                               placeholder="CLT-XXXX"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Relation avec le parrain</label>
-                        <input type="text" name="relationship" value="{{ old('relationship') }}"
-                               placeholder="Ex: Ami, Famille, Collègue..."
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Agence (pour super admin) -->
-            @if(auth()->user()->role === 'super_admin')
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="mb-4 text-lg font-semibold text-gray-900">Agence</h2>
-
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Agence *</label>
-                    <select name="agency_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Sélectionner une agence...</option>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">Infrastructure de Résidence</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Point d'ancrage géographique de l'adhérent</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2 md:col-span-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Adresse Physique Détaillée *</label>
+                    <input type="text" name="address" value="{{ old('address') }}" required class="bank-input" placeholder="Quartier, Rue, N° de Porte...">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ville / Localisation</label>
+                    <input type="text" name="city" value="{{ old('city') }}" class="bank-input" placeholder="Ex: Lomé">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Région Administrative</label>
+                    <input type="text" name="region" value="{{ old('region') }}" class="bank-input" placeholder="Ex: Maritime">
+                </div>
+            </div>
+        </div>
+
+        <!-- Segment : Artefacts d'Identification -->
+        <div class="bank-card p-8">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xs">
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">Artefacts d'Identification</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Documents officiels pour la conformité bancaire</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Type de Document</label>
+                    <select name="id_type" class="bank-input uppercase">
+                        <option value="">Sélectionner...</option>
+                        <option value="cni" {{ old('id_type') == 'cni' ? 'selected' : '' }}>Carte Nationale d'Identité (CNI)</option>
+                        <option value="passport" {{ old('id_type') == 'passport' ? 'selected' : '' }}>Passeport International</option>
+                        <option value="driving_license" {{ old('id_type') == 'driving_license' ? 'selected' : '' }}>Permis de Conduire</option>
+                        <option value="other" {{ old('id_type') == 'other' ? 'selected' : '' }}>Autre Document Officiel</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Numéro de Série du Document</label>
+                    <input type="text" name="id_number" value="{{ old('id_number') }}" class="bank-input font-mono" placeholder="S/N: XXXXXXXX">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Échéance de Validité</label>
+                    <input type="date" name="id_expiry_date" value="{{ old('id_expiry_date') }}" class="bank-input">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Artefact de Profil (Photo)</label>
+                    <div class="relative">
+                        <input type="file" name="profile_photo" accept="image/*" class="bank-input file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Formats autorisés : JPG, PNG (Max 2 Mo)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Segment : Parrainage & Réseau -->
+        <div class="bank-card p-8">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+                    <i class="fas fa-sitemap"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">Parrainage & Réseau</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Origine de la captation de l'entité</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Identifiant du Parrain</label>
+                    <input type="text" name="referred_by" value="{{ old('referred_by') }}" placeholder="Ex: CLT-XXXX" class="bank-input font-mono">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nature du Lien</label>
+                    <input type="text" name="relationship" value="{{ old('relationship') }}" placeholder="Ex: Professionnel, Familial..." class="bank-input">
+                </div>
+            </div>
+        </div>
+
+        <!-- Segment : Gouvernance & Sécurité -->
+        <div class="bank-card p-8">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xs">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest">Gouvernance & Sécurité</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Protocoles d'accès sécurisés</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @if(auth()->user()->role === 'super_admin')
+                <div class="space-y-2 md:col-span-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">compte d'Affectation (Agence) *</label>
+                    <select name="agency_id" required class="bank-input uppercase font-bold">
+                        <option value="">Affecter à une agence...</option>
                         @foreach($agencies as $agency)
                             <option value="{{ $agency->id }}" {{ old('agency_id') == $agency->id ? 'selected' : '' }}>
-                                {{ $agency->name }} - {{ $agency->city }}
+                                {{ $agency->name }} — Division {{ $agency->city }}
                             </option>
                         @endforeach
                     </select>
                 </div>
-            </div>
-            @endif
+                @endif
 
-            <!-- Mot de passe -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="flex items-center mb-4 text-lg font-semibold text-gray-900">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                    Sécurité
-                </h2>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Clé d'Accès Initiale (Mot de passe)</label>
+                    <input type="password" name="password" class="bank-input" placeholder="••••••••">
+                    <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Laisse vide pour utiliser : <span class="text-blue-600">12@4</span></p>
+                </div>
 
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Mot de passe *</label>
-                        <input type="password" name="password" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <p class="mt-1 text-xs text-gray-500">Minimum 8 caractères</p>
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Confirmer le mot de passe *</label>
-                        <input type="password" name="password_confirmation" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Confirmation de la Clé</label>
+                    <input type="password" name="password_confirmation" class="bank-input" placeholder="••••••••">
                 </div>
             </div>
+        </div>
 
-            <!-- Boutons d'action -->
-            <div class="flex items-center justify-end space-x-4">
-                <a href="{{ route('admin.clients.index') }}"
-                   class="px-6 py-2 text-gray-700 transition border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Annuler
-                </a>
-                <button type="submit"
-                        class="px-6 py-2 font-medium text-white transition bg-blue-600 rounded-lg shadow hover:bg-blue-700">
-                    Enregistrer le client
-                </button>
-            </div>
-        </form>
-    </div>
+        <!-- Validation Finale -->
+        <div class="flex items-center justify-end gap-4 pb-12">
+            <a href="{{ route('admin.clients.index') }}" class="btn-bank btn-bank-outline px-12">
+                Abandonner le Protocole
+            </a>
+            <button type="submit" class="btn-bank btn-bank-primary px-12 py-3 text-sm">
+                Enregistrer l'Entité dans le Registre
+            </button>
+        </div>
+    </form>
 </div>
 @endsection

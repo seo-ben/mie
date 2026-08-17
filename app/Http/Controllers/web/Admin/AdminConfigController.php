@@ -27,6 +27,8 @@ class AdminConfigController extends Controller
      */
     public function parameters(Request $request)
     {
+        $this->ensureDefaultFeesExist();
+
         $category = $request->get('category');
         $search = $request->get('search');
 
@@ -405,7 +407,14 @@ class AdminConfigController extends Controller
      */
     private function getParameterCategories(): array
     {
-        return [
+        // Récupérer les catégories existantes en base de données
+        $dbCategories = SystemParameter::select('category')
+            ->distinct()
+            ->pluck('category')
+            ->toArray();
+
+        // Labels prédéfinis pour un affichage propre
+        $labels = [
             'fees' => 'Frais et Tarifs',
             'rates' => 'Taux d\'Intérêt',
             'limits' => 'Limites et Seuils',
@@ -415,7 +424,63 @@ class AdminConfigController extends Controller
             'loans' => 'Prêts et Crédits',
             'accounts' => 'Comptes',
             'tontine' => 'Tontines',
-            'savings' => 'Épargne'
+            'savings' => 'Épargne',
+            'general' => 'Général',
+            'system' => 'Système'
         ];
+
+        $categories = [];
+        foreach ($dbCategories as $cat) {
+            $categories[$cat] = $labels[$cat] ?? ucfirst($cat);
+        }
+
+        // Si aucune catégorie en base, on garde les labels par défaut pour éviter une liste vide
+        if (empty($categories)) {
+            return $labels;
+        }
+
+        return $categories;
+    }
+    /**
+     * S'assurer que les paramètres de frais de retrait existent
+     */
+    private function ensureDefaultFeesExist()
+    {
+        $defaults = [
+            'savings_withdrawal_fee_percentage' => [
+                'value' => '2.0',
+                'description' => 'Pourcentage retrait Épargne',
+                'category' => 'fees'
+            ],
+            'savings_withdrawal_fee_fixed' => [
+                'value' => '0',
+                'description' => 'Frais fixe retrait Épargne',
+                'category' => 'fees'
+            ],
+            'tontine_withdrawal_fee_percentage' => [
+                'value' => '3.0',
+                'description' => 'Pourcentage retrait Tontine',
+                'category' => 'fees'
+            ],
+            'tontine_withdrawal_fee_fixed' => [
+                'value' => '0',
+                'description' => 'Frais fixe retrait Tontine',
+                'category' => 'fees'
+            ]
+        ];
+
+        foreach ($defaults as $key => $data) {
+            SystemParameter::firstOrCreate(
+                ['parameter_key' => $key],
+                [
+                    'parameter_value' => $data['value'],
+                    'parameter_type' => 'number',
+                    'description' => $data['description'],
+                    'category' => $data['category'],
+                    'created_by' => auth()->id() ?? 1,
+                    'is_editable' => true
+                ]
+            );
+        }
     }
 }

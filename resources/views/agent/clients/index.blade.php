@@ -1,4 +1,4 @@
-@extends('layouts.agent')
+@extends($layout ?? 'layouts.agent')
 
 @section('title', 'Mes Clients')
 
@@ -34,6 +34,7 @@
             </div>
         </div>
 
+        @if(auth()->user()->role !== 'agent_terrain')
         <div class="mb-3 col-xl-3 col-md-6">
             <div class="py-2 shadow card border-left-warning h-100">
                 <div class="card-body">
@@ -65,6 +66,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <div class="mb-3 col-xl-3 col-md-6">
             <div class="py-2 shadow card border-left-info h-100">
@@ -142,7 +144,9 @@
                             <th>Nom Complet</th>
                             <th>Téléphone</th>
                             <th>Comptes</th>
+                            @if(auth()->user()->role !== 'agent_terrain')
                             <th>KYC</th>
+                            @endif
                             <th>Statut</th>
                             <th>Date Inscription</th>
                             <th>Actions</th>
@@ -182,6 +186,7 @@
                                     <span class="badge bg-warning">{{ $suspended }} suspendu(s)</span>
                                 @endif
                             </td>
+                            @if(auth()->user()->role !== 'agent_terrain')
                             <td>
                                 @switch($client->kyc_status)
                                     @case('pending')
@@ -195,6 +200,7 @@
                                         @break
                                 @endswitch
                             </td>
+                            @endif
                             <td>
                                 @switch($client->registration_status)
                                     @case('pending')

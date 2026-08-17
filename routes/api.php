@@ -201,6 +201,11 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{clientId}/activate-accounts', [AgentClientController::class, 'activateAccounts'])->name('activate-accounts');
 
             });
+            // Synchronisation WatermelonDB (Offline-First)
+            Route::prefix('sync')->group(function () {
+                Route::get('pull', [App\Http\Controllers\Api\Agent\AgentSyncController::class, 'pull']);
+                Route::post('push', [App\Http\Controllers\Api\Agent\AgentSyncController::class, 'push']);
+            });
 
             // Gestion des comptes
             // Route::prefix('accounts')->group(function () {
@@ -252,6 +257,8 @@ Route::prefix('v1')->group(function () {
                 Route::get('{transaction}', [AgentTransactionController::class, 'show']);
                 Route::get('{transaction}/receipt', [AgentTransactionController::class, 'receipt']);
             });
+
+
 
             // Rapports
             // Route::prefix('reports')->group(function () {

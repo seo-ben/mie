@@ -1,23 +1,39 @@
-/.phpunit.cache
+# ─── Laravel ───
+/vendor
 /node_modules
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
-/vendor
+
+# ─── Environment ───
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
+
+# ─── Cache & Logs ───
+/bootstrap/cache/*.php
+*.log
+
+# ─── IDE & OS ───
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Build ───
 npm-debug.log
 yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
+
+# ─── Fichiers temporaires du projet ───
+*.jpeg
+*.html
+!resources/**/*.html
+!public/**/*.html
+php
+prepareBindings($bindings)
+fix_namespaces_bulk.php

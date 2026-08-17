@@ -332,6 +332,7 @@ class AuthController extends Controller
         $dashboardRoutes = [
             'agent_terrain' => 'agent.dashboard',
             'agent_agence' => 'agent.dashboard',
+            'caissier' => 'caissier.dashboard',
             'gestionnaire_superviseur' => 'manager.dashboard',
             'gestionnaire_credit' => 'manager.dashboard',
             'administrateur_systeme' => 'admin.dashboard',

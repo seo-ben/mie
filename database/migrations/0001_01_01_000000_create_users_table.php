@@ -20,6 +20,7 @@ return new class extends Migration
             $table->enum('role', [
                 'agent_terrain',
                 'agent_agence',
+                'caissier',
                 'gestionnaire_superviseur',
                 'gestionnaire_credit',
                 'administrateur_systeme',

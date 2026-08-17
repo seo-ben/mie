@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\web\Admin;
+namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Agency;
@@ -26,7 +26,9 @@ class AdminAgencyController extends Controller
             ->when($request->has('is_active'), fn($q) => $q->where('is_active', request()->boolean('is_active')))
             ->paginate($request->get('per_page', 15));
 
-        return view('admin.agencies.index', compact('agencies'));
+        $managers = User::all();
+
+        return view('admin.agencies.index', compact('agencies', 'managers'));
     }
 
     /**
@@ -70,6 +72,19 @@ class AdminAgencyController extends Controller
     }
 
     /**
+     * Retourne TOUJOURS du JSON — utilisé par le modal d'édition
+     */
+    public function getJson($agencyId)
+    {
+        try {
+            $agency = Agency::findOrFail($agencyId);
+            return response()->json(['success' => true, 'data' => $agency]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
+        }
+    }
+
+    /**
      * Formulaire édition
      */
     public function edit($agencyId)
@@ -87,7 +102,11 @@ class AdminAgencyController extends Controller
             'code'       => 'required|string|max:50|unique:agencies,code',
             'city'       => 'required|string|max:100',
             'region'     => 'required|string|max:100',
-            'manager_id' => 'nullable|exists:users,id', // ✅ Ajouter
+            'manager_id' => 'nullable|exists:users,id',
+            'cash_limit' => 'nullable|numeric|min:0',
+            'vault_balance' => 'nullable|numeric|min:0',
+            'address'    => 'nullable|string|max:255',
+            'phone'      => 'nullable|string|max:50',
             'is_active'  => 'nullable|boolean',
         ]);
 
@@ -97,8 +116,12 @@ class AdminAgencyController extends Controller
                 'code'       => $validated['code'],
                 'city'       => $validated['city'],
                 'region'     => $validated['region'],
-                'manager_id' => $validated['manager_id'] ?? null, // ✅ Ajouter
-                'is_active'  => $validated['is_active'] ?? true,
+                'manager_id' => $validated['manager_id'] ?? null,
+                'cash_limit' => $validated['cash_limit'] ?? 0,
+                'vault_balance' => $validated['vault_balance'] ?? 0,
+                'address'    => $validated['address'] ?? null,
+                'phone'      => $validated['phone'] ?? null,
+                'is_active'  => $request->has('is_active'),
             ]);
 
             return redirect()
@@ -117,12 +140,17 @@ class AdminAgencyController extends Controller
             'code'       => 'sometimes|string|max:50|unique:agencies,code,' . $agencyId,
             'city'       => 'sometimes|string|max:100',
             'region'     => 'sometimes|string|max:100',
-            'manager_id' => 'nullable|exists:users,id', // ✅ Ajouter
+            'manager_id' => 'nullable|exists:users,id',
+            'cash_limit' => 'nullable|numeric|min:0',
+            'vault_balance' => 'nullable|numeric|min:0',
+            'address'    => 'nullable|string|max:255',
+            'phone'      => 'nullable|string|max:50',
             'is_active'  => 'nullable|boolean',
         ]);
 
         try {
             $agency = Agency::findOrFail($agencyId);
+            $validated['is_active'] = $request->has('is_active');
             $agency->update($validated);
 
             return redirect()

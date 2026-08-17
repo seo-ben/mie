@@ -1,257 +1,183 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Gestion des Comptes')
+@section('title', 'Registre des Comptes d\'Actifs Institutionnels')
+@section('page-title', 'Protocole / Gestion du Grand Livre')
 
 @section('content')
-<div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-    <!-- En-tête -->
-    <div class="flex items-center justify-between mb-6">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <h1 class="mb-2 text-2xl font-semibold text-gray-900">Gestion des Comptes</h1>
-            <p class="text-gray-600">Liste et gestion de tous les comptes clients</p>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Comptes d'Actifs Financiers</h2>
+            <p class="text-slate-500 text-sm font-medium">Surveillance des conteneurs de capitaux liquides et des comptes d'épargne mutuelle</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.accounts.transfer.form') }}" class="btn-bank btn-bank-primary shadow-lg shadow-blue-500/20">
+                <i class="fas fa-exchange-alt mr-2 text-[10px]"></i> Faire un Transfert
+            </a>
+            <button class="btn-bank btn-bank-outline">
+                <i class="fas fa-file-export mr-2 text-[10px]"></i> Export du Registre d'Actifs
+            </button>
         </div>
     </div>
 
-    <!-- Statistiques -->
-    <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-4">
-        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="mb-1 text-sm text-gray-600">Total Comptes</p>
-                        <h4 class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_accounts']) }}</h4>
-                    </div>
-                    <div class="text-blue-500">
-                        <i class="text-3xl fas fa-wallet"></i>
-                    </div>
-                </div>
-            </div>
+    <!-- Matrice Fiscale -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bank-card p-5 border-trust">
+            <span class="kpi-label font-black uppercase">Compte des comptes</span>
+            <div class="kpi-value !text-xl mt-1">{{ number_format($stats['total_accounts']) }}</div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Portefeuilles Actifs Gérés</p>
         </div>
-
-        <div class="bg-white border-l-4 border-green-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="mb-1 text-sm text-gray-600">Comptes Actifs</p>
-                        <h4 class="text-2xl font-bold text-gray-900">{{ number_format($stats['active_accounts']) }}</h4>
-                    </div>
-                    <div class="text-green-500">
-                        <i class="text-3xl fas fa-check-circle"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="bank-card p-5">
+            <span class="kpi-label font-black uppercase">Protocoles Actifs</span>
+            <div class="kpi-value !text-xl mt-1 text-emerald-600">{{ number_format($stats['active_accounts']) }}</div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">comptes opérationnels vérifiés</p>
         </div>
-
-        <div class="bg-white border-l-4 border-yellow-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="mb-1 text-sm text-gray-600">En Attente</p>
-                        <h4 class="text-2xl font-bold text-gray-900">{{ number_format($stats['pending_accounts']) }}</h4>
-                    </div>
-                    <div class="text-yellow-500">
-                        <i class="text-3xl fas fa-clock"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="bank-card p-5">
+            <span class="kpi-label font-black uppercase">Supervision Requise</span>
+            <div class="kpi-value !text-xl mt-1 text-amber-600">{{ number_format($stats['pending_accounts']) }}</div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">En attente de protocole d'activation</p>
         </div>
-
-        <div class="bg-white border-l-4 rounded-lg shadow-sm border-cyan-500">
-            <div class="p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="mb-1 text-sm text-gray-600">Solde Total</p>
-                        <h4 class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_balance'], 0, ',', ' ') }} FCFA</h4>
-                    </div>
-                    <div class="text-cyan-500">
-                        <i class="text-3xl fas fa-coins"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="bank-card p-5">
+            <span class="kpi-label font-black uppercase">Exposition Brute Trésorerie</span>
+            <div class="kpi-value !text-xl mt-1 text-blue-600">{{ number_format($stats['total_balance'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Poids total de la trésorerie agrégée</p>
         </div>
     </div>
 
-    <!-- Filtres et recherche -->
-    <div class="mb-6 bg-white rounded-lg shadow-sm">
-        <div class="p-6">
-            <form method="GET" action="{{ route('admin.accounts.index') }}">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
-                    <div class="md:col-span-4">
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Recherche</label>
-                        <input type="text" name="search" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="Numéro compte, nom client..."
-                               value="{{ request('search') }}">
-                    </div>
+    <!-- Contrôles d'Audit -->
+    <div class="bank-card p-6">
+        <form method="GET" action="{{ route('admin.accounts.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-4 relative">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Recherche par N° de compte, Identité Adhérent ou Référence..." class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none transition uppercase font-bold text-slate-600">
+                <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            </div>
 
-                    <div class="md:col-span-2">
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Type</label>
-                        <select name="account_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="">Tous</option>
-                            <option value="savings" {{ request('account_type') === 'savings' ? 'selected' : '' }}>
-                                Épargne
-                            </option>
-                            <option value="tontine" {{ request('account_type') === 'tontine' ? 'selected' : '' }}>
-                                Tontine
-                            </option>
-                        </select>
-                    </div>
+            <div class="md:col-span-3">
+                <select name="account_type" class="bank-input uppercase">
+                    <option value="">Hiérarchie des Actifs</option>
+                    <option value="savings" {{ request('account_type') === 'savings' ? 'selected' : '' }}>Épargne Institutionnelle</option>
+                    <option value="tontine" {{ request('account_type') === 'tontine' ? 'selected' : '' }}>Épargne Mutuelle (Tontine)</option>
+                </select>
+            </div>
 
-                    <div class="md:col-span-2">
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Statut</label>
-                        <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="">Tous</option>
-                            <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>
-                                Actif
-                            </option>
-                            <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>
-                                Suspendu
-                            </option>
-                            <option value="pending_activation" {{ request('status') === 'pending_activation' ? 'selected' : '' }}>
-                                En attente
-                            </option>
-                        </select>
-                    </div>
+            <div class="md:col-span-3">
+                <select name="status" class="bank-input uppercase">
+                    <option value="">Statut de Vérification</option>
+                    <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Vérifié (Actif)</option>
+                    <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>Suspension de Supervision</option>
+                    <option value="pending_activation" {{ request('status') === 'pending_activation' ? 'selected' : '' }}>En attente de Protocole</option>
+                </select>
+            </div>
 
-                    <div class="flex items-end gap-2 md:col-span-4">
-                        <button type="submit" class="px-6 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
-                            <i class="mr-2 fas fa-search"></i>Rechercher
-                        </button>
-                        <a href="{{ route('admin.accounts.index') }}" class="px-6 py-2 text-white transition-colors bg-gray-600 rounded-lg hover:bg-gray-700">
-                            <i class="mr-2 fas fa-redo"></i>Réinitialiser
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+            <div class="md:col-span-2 flex gap-2">
+                <button type="submit" class="btn-bank btn-bank-primary flex-1 shadow-lg shadow-blue-500/10">
+                    <i class="fas fa-search text-[10px]"></i>
+                </button>
+                <a href="{{ route('admin.accounts.index') }}" class="btn-bank btn-bank-outline px-4">
+                    <i class="fas fa-rotate"></i>
+                </a>
+            </div>
+        </form>
     </div>
 
-    <!-- Liste des comptes -->
-    <div class="overflow-hidden bg-white rounded-lg shadow-sm">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold text-gray-900">Liste des Comptes ({{ $accounts->total() }})</h5>
-        </div>
+    <!-- Registre d'Actifs -->
+    <div class="bank-card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="bank-table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">N° Compte</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Client</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Type / Montant</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Solde</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Statut</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Date Création</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Actions</th>
+                        <th class="uppercase tracking-widest text-[10px]">Identité du compte</th>
+                        <th class="uppercase tracking-widest text-[10px]">Adhérent Associé</th>
+                        <th class="uppercase tracking-widest text-[10px]">Type Fiscal</th>
+                        <th class="uppercase tracking-widest text-[10px]">Solde Fiscal</th>
+                        <th class="text-center uppercase tracking-widest text-[10px]">Vérification</th>
+                        <th class="text-right uppercase tracking-widest text-[10px]">Opérations</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-slate-100">
                     @forelse($accounts as $account)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <a href="{{ route('admin.accounts.show', $account->id) }}"
-                               class="font-semibold text-blue-600 hover:text-blue-800">
-                                {{ $account->account_number }}
-                            </a>
+                    <tr class="hover:bg-slate-50/50 transition-colors group">
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-all">
+                                    <i class="fas fa-vault text-[10px]"></i>
+                                </div>
+                                <a href="{{ route('admin.accounts.show', $account->id) }}" class="text-xs font-black text-slate-900 hover:text-blue-600 transition-colors">
+                                    {{ $account->account_number }}
+                                </a>
+                            </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <a href="{{ route('admin.clients.show', $account->client_id) }}"
-                               class="text-gray-900 hover:text-blue-600">
-                                {{ $account->client->first_name }} {{ $account->client->last_name }}
-                            </a>
-                            <div class="text-sm text-gray-500">{{ $account->client->client_number }}</div>
+                        <td>
+                            <div class="flex flex-col">
+                                <p class="text-xs font-black text-slate-800">{{ $account->client->full_name }}</p>
+                                <p class="text-[9px] font-mono font-bold text-slate-400 mt-0.5 uppercase tracking-tighter tracking-widest">{{ $account->client->client_number }}</p>
+                            </div>
                         </td>
-                        <td class="px-6 py-4">
+                        <td>
                             @if($account->account_type === 'savings')
-                                <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-cyan-100 text-cyan-800">
-                                    <i class="mr-1 fas fa-piggy-bank"></i>Épargne
-                                </span>
+                                <div class="flex items-center gap-1.5">
+                                    <i class="fas fa-piggy-bank text-[10px] text-blue-600"></i>
+                                    <span class="text-[9px] font-black text-blue-700 uppercase tracking-tight">compte d'Épargne</span>
+                                </div>
                             @else
-                                <div class="space-y-1">
-                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-purple-800 bg-purple-100 rounded-full">
-                                        <i class="mr-1 fas fa-users"></i>Tontine
-                                    </span>
+                                <div class="flex flex-col">
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="fas fa-rotate text-[10px] text-purple-600"></i>
+                                        <span class="text-[9px] font-black text-purple-700 uppercase tracking-tight flex items-center gap-1">
+                                            compte Tontine
+                                            @if($account->tontineAccount && $account->tontineAccount->total_paid >= $account->tontineAccount->total_expected && $account->tontineAccount->total_expected > 0)
+                                                <i class="fas fa-star text-amber-500 animate-pulse text-[10px]" title="Tontine Complète"></i>
+                                            @elseif($account->tontineAccount && $account->tontineAccount->activeCycle && $account->tontineAccount->activeCycle->collected_amount >= $account->tontineAccount->activeCycle->target_amount)
+                                                <i class="fas fa-certificate text-emerald-500 text-[10px]" title="Cycle Atteint"></i>
+                                            @endif
+                                        </span>
+                                    </div>
                                     @if($account->tontineAccount)
-                                        <div class="text-sm font-semibold text-purple-700">
-                                            {{ number_format($account->tontineAccount->tontine_amount, 0, ',', ' ') }} FCFA
-                                        </div>
-                                        <div class="text-xs text-gray-500">
-                                            {{ ucfirst(__($account->tontineAccount->payment_frequency)) }} •
-                                            {{ $account->tontineAccount->cycle_duration_months }} mois
-                                        </div>
+                                        <p class="text-[9px] font-bold text-slate-400 mt-0.5">{{ number_format($account->tontineAccount->tontine_amount, 0, ',', ' ') }} XOF / {{ ucfirst(__($account->tontineAccount->payment_frequency)) }}</p>
                                     @endif
                                 </div>
                             @endif
                         </td>
-                        <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
-                            {{ number_format($account->balance, 0, ',', ' ') }} FCFA
+                        <td>
+                            <p class="text-sm font-black text-slate-900 font-numeric tracking-tight">
+                                {{ number_format($account->balance, 0, ',', ' ') }} <small class="text-[10px] text-slate-400 font-bold uppercase">XOF</small>
+                            </p>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="text-center">
                             @switch($account->status)
                                 @case('active')
-                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-green-800 bg-green-100 rounded-full">Actif</span>
+                                    <span class="bank-badge badge-success !text-[8px] uppercase tracking-widest font-black">Vérifié</span>
                                     @break
                                 @case('suspended')
-                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-red-800 bg-red-100 rounded-full">Suspendu</span>
+                                    <span class="bank-badge badge-danger !text-[8px] uppercase tracking-widest font-black">Suspendu</span>
                                     @break
                                 @case('pending_activation')
-                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-yellow-800 bg-yellow-100 rounded-full">En attente</span>
+                                    <span class="bank-badge badge-warning !text-[8px] uppercase tracking-widest font-black">Attente</span>
                                     @break
                                 @default
-                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-800 bg-gray-100 rounded-full">{{ $account->status }}</span>
+                                    <span class="bank-badge badge-secondary !text-[8px] uppercase tracking-widest font-black">{{ $account->status }}</span>
                             @endswitch
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                            {{ $account->created_at->format('d/m/Y') }}
-                            @if($account->activated_at)
-                                <div class="text-xs text-gray-500">
-                                    Activé: {{ $account->activated_at->format('d/m/Y') }}
-                                </div>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('admin.accounts.deposit.form', $account->id) }}"
-                                   class="px-3 py-1 text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
-                                   title="Dépots">
-                                    <i class="fas fa-plus-circle"></i>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                                <a href="{{ route('admin.accounts.deposit.form', $account->id) }}" class="p-2 text-slate-400 hover:text-emerald-600 transition" title="Injection de Capital">
+                                    <i class="fas fa-circle-dollar-to-slot text-xs"></i>
                                 </a>
-                                <a href="{{ route('admin.accounts.show', $account->id) }}"
-                                   class="px-3 py-1 text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
-                                   title="Détails">
-                                    <i class="fas fa-eye"></i>
+                                <a href="{{ route('admin.accounts.show', $account->id) }}" class="p-2 text-slate-400 hover:text-blue-600 transition" title="Audit du Dossier">
+                                    <i class="fas fa-eye text-xs"></i>
                                 </a>
-
-                                @if($account->status === 'suspended')
-                                    <a href="{{ route('admin.accounts.edit', $account->id) }}"
-                                       class="px-3 py-1 text-yellow-600 border border-yellow-600 rounded hover:bg-yellow-50"
-                                       title="Modifier">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-
-                                    <form action="{{ route('admin.accounts.reactivate', $account->id) }}" method="POST"
-                                          onsubmit="return confirm('Êtes-vous sûr de vouloir réactiver ce compte ?');">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit"
-                                                class="px-3 py-1 text-green-600 border border-green-600 rounded hover:bg-green-50"
-                                                title="Activer le compte">
-                                            <i class="fas fa-check-circle"></i>
-                                        </button>
-                                    </form>
-                                @endif
-
-                                <a href="{{ route('admin.accounts.transactions', $account->id) }}"
-                                   class="px-3 py-1 border rounded border-cyan-600 text-cyan-600 hover:bg-cyan-50"
-                                   title="Transactions">
-                                    <i class="fas fa-list"></i>
+                                <a href="{{ route('admin.accounts.transactions', $account->id) }}" class="p-2 text-slate-400 hover:text-purple-600 transition" title="Journaux du compte">
+                                    <i class="fas fa-list-ul text-xs"></i>
                                 </a>
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center">
-                            <i class="mb-3 text-5xl text-gray-400 fas fa-inbox"></i>
-                            <p class="text-gray-500">Aucun compte trouvé</p>
+                        <td colspan="6" class="py-20 text-center">
+                            <i class="fas fa-box-open text-3xl text-slate-200 mb-4"></i>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Aucun compte d'actifs détecté dans la fenêtre d'audit actuelle</p>
                         </td>
                     </tr>
                     @endforelse
@@ -260,77 +186,8 @@
         </div>
 
         @if($accounts->hasPages())
-        <div class="px-6 py-4 border-t border-gray-200">
-            <div class="flex items-center justify-between">
-                <div class="text-sm text-gray-700">
-                    Affichage de <span class="font-medium">{{ $accounts->firstItem() ?? 0 }}</span> à
-                    <span class="font-medium">{{ $accounts->lastItem() ?? 0 }}</span> sur
-                    <span class="font-medium">{{ $accounts->total() }}</span> comptes
-                </div>
-                <div class="flex space-x-1" id="pagination-container">
-                    {{-- Bouton Précédent --}}
-                    @if($accounts->onFirstPage())
-                        <button disabled class="px-3 py-2 text-gray-400 bg-gray-100 rounded cursor-not-allowed">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                    @else
-                        <a href="{{ $accounts->previousPageUrl() }}" class="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                            <i class="fas fa-chevron-left"></i>
-                        </a>
-                    @endif
-
-                    {{-- Numéros de page --}}
-                    <div class="flex space-x-1" id="page-numbers">
-                        @php
-                            $currentPage = $accounts->currentPage();
-                            $lastPage = $accounts->lastPage();
-                            $start = max(1, $currentPage - 2);
-                            $end = min($lastPage, $currentPage + 2);
-                        @endphp
-
-                        @if($start > 1)
-                            <a href="{{ $accounts->url(1) }}" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                                1
-                            </a>
-                            @if($start > 2)
-                                <span class="px-3 py-2">...</span>
-                            @endif
-                        @endif
-
-                        @for($i = $start; $i <= $end; $i++)
-                            @if($i == $currentPage)
-                                <button class="px-4 py-2 font-medium text-white bg-blue-600 rounded">
-                                    {{ $i }}
-                                </button>
-                            @else
-                                <a href="{{ $accounts->url($i) }}" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                                    {{ $i }}
-                                </a>
-                            @endif
-                        @endfor
-
-                        @if($end < $lastPage)
-                            @if($end < $lastPage - 1)
-                                <span class="px-3 py-2">...</span>
-                            @endif
-                            <a href="{{ $accounts->url($lastPage) }}" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                                {{ $lastPage }}
-                            </a>
-                        @endif
-                    </div>
-
-                    {{-- Bouton Suivant --}}
-                    @if($accounts->hasMorePages())
-                        <a href="{{ $accounts->nextPageUrl() }}" class="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
-                    @else
-                        <button disabled class="px-3 py-2 text-gray-400 bg-gray-100 rounded cursor-not-allowed">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    @endif
-                </div>
-            </div>
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+            {{ $accounts->links() }}
         </div>
         @endif
     </div>

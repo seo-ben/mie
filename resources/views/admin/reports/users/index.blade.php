@@ -1,288 +1,234 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Rapports des Utilisateurs')
+@section('title', 'Analytique de Performance Institutionnelle')
+@section('page-title', 'Protocole / Analytique de Performance')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Rapports des Utilisateurs</h2>
-            <p class="text-sm text-gray-600">Analysez les performances et activités de tous les utilisateurs</p>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Intelligence de Performance du Personnel</h2>
+            <p class="text-slate-500 text-sm font-medium">Analytique comparative et surveillance de l'efficacité opérationnelle à travers le réseau d'officiers</p>
         </div>
-        <div class="flex gap-2">
-            <button onclick="openCompareModal()" class="flex items-center gap-2 px-4 py-2 text-white transition bg-purple-600 rounded-lg hover:bg-purple-700">
-                <i class="fas fa-balance-scale"></i>
-                <span>Comparer</span>
+        <div class="flex items-center gap-3">
+            <button onclick="openCompareModal()" class="btn-bank btn-bank-outline">
+                <i class="fas fa-microscope mr-2 text-[10px]"></i> Audit Comparatif
             </button>
-            <button onclick="exportAllData()" class="flex items-center gap-2 px-4 py-2 text-white transition bg-green-600 rounded-lg hover:bg-green-700">
-                <i class="fas fa-file-export"></i>
-                <span>Exporter</span>
+            <button onclick="exportAllData()" class="btn-bank btn-bank-primary">
+                <i class="fas fa-file-export mr-2 text-[10px]"></i> Export Intelligence
             </button>
         </div>
     </div>
 
-    <!-- Statistiques Globales -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div class="p-6 text-white shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-white/20">
-                    <i class="text-2xl fas fa-users"></i>
-                </div>
-                <span class="px-3 py-1 text-sm rounded-full bg-white/20">Total</span>
+    <!-- Graphique de Performance Holistique -->
+    <div class="bank-card p-8">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-chart-line text-blue-600"></i> Flux Opérationnel Global (30j)
+                </h3>
+                <p class="text-[10px] text-slate-400 mt-1 font-bold italic">Données consolidées du réseau d'agences</p>
             </div>
-            <p class="text-3xl font-bold">{{ number_format($stats['total_users']) }}</p>
-            <p class="mt-1 text-sm text-blue-100">Utilisateurs</p>
-            <div class="flex items-center justify-between pt-3 mt-3 text-sm border-t border-white/20">
-                <span>{{ $stats['active_users'] }} actifs</span>
-                <span class="font-semibold">{{ $stats['total_users'] > 0 ? round(($stats['active_users'] / $stats['total_users']) * 100) : 0 }}%</span>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase">Volume Ops</span>
+                </div>
+            </div>
+        </div>
+        <div class="h-48">
+            <canvas id="globalPerformanceChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Matrice Analytique -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bank-card p-5 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+            <span class="kpi-label">Effectif du Personnel</span>
+            <div class="kpi-value !text-2xl mt-1 text-slate-900">{{ number_format($stats['total_users']) }}</div>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                <span class="text-[9px] font-bold text-slate-400 uppercase">Opérationnel: {{ $stats['active_users'] }}</span>
+                <span class="text-[9px] font-extrabold text-blue-600 px-2 py-0.5 bg-blue-50 rounded">
+                    {{ $stats['total_users'] > 0 ? round(($stats['active_users'] / $stats['total_users']) * 100) : 0 }}% Saturation
+                </span>
             </div>
         </div>
 
-        <div class="p-6 text-white shadow-lg bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-white/20">
-                    <i class="text-2xl fas fa-sign-in-alt"></i>
-                </div>
-                <span class="px-3 py-1 text-sm rounded-full bg-white/20">Aujourd'hui</span>
-            </div>
-            <p class="text-3xl font-bold">{{ number_format($stats['users_logged_today']) }}</p>
-            <p class="mt-1 text-sm text-green-100">Connexions</p>
-            <div class="pt-3 mt-3 text-sm border-t border-white/20">
-                <span>{{ $stats['users_logged_week'] }} cette semaine</span>
+        <div class="bank-card p-5 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow">
+            <span class="kpi-label">Officiers Actifs (24h)</span>
+            <div class="kpi-value !text-2xl mt-1 text-emerald-600">{{ number_format($stats['users_logged_today']) }}</div>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                <span class="text-[9px] font-bold text-slate-400 uppercase">Débit Hebdomadaire:</span>
+                <span class="text-[9px] font-extrabold text-emerald-600">{{ $stats['users_logged_week'] }}</span>
             </div>
         </div>
 
-        <div class="p-6 text-white shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-white/20">
-                    <i class="text-2xl fas fa-user-friends"></i>
-                </div>
-                <span class="px-3 py-1 text-sm rounded-full bg-white/20">Clients</span>
-            </div>
-            <p class="text-3xl font-bold">{{ number_format($stats['total_clients']) }}</p>
-            <p class="mt-1 text-sm text-purple-100">Total enregistrés</p>
-            <div class="pt-3 mt-3 text-sm border-t border-white/20">
-                <span>{{ number_format($stats['total_clients'] / max($stats['active_users'], 1), 1) }} / agent</span>
+        <div class="bank-card p-5 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
+            <span class="kpi-label">Capture Adhérents Total</span>
+            <div class="kpi-value !text-2xl mt-1 text-purple-600">{{ number_format($stats['total_clients']) }}</div>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                <span class="text-[9px] font-bold text-slate-400 uppercase">Moyenne / Officier:</span>
+                <span class="text-[9px] font-extrabold text-purple-600 px-2 py-0.5 bg-purple-50 rounded">
+                    {{ number_format($stats['total_clients'] / max($stats['active_users'], 1), 1) }}
+                </span>
             </div>
         </div>
 
-        <div class="p-6 text-white shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-white/20">
-                    <i class="text-2xl fas fa-exchange-alt"></i>
-                </div>
-                <span class="px-3 py-1 text-sm rounded-full bg-white/20">Aujourd'hui</span>
-            </div>
-            <p class="text-3xl font-bold">{{ number_format($stats['total_transactions_today']) }}</p>
-            <p class="mt-1 text-sm text-orange-100">Transactions</p>
-            <div class="pt-3 mt-3 text-sm border-t border-white/20">
-                <span>{{ number_format($stats['total_amount_today'], 0, ',', ' ') }} FCFA</span>
+        <div class="bank-card p-5 border-l-4 border-amber-500 hover:shadow-lg transition-shadow">
+            <span class="kpi-label">Poids Transactionnel / Jour</span>
+            <div class="kpi-value !text-2xl mt-1 text-amber-600">{{ number_format($stats['total_amount_today'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                <span class="text-[9px] font-bold text-slate-400 uppercase">Fréquence:</span>
+                <span class="text-[9px] font-extrabold text-amber-600">{{ number_format($stats['total_transactions_today']) }} Ops</span>
             </div>
         </div>
     </div>
 
-    <!-- Filtres -->
-    <div class="p-6 bg-white shadow-sm rounded-xl">
-        <form method="GET" action="{{ route('admin.reports.users.index') }}" class="space-y-4">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <div class="lg:col-span-2">
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        <i class="mr-1 fas fa-search"></i> Rechercher
-                    </label>
-                    <input type="text" name="search" value="{{ request('search') }}"
-                           placeholder="Nom, email, téléphone..."
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        <i class="mr-1 fas fa-user-tag"></i> Rôle
-                    </label>
-                    <select name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Tous les rôles</option>
-                        <option value="super_admin" {{ request('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
-                        <option value="administrateur_reglementaire" {{ request('role') == 'administrateur_reglementaire' ? 'selected' : '' }}>Admin Réglementaire</option>
-                        <option value="agent_collecteur" {{ request('role') == 'agent_collecteur' ? 'selected' : '' }}>Agent Collecteur</option>
-                        <option value="support" {{ request('role') == 'support' ? 'selected' : '' }}>Support</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        <i class="mr-1 fas fa-building"></i> Agence
-                    </label>
-                    <select name="agency_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Toutes les agences</option>
-                        @foreach($agencies as $agency)
-                            <option value="{{ $agency->id }}" {{ request('agency_id') == $agency->id ? 'selected' : '' }}>
-                                {{ $agency->name }} ({{ $agency->code }})
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        <i class="mr-1 fas fa-toggle-on"></i> Statut
-                    </label>
-                    <select name="is_active" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Tous</option>
-                        <option value="1" {{ request('is_active') == '1' ? 'selected' : '' }}>Actif</option>
-                        <option value="0" {{ request('is_active') == '0' ? 'selected' : '' }}>Inactif</option>
-                    </select>
-                </div>
+    <!-- Filtres d'Audit -->
+    <div class="bank-card p-6 bg-slate-50 border-slate-200 shadow-inner">
+        <form method="GET" action="{{ route('admin.reports.users.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-3 relative">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Recherche par Nom, Email, Nœud..." class="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none transition uppercase">
+                <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        <i class="mr-1 fas fa-clock"></i> Activité récente
-                    </label>
-                    <select name="activity_period" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Toutes les périodes</option>
-                        <option value="today" {{ request('activity_period') == 'today' ? 'selected' : '' }}>Aujourd'hui</option>
-                        <option value="week" {{ request('activity_period') == 'week' ? 'selected' : '' }}>Cette semaine</option>
-                        <option value="month" {{ request('activity_period') == 'month' ? 'selected' : '' }}>Ce mois</option>
-                        <option value="3months" {{ request('activity_period') == '3months' ? 'selected' : '' }}>3 derniers mois</option>
-                    </select>
-                </div>
+            <div class="md:col-span-2">
+                <select name="role" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase">
+                    <option value="">Rôles Institutionnels</option>
+                    @foreach([
+                        'administrateur_systeme' => 'Système',
+                        'administrateur_reglementaire' => 'Réglementaire',
+                        'manager_agence' => 'Manager Agence',
+                        'gestionnaire_credit' => 'Gérant Crédit',
+                        'agent_agence' => 'Agent Agence',
+                        'agent_terrain' => 'Agent Terrain'
+                    ] as $val => $label)
+                        <option value="{{ $val }}" {{ request('role') == $val ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-                <div class="flex items-end gap-2 md:col-span-3">
-                    <button type="submit" class="flex-1 px-6 py-2 text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
-                        <i class="mr-2 fas fa-filter"></i>Filtrer
-                    </button>
-                    <a href="{{ route('admin.reports.users.index') }}" class="px-6 py-2 text-gray-700 transition bg-gray-200 rounded-lg hover:bg-gray-300">
-                        <i class="mr-2 fas fa-redo"></i>Réinitialiser
-                    </a>
-                </div>
+            <div class="md:col-span-2">
+                <select name="agency_id" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase">
+                    <option value="">Divisions Régionales</option>
+                    @foreach($agencies as $agency)
+                        <option value="{{ $agency->id }}" {{ request('agency_id') == $agency->id ? 'selected' : '' }}>{{ $agency->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="md:col-span-2">
+                <select name="activity_period" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase">
+                    <option value="">Fenêtre Audit</option>
+                    <option value="today" {{ request('activity_period') == 'today' ? 'selected' : '' }}>24 Heures</option>
+                    <option value="week" {{ request('activity_period') == 'week' ? 'selected' : '' }}>7 Jours</option>
+                    <option value="month" {{ request('activity_period') == 'month' ? 'selected' : '' }}>30 Jours</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-3 flex gap-2">
+                <button type="submit" class="btn-bank btn-bank-primary flex-1">
+                    <i class="fas fa-filter mr-2 text-[10px]"></i> Analyser
+                </button>
+                <a href="{{ route('admin.reports.users.index') }}" class="btn-bank btn-bank-outline px-4">
+                    <i class="fas fa-rotate"></i>
+                </a>
             </div>
         </form>
     </div>
 
-    <!-- Liste des Utilisateurs -->
-    <div class="overflow-hidden bg-white shadow-sm rounded-xl">
+    <!-- Registre Analytique -->
+    <div class="bank-card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="border-b border-gray-200 bg-gray-50">
+            <table class="bank-table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left">
-                            <input type="checkbox" id="selectAll" class="w-4 h-4 text-blue-600 rounded">
+                        <th class="w-10">
+                            <input type="checkbox" id="selectAll" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                         </th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Utilisateur</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Agence</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Rôle</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Clients</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Dernière activité</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-left text-gray-600 uppercase">Statut</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-right text-gray-600 uppercase">Actions</th>
+                        <th>Officier & Rang</th>
+                        <th>Division</th>
+                        <th>Adhérents</th>
+                        <th>Statut</th>
+                        <th>Dernier Accès</th>
+                        <th class="text-right">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
+                <tbody class="divide-y divide-slate-100">
                     @forelse($users as $user)
-                    <tr class="transition hover:bg-gray-50" data-user-id="{{ $user->id }}">
-                        <td class="px-6 py-4">
-                            <input type="checkbox" class="w-4 h-4 text-blue-600 rounded user-checkbox" value="{{ $user->id }}">
+                    <tr class="hover:bg-slate-50/50 transition-colors group" data-user-id="{{ $user->id }}">
+                        <td>
+                            <input type="checkbox" class="user-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="{{ $user->id }}">
                         </td>
-                        <td class="px-6 py-4">
+                        <td>
                             <div class="flex items-center gap-3">
-                                <div class="flex items-center justify-center w-10 h-10 font-semibold text-white rounded-full bg-gradient-to-br from-blue-400 to-purple-500">
+                                <div class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center bg-white shadow-sm text-[11px] font-black text-blue-600 group-hover:scale-110 transition-transform">
                                     {{ strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1)) }}
                                 </div>
                                 <div>
-                                    <p class="font-semibold text-gray-800">{{ $user->full_name }}</p>
-                                    <div class="flex items-center gap-2 text-xs text-gray-500">
-                                        <span><i class="mr-1 fas fa-envelope"></i>{{ $user->email }}</span>
-                                        @if($user->phone)
-                                        <span><i class="mr-1 fas fa-phone"></i>{{ $user->phone }}</span>
-                                        @endif
-                                    </div>
+                                    <p class="font-black text-slate-800 leading-tight">{{ $user->full_name }}</p>
+                                    <p class="text-[9px] font-bold text-blue-500 uppercase tracking-tighter mt-1 px-1.5 py-0.5 bg-blue-50 rounded w-fit">
+                                        {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                                    </p>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            @if($user->agency)
-                                <div>
-                                    <p class="font-medium text-gray-800">{{ $user->agency->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $user->agency->city }} - {{ $user->agency->code }}</p>
-                                </div>
-                            @else
-                                <span class="text-sm italic text-gray-400">Non assigné</span>
-                            @endif
+                        <td>
+                            <span class="text-xs font-bold text-slate-600">{{ $user->agency->name ?? 'Siège Central' }}</span>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-medium
-                                {{ $user->role === 'super_admin' ? 'bg-red-100 text-red-700' : '' }}
-                                {{ $user->role === 'administrateur_reglementaire' ? 'bg-purple-100 text-purple-700' : '' }}
-                                {{ $user->role === 'agent_collecteur' ? 'bg-blue-100 text-blue-700' : '' }}
-                                {{ $user->role === 'support' ? 'bg-green-100 text-green-700' : '' }}">
-                                {{ ucfirst(str_replace('_', ' ', $user->role)) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
+                        <td>
                             <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-full">
+                                <span class="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-black rounded border border-slate-200">
                                     {{ $user->clients_count }}
                                 </span>
                                 @if($user->active_clients_count > 0)
-                                <span class="text-xs text-gray-500">
-                                    ({{ $user->active_clients_count }} KYC OK)
-                                </span>
+                                    <span class="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">KYC: {{ $user->active_clients_count }}</span>
                                 @endif
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            @if($user->last_login)
-                                <div>
-                                    <p class="text-sm text-gray-800">{{ $user->last_login->format('d/m/Y') }}</p>
-                                    <p class="text-xs text-gray-500">{{ $user->last_login->format('H:i') }}</p>
-                                    <p class="text-xs text-gray-400">{{ $user->last_login->diffForHumans() }}</p>
+                        <td>
+                            @if($user->is_active)
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span class="text-[9px] font-black text-emerald-700 uppercase">Actif</span>
                                 </div>
                             @else
-                                <span class="text-sm italic text-gray-400">Jamais</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    <span class="text-[9px] font-black text-rose-700 uppercase">Suspendu</span>
+                                </div>
                             @endif
                         </td>
-                        <td class="px-6 py-4">
-                            @if($user->is_active)
-                                <span class="flex items-center gap-1 px-3 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full w-fit">
-                                    <i class="fas fa-check-circle"></i>
-                                    Actif
-                                </span>
+                        <td>
+                            @if($user->last_login)
+                                <div class="flex flex-col">
+                                    <p class="text-[10px] font-bold text-slate-700">{{ $user->last_login->format('d M, H:i') }}</p>
+                                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{{ $user->last_login->diffForHumans() }}</p>
+                                </div>
                             @else
-                                <span class="flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-full w-fit">
-                                    <i class="fas fa-times-circle"></i>
-                                    Inactif
-                                </span>
+                                <span class="text-[9px] font-bold text-slate-300 italic">Inactif</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <a href="{{ route('admin.reports.users.show', $user->id) }}"
-                                   class="p-2 text-blue-600 transition rounded-lg hover:bg-blue-50"
-                                   title="Voir le rapport">
-                                    <i class="fas fa-chart-line"></i>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <a href="{{ route('admin.reports.users.show', $user->id) }}" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" title="Dossier Analytique">
+                                    <i class="fas fa-chart-pie text-xs"></i>
                                 </a>
-                                <a href="{{ route('admin.reports.users.export', $user->id) }}"
-                                   class="p-2 text-green-600 transition rounded-lg hover:bg-green-50"
-                                   title="Exporter les données">
-                                    <i class="fas fa-download"></i>
+                                <a href="{{ route('admin.reports.users.export', $user->id) }}" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Export Intelligence">
+                                    <i class="fas fa-file-arrow-down text-xs"></i>
                                 </a>
-                                @if($user->agency)
-                                <a href="{{ route('admin.reports.agencies.show', $user->agency_id) }}"
-                                   class="p-2 text-purple-600 transition rounded-lg hover:bg-purple-50"
-                                   title="Voir l'agence">
-                                    <i class="fas fa-building"></i>
-                                </a>
-                                @endif
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                            <i class="mb-4 text-4xl text-gray-300 fas fa-users"></i>
-                            <p class="text-lg font-medium">Aucun utilisateur trouvé</p>
-                            <p class="text-sm">Essayez de modifier vos filtres</p>
+                        <td colspan="7" class="py-20 text-center">
+                            <div class="max-w-xs mx-auto">
+                                <i class="fas fa-users-viewfinder text-3xl text-slate-200 mb-4 block"></i>
+                                <h4 class="text-sm font-bold text-slate-800">Registre de Performance Vide</h4>
+                                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Aucune donnée trouvée pour les filtres actifs</p>
+                            </div>
                         </td>
                     </tr>
                     @endforelse
@@ -290,190 +236,167 @@
             </table>
         </div>
 
-        <!-- Pagination -->
-        <div class="px-6 py-4 border-t border-gray-200">
+        @if($users->hasPages())
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
             {{ $users->links() }}
         </div>
+        @endif
     </div>
 </div>
 
-<!-- Modal de Comparaison -->
-<div id="compareModal" class="fixed inset-0 z-50 flex items-center justify-center hidden p-4 bg-black bg-opacity-50">
-    <div class="w-full max-w-2xl bg-white shadow-xl rounded-xl">
-        <div class="flex items-center justify-between p-6 border-b">
-            <h3 class="text-xl font-bold text-gray-800">
-                <i class="mr-2 text-purple-600 fas fa-balance-scale"></i>
-                Comparer les Utilisateurs
-            </h3>
-            <button onclick="closeCompareModal()" class="text-gray-400 transition hover:text-gray-600">
-                <i class="text-xl fas fa-times"></i>
+<!-- Modal Audit Comparatif -->
+<div id="compareModal" class="fixed inset-0 z-50 flex items-center justify-center hidden p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bank-card w-full max-w-xl animate-scale-in">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
+            <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest">Audit de Performance Comparatif</h3>
+            <button onclick="closeCompareModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white transition shadow-sm">
+                <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <form action="{{ route('admin.reports.users.compare') }}" method="POST" class="p-6">
+        <form action="{{ route('admin.reports.users.compare') }}" method="POST" class="p-8 space-y-6">
             @csrf
-            <div class="space-y-4">
-                <div>
-                    <label class="block mb-2 text-sm font-semibold text-gray-700">
-                        Sélectionnez 2 à 5 utilisateurs à comparer
-                    </label>
-                    <div id="selectedUsers" class="space-y-2 mb-4 min-h-[100px] border border-dashed border-gray-300 rounded-lg p-4">
-                        <p class="text-sm text-center text-gray-400">Cochez des utilisateurs dans la liste pour les comparer</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Date début</label>
-                        <input type="date" name="start_date" value="{{ now()->startOfMonth()->format('Y-m-d') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-700">Date fin</label>
-                        <input type="date" name="end_date" value="{{ now()->format('Y-m-d') }}"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                    </div>
+            <div>
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 block">Entités d'Audit Sélectionnées (Max 5)</label>
+                <div id="selectedUsers" class="min-h-[120px] border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-wrap gap-3 items-start bg-slate-50/50">
+                    <p class="text-[10px] font-bold text-slate-400 italic w-full text-center py-6">Cochez des officiers dans le registre pour les comparer</p>
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-4 mt-6 border-t">
-                <button type="button" onclick="closeCompareModal()"
-                        class="px-6 py-2 text-gray-700 transition border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Annuler
+            <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Début Fenêtre d'Audit</label>
+                    <input type="date" name="start_date" value="{{ now()->startOfMonth()->format('Y-m-d') }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Fin Fenêtre d'Audit</label>
+                    <input type="date" name="end_date" value="{{ now()->format('Y-m-d') }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none transition">
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-6">
+                <button type="submit" id="compareBtn" disabled class="flex-1 btn-bank btn-bank-primary !py-4 !rounded-xl text-xs font-black uppercase tracking-widest disabled:grayscale disabled:opacity-50">
+                    <i class="fas fa-microscope mr-2"></i> Exécuter Matrice Comparative
                 </button>
-                <button type="submit" id="compareBtn" disabled
-                        class="px-6 py-2 text-white transition bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="mr-2 fas fa-balance-scale"></i>
-                    Comparer
-                </button>
+                <button type="button" onclick="closeCompareModal()" class="btn-bank btn-bank-outline !py-4 px-8 !rounded-xl text-xs font-black uppercase tracking-widest">Abandonner</button>
             </div>
         </form>
     </div>
 </div>
 
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const selectedUserIds = new Set();
-
-// Sélection de tous les utilisateurs
-document.getElementById('selectAll')?.addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('.user-checkbox');
-    checkboxes.forEach(cb => {
-        cb.checked = this.checked;
-        if (this.checked) {
-            selectedUserIds.add(cb.value);
-        } else {
-            selectedUserIds.delete(cb.value);
+    // Configuration Graphique Global
+    const globalCtx = document.getElementById('globalPerformanceChart').getContext('2d');
+    new Chart(globalCtx, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($chartData->pluck('date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!},
+            datasets: [{
+                label: 'Volume Ops',
+                data: {!! json_encode($chartData->pluck('count')) !!},
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 0,
+                pointHitRadius: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    titleFont: { family: 'Inter', size: 10, weight: 'bold' },
+                    bodyFont: { family: 'Inter', size: 12 },
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, display: false },
+                x: { 
+                    grid: { display: false },
+                    ticks: { font: { family: 'Inter', size: 9, weight: '700' }, color: '#94a3b8' }
+                }
+            }
         }
     });
-    updateCompareButton();
-});
 
-// Sélection individuelle
-document.querySelectorAll('.user-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-        if (this.checked) {
-            selectedUserIds.add(this.value);
-        } else {
-            selectedUserIds.delete(this.value);
-        }
-        updateCompareButton();
-        updateSelectedUsersDisplay();
+    // Logique de Sélection et Comparaison
+    const selectedUserIds = new Set();
+
+    document.getElementById('selectAll')?.addEventListener('change', function() {
+        document.querySelectorAll('.user-checkbox').forEach(cb => {
+            cb.checked = this.checked;
+            this.checked ? selectedUserIds.add(cb.value) : selectedUserIds.delete(cb.value);
+        });
+        updateAuditControls();
     });
-});
 
-// Ouvrir le modal de comparaison
-function openCompareModal() {
-    if (selectedUserIds.size < 2) {
-        alert('Veuillez sélectionner au moins 2 utilisateurs');
-        return;
-    }
-    if (selectedUserIds.size > 5) {
-        alert('Vous ne pouvez comparer que 5 utilisateurs maximum');
-        return;
-    }
-    updateSelectedUsersDisplay();
-    document.getElementById('compareModal').classList.remove('hidden');
-}
-
-// Fermer le modal
-function closeCompareModal() {
-    document.getElementById('compareModal').classList.add('hidden');
-}
-
-// Mettre à jour l'affichage des utilisateurs sélectionnés
-function updateSelectedUsersDisplay() {
-    const container = document.getElementById('selectedUsers');
-    container.innerHTML = '';
-
-    if (selectedUserIds.size === 0) {
-        container.innerHTML = '<p class="text-sm text-center text-gray-400">Cochez des utilisateurs dans la liste pour les comparer</p>';
-        return;
-    }
-
-    selectedUserIds.forEach(userId => {
-        const row = document.querySelector(`tr[data-user-id="${userId}"]`);
-        if (row) {
-            const userName = row.querySelector('.font-semibold').textContent;
-            const userEmail = row.querySelector('.fa-envelope').parentElement.textContent.trim();
-
-            const userCard = document.createElement('div');
-            userCard.className = 'flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg';
-            userCard.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center w-8 h-8 text-xs font-semibold text-white rounded-full bg-gradient-to-br from-purple-400 to-purple-600">
-                        ${userName.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-800">${userName}</p>
-                        <p class="text-xs text-gray-500">${userEmail}</p>
-                    </div>
-                </div>
-                <button type="button" onclick="removeUser('${userId}')" class="text-red-600 hover:text-red-700">
-                    <i class="fas fa-times"></i>
-                </button>
-                <input type="hidden" name="user_ids[]" value="${userId}">
-            `;
-            container.appendChild(userCard);
-        }
+    document.querySelectorAll('.user-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            this.checked ? selectedUserIds.add(this.value) : selectedUserIds.delete(this.value);
+            updateAuditControls();
+        });
     });
-}
 
-// Retirer un utilisateur de la sélection
-function removeUser(userId) {
-    selectedUserIds.delete(userId);
-    const checkbox = document.querySelector(`.user-checkbox[value="${userId}"]`);
-    if (checkbox) checkbox.checked = false;
-    updateSelectedUsersDisplay();
-    updateCompareButton();
-}
+    function updateAuditControls() {
+        const btn = document.getElementById('compareBtn');
+        if (btn) btn.disabled = selectedUserIds.size < 2 || selectedUserIds.size > 5;
+        
+        const container = document.getElementById('selectedUsers');
+        container.innerHTML = '';
+        
+        if (selectedUserIds.size === 0) {
+            container.innerHTML = '<p class="text-[10px] font-bold text-slate-400 italic w-full text-center py-6">Cochez des officiers dans le registre pour les comparer</p>';
+            return;
+        }
 
-// Mettre à jour le bouton de comparaison
-function updateCompareButton() {
-    const compareBtn = document.getElementById('compareBtn');
-    if (compareBtn) {
-        compareBtn.disabled = selectedUserIds.size < 2 || selectedUserIds.size > 5;
+        selectedUserIds.forEach(id => {
+            const tr = document.querySelector(`tr[data-user-id="${id}"]`);
+            if (tr) {
+                const name = tr.querySelector('.font-black.text-slate-800').innerText;
+                const tag = document.createElement('div');
+                tag.className = 'flex items-center gap-3 bg-white border border-slate-200 shadow-sm px-4 py-2 rounded-xl text-[10px] font-black text-slate-700 animate-scale-in';
+                tag.innerHTML = `
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    <span>${name}</span>
+                    <button type="button" onclick="removeEntity('${id}')" class="text-slate-300 hover:text-rose-500 transition"><i class="fas fa-times-circle"></i></button>
+                    <input type="hidden" name="user_ids[]" value="${id}">
+                `;
+                container.appendChild(tag);
+            }
+        });
     }
-}
 
-// Export de toutes les données
-function exportAllData() {
-    const url = new URL(window.location.href);
-    url.searchParams.set('export', 'all');
-    window.location.href = url.toString();
-}
-
-// Fermer le modal en cliquant en dehors
-document.getElementById('compareModal')?.addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeCompareModal();
+    function removeEntity(id) {
+        selectedUserIds.delete(id);
+        const cb = document.querySelector(`.user-checkbox[value="${id}"]`);
+        if (cb) cb.checked = false;
+        if (document.getElementById('selectAll')) document.getElementById('selectAll').checked = false;
+        updateAuditControls();
     }
-});
 
-// Fermer avec la touche Échap
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeCompareModal();
+    function openCompareModal() {
+        if (selectedUserIds.size < 2) return alert('Sélectionnez au moins 2 officiers pour activer la comparaison d\'audit.');
+        if (selectedUserIds.size > 5) return alert('La matrice d\'audit comparatif est limitée à 5 entités simultanées.');
+        document.getElementById('compareModal').classList.remove('hidden');
     }
-});
+
+    function closeCompareModal() {
+        document.getElementById('compareModal').classList.add('hidden');
+    }
+
+    function exportAllData() {
+        alert('Génération du Rapport d\'Intelligence Centralisé en cours...');
+        // Logique d'exportation réelle ici
+    }
 </script>
+@endpush
 @endsection

@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\web\Agent;
+namespace App\Http\Controllers\Web\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
@@ -57,6 +57,10 @@ class AgentClientController extends Controller
             'today' => Client::where('registered_by', $user->id)->whereDate('created_at', today())->count(),
         ];
 
+        if (request()->routeIs('caissier.*')) {
+            return view('agent.cashier.clients.index', compact('clients', 'stats'));
+        }
+
         return view('agent.clients.index', compact('clients', 'stats'));
     }
 
@@ -90,9 +94,11 @@ class AgentClientController extends Controller
             $clientData['kyc_status'] = 'pending';
             $clientData['is_active'] = '1';
 
-            // Hash du mot de passe
-            if (isset($clientData['password'])) {
+            // Hash du mot de passe (par défaut 12@4 si non fourni)
+            if (!empty($clientData['password'])) {
                 $clientData['password'] = Hash::make($clientData['password']);
+            } else {
+                $clientData['password'] = Hash::make('12@4');
             }
 
             // Upload de la photo de profil
@@ -166,6 +172,10 @@ class AgentClientController extends Controller
             ->limit(10)
             ->get();
 
+        if (request()->routeIs('caissier.*')) {
+            return view('agent.cashier.clients.show', compact('client', 'summary', 'recentTransactions'));
+        }
+
         return view('agent.clients.show', compact('client', 'summary', 'recentTransactions'));
     }
 
@@ -184,6 +194,10 @@ class AgentClientController extends Controller
             return redirect()
                 ->route('agent.clients.show', $clientId)
                 ->with('warning', 'Impossible de modifier un client dont le KYC est déjà approuvé.');
+        }
+
+        if (request()->routeIs('caissier.*')) {
+            return view('agent.cashier.clients.edit', compact('client'));
         }
 
         return view('agent.clients.edit', compact('client'));

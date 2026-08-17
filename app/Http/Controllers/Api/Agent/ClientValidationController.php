@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
@@ -16,8 +17,6 @@ class ClientValidationApiController extends Controller
 
     /**
      * Récupère la liste des clients en attente de validation.
-     *
-     * @return JsonResponse
      */
     public function index(): JsonResponse
     {
@@ -31,6 +30,7 @@ class ClientValidationApiController extends Controller
                 'success' => true,
                 'data'    => $pendingClients,
             ]);
+
         } catch (\Exception $e) {
             Log::error('Error fetching pending client registrations', [
                 'error' => $e->getMessage(),
@@ -44,41 +44,34 @@ class ClientValidationApiController extends Controller
     }
 
     /**
-     * Valide ou rejette l’enregistrement d’un client.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  Client  $client
-     * @return JsonResponse
+     * Valide ou rejette l'enregistrement d'un client.
      */
-    public function update(
-        \Illuminate\Http\Request $request,
-        Client $client
-    ): JsonResponse {
-        if (!$client) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client not found',
-            ], 404);
-        }
-
-        // Validation manuelle (équivalent du FormRequest)
+    public function update(Request $request, Client $client): JsonResponse
+    {
         $validated = $request->validate([
-            'status'            => 'required|in:approved,rejected',
-            'rejection_reason'  => 'required_if:status,rejected',
-            'agency_id'         => 'required_if:status,approved|exists:agencies,id',
+            'status'           => 'required|in:approved,rejected',
+            'rejection_reason' => 'required_if:status,rejected',
+            'agency_id'        => 'required_if:status,approved|exists:agencies,id',
         ]);
 
         try {
             $client->registration_status = $validated['status'];
-            $client->rejection_reason = $validated['rejection_reason'] ?? null;
-            $client->validated_by = auth()->id();
-            $client->validated_at = now();
+            $client->rejection_reason    = $validated['rejection_reason'] ?? null;
+            $client->validated_by        = auth()->id();
+            $client->validated_at        = now();
 
             if ($validated['status'] === 'approved') {
                 $client->agency_id = $validated['agency_id'];
-                // Active le compte utilisateur et les comptes du client
-                $client->user->is_active = true;
-                $client->user->save();
+
+                // CORRECTION : vérification que la relation user existe avant d'y accéder
+                if ($client->user) {
+                    $client->user->is_active = true;
+                    $client->user->save();
+                } else {
+                    Log::warning('Client approuvé sans utilisateur lié', [
+                        'client_id' => $client->id,
+                    ]);
+                }
 
                 $client->accounts()->update(['status' => 'active']);
             }
@@ -88,8 +81,10 @@ class ClientValidationApiController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Registration ' . $validated['status'],
+                // CORRECTION : agency inclus dans le fresh() pour complétude (cohérent avec le Web)
                 'data'    => $client->fresh(['user', 'accounts', 'agency']),
             ]);
+
         } catch (\Exception $e) {
             Log::error('Error validating client registration', [
                 'client_id' => $client->id,

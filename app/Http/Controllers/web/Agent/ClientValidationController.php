@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\web\Agent;
+namespace App\Http\Controllers\Web\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;

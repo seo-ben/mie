@@ -47,17 +47,8 @@
                     <p class="text-muted">{{ $client->client_number }}</p>
 
                     <div class="mb-3">
-                        @switch($client->kyc_status)
-                            @case('pending')
-                                <span class="badge bg-warning">KYC En Attente</span>
-                                @break
-                            @case('approved')
-                                <span class="badge bg-success">KYC Approuvé</span>
-                                @break
-                            @case('rejected')
-                                <span class="badge bg-danger">KYC Rejeté</span>
-                                @break
-                        @endswitch
+                    <div class="mb-3">
+                    </div>
                     </div>
 
                     <hr>
@@ -98,6 +89,7 @@
             </div>
 
             <!-- Documents d'identité -->
+            @if(auth()->user()->role !== 'agent_terrain')
             <div class="mb-4 shadow card">
                 <div class="py-3 card-header">
                     <h6 class="m-0 font-weight-bold text-primary">
@@ -115,6 +107,7 @@
                     @endif
                 </div>
             </div>
+            @endif
         </div>
 
         <div class="col-lg-8">
@@ -195,7 +188,6 @@
                                                 <th>N° Compte</th>
                                                 <th>Type</th>
                                                 <th>Solde</th>
-                                                <th>Statut</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -213,15 +205,6 @@
                                                     @endif
                                                 </td>
                                                 <td class="fw-bold">{{ number_format($account->balance, 0, ',', ' ') }} FCFA</td>
-                                                <td>
-                                                    @if($account->status == 'active')
-                                                        <span class="badge bg-success">Actif</span>
-                                                    @elseif($account->status == 'suspended')
-                                                        <span class="badge bg-warning">Suspendu</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">{{ ucfirst($account->status) }}</span>
-                                                    @endif
-                                                </td>
                                                 <td>
                                                     <a href="{{ route('agent.accounts.show', $account->id) }}"
                                                        class="btn btn-sm btn-info">
@@ -365,27 +348,29 @@
                             <p><strong>Date d'inscription:</strong> {{ $client->created_at->format('d/m/Y à H:i') }}</p>
                             <p><strong>Canal:</strong> {{ ucfirst(str_replace('_', ' ', $client->registration_channel)) }}</p>
 
-                            @if($client->kyc_approved_at)
-                                <hr>
-                                <h6 class="mb-3 font-weight-bold">Validation KYC</h6>
-                                <p><strong>Statut:</strong>
-                                    @switch($client->kyc_status)
-                                        @case('approved')
-                                            <span class="badge bg-success">Approuvé</span>
-                                            @break
-                                        @case('rejected')
-                                            <span class="badge bg-danger">Rejeté</span>
-                                            @break
-                                        @default
-                                            <span class="badge bg-warning">En attente</span>
-                                    @endswitch
-                                </p>
+                            @if(auth()->user()->role !== 'agent_terrain')
                                 @if($client->kyc_approved_at)
-                                    <p><strong>Date d'approbation:</strong> {{ \Carbon\Carbon::parse($client->kyc_approved_at)->format('d/m/Y à H:i') }}</p>
-                                    <p><strong>Approuvé par:</strong> {{ $client->approvedBy->name ?? 'N/A' }}</p>
-                                @endif
-                                @if($client->rejection_reason)
-                                    <p><strong>Raison du rejet:</strong> {{ $client->rejection_reason }}</p>
+                                    <hr>
+                                    <h6 class="mb-3 font-weight-bold">Validation KYC</h6>
+                                    <p><strong>Statut:</strong>
+                                        @switch($client->kyc_status)
+                                            @case('approved')
+                                                <span class="badge bg-success">Approuvé</span>
+                                                @break
+                                            @case('rejected')
+                                                <span class="badge bg-danger">Rejeté</span>
+                                                @break
+                                            @default
+                                                <span class="badge bg-warning">En attente</span>
+                                        @endswitch
+                                    </p>
+                                    @if($client->kyc_approved_at)
+                                        <p><strong>Date d'approbation:</strong> {{ \Carbon\Carbon::parse($client->kyc_approved_at)->format('d/m/Y à H:i') }}</p>
+                                        <p><strong>Approuvé par:</strong> {{ $client->approvedBy->name ?? 'N/A' }}</p>
+                                    @endif
+                                    @if($client->rejection_reason)
+                                        <p><strong>Raison du rejet:</strong> {{ $client->rejection_reason }}</p>
+                                    @endif
                                 @endif
                             @endif
 

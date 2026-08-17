@@ -15,6 +15,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id', true);
             $table->string('transaction_reference', 50)->unique();
             $table->unsignedBigInteger('account_id');
+            $table->unsignedBigInteger('related_account_id')->nullable();
             $table->enum('transaction_type', ['deposit', 'withdrawal', 'transfer', 'fee', 'interest', 'penalty', 'payout', 'tontine_contribution', 'tontine_payout']);
             $table->decimal('amount', 15, 2);
             $table->decimal('balance_before', 15, 2)->default(0.00);
@@ -36,15 +37,13 @@ return new class extends Migration
             $table->foreign('account_id')->references('id')->on('accounts')->onDelete('cascade');
             $table->foreign('processed_by')->references('id')->on('users')->onDelete('set null');
             $table->foreign('validated_by')->references('id')->on('users')->onDelete('set null');
+            $table->foreign('related_account_id')->references('id')->on('accounts')->onDelete('set null');
 
             $table->index('transaction_reference');
             $table->index(['account_id', 'transaction_date']);
             $table->index('transaction_type');
             $table->index('status');
             $table->index('payment_method');
-
-            $table->unsignedBigInteger('related_account_id')->nullable()->after('account_id');
-            $table->foreign('related_account_id')->references('id')->on('accounts')->onDelete('set null');
         });
     }
 

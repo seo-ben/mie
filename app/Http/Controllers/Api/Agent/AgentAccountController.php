@@ -57,9 +57,6 @@ class AgentAccountController extends Controller
             'active_accounts' => Account::whereIn('client_id', $clientIds)
                 ->where('account_type', 'tontine')
                 ->where('status', 'active')->count(),
-            'suspended_accounts' => Account::whereIn('client_id', $clientIds)
-                ->where('account_type', 'tontine')
-                ->where('status', 'suspended')->count(),
             'total_balance' => Account::whereIn('client_id', $clientIds)
                 ->where('account_type', 'tontine')
                 ->where('status', 'active')
@@ -99,38 +96,40 @@ class AgentAccountController extends Controller
                 ->where('registered_by', $user->id)
                 ->firstOrFail();
 
-            if ($client->kyc_status !== 'approved') {
-                return response()->json([
-                    'message' => 'Le KYC du client doit être approuvé.'
-                ], 403);
-            }
-
-            // 1. Créer le compte de base
+            // 1. Créer le compte de base - Directement actif
             $account = Account::create([
                 'client_id' => $clientId,
                 'account_number' => $this->generateAccountNumber('tontine'),
                 'account_type' => 'tontine',
-                'status' => 'suspended',
+                'status' => 'active',
                 'activation_fee' => 0,
                 'balance' => 0,
                 'created_by' => $user->id,
+                'activated_by' => $user->id,
+                'activated_at' => now(),
                 'created_at' => now(),
             ]);
 
             // 2. Calcul du nombre de périodes selon la fréquence
             $startDate = now();
-            $endDate = (clone $startDate)->addMonths((int) $validated['cycle_duration_months']);
-
+            $durationMonths = (int) $validated['cycle_duration_months'];
             $totalPeriods = 0;
+            $endDate = null;
+
             switch ($validated['payment_frequency']) {
                 case 'daily':
-                    $totalPeriods = $startDate->diffInDays($endDate);
+                    // Règle des 31 jours par mois (372 jours pour 12 mois)
+                    $totalPeriods = $durationMonths * 31;
+                    $endDate = (clone $startDate)->addDays($totalPeriods);
                     break;
                 case 'weekly':
-                    $totalPeriods = $startDate->diffInWeeks($endDate);
+                    // Règle des 52 semaines par an
+                    $totalPeriods = floor(($durationMonths * 52) / 12);
+                    $endDate = (clone $startDate)->addWeeks($totalPeriods);
                     break;
                 case 'monthly':
-                    $totalPeriods = (int) $validated['cycle_duration_months'];
+                    $totalPeriods = $durationMonths;
+                    $endDate = (clone $startDate)->addMonths($durationMonths);
                     break;
             }
 
@@ -149,15 +148,16 @@ class AgentAccountController extends Controller
                 'total_paid' => 0,
                 'penalty_rate' => 0.05,
                 'total_penalties' => 0,
-                'cycle_start_date' => $startDate,
-                'cycle_end_date' => $endDate,
             ]);
+
+            // 5. Initialiser le premier cycle
+            $this->createTontineCycle($tontineAccount);
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Compte tontine créé avec succès. Le compte doit être activé avant utilisation.',
-                'data' => $account->load(['client', 'tontineAccount'])
+                'message' => 'Compte tontine créé avec succès et prêt pour les collectes.',
+                'data' => $account->load(['client', 'tontineAccount.activeCycle'])
             ], 201);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -640,9 +640,6 @@ class AgentAccountController extends Controller
                 'active_accounts' => Account::whereIn('client_id', $clientIds)
                     ->where('account_type', 'tontine')
                     ->where('status', 'active')->count(),
-                'suspended_accounts' => Account::whereIn('client_id', $clientIds)
-                    ->where('account_type', 'tontine')
-                    ->where('status', 'suspended')->count(),
 
                 // Montants
                 'total_balance' => Account::whereIn('client_id', $clientIds)
@@ -708,7 +705,7 @@ class AgentAccountController extends Controller
      */
     private function generateAccountNumber(string $type): string
     {
-        $prefix = 'TON';
+        $prefix = $type === 'savings' ? 'SAV' : 'ACC';
 
         do {
             $number = $prefix . '-' . date('ym') . '-' . strtoupper(Str::random(6));

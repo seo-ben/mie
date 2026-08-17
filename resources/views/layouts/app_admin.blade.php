@@ -4,15 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'MIE YAYRA - Admin')</title>
+    <title>@yield('title', 'MIE YAYRA - Administration')</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    <link rel="stylesheet" href="{{ asset('css/admin-corporate.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
 
+        @if (session('success'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Protocole Validé',
+                    text: "{{ session('success') }}"
+                });
+            });
+        @endif
+
+        @if (session('error'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Alerte Système',
+                    text: "{{ session('error') }}"
+                });
+            });
+        @endif
+
+        @if ($errors->any())
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Erreur de Validation',
+                    text: "Veuillez vérifier les champs du formulaire."
+                });
+            });
+        @endif
+
+        @if (session('info'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'info',
+                    title: 'Information',
+                    text: "{{ session('info') }}"
+                });
+            });
+        @endif
+        
+        @if (session('warning'))
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Attention',
+                    text: "{{ session('warning') }}"
+                });
+            });
+        @endif
+    </script>
+    <style>
         * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', sans-serif;
+        }
+
+        @media (max-width: 1024px) {
+            #sidebar:not(.open) { transform: translateX(-100%); }
         }
 
         body {
@@ -263,342 +333,198 @@
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen bg-white sidebar sidebar-transition">
+    <aside id="sidebar" class="fixed top-0 left-0 z-40 h-screen sidebar-corporate sidebar-transition">
         <div class="flex flex-col h-full">
-            <!-- Logo & Header -->
-            <div class="relative p-6 text-white gradient-bg">
-                <div class="relative z-10 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold tracking-tight">MIE YAYRA</h2>
-                        <p class="text-sm font-medium opacity-90 mt-0.5">Administration</p>
+            <!-- Institutional Branding -->
+            <div class="p-6 border-b border-slate-100 mb-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white shadow-sm">
+                        <i class="fas fa-shield-halved text-sm"></i>
                     </div>
-                    <button id="closeSidebar" class="flex items-center justify-center w-8 h-8 text-white transition rounded-lg md:hidden hover:bg-white/20">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div>
+                        <h2 class="text-sm font-extrabold text-slate-900 tracking-tight">MIE YAYRA</h2>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Pilotage Bancaire</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Navigation -->
-            <nav class="flex-1 py-4 overflow-y-auto custom-scrollbar">
-                <!-- Dashboard -->
-                <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-chart-line"></i>
-                    <span class="text-sm">Tableau de bord</span>
+            <!-- Professional Navigation -->
+            <nav class="flex-1 py-4 overflow-y-auto">
+                <a href="{{ route('admin.dashboard') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Tableau de Bord</span>
                 </a>
 
-                <!-- Section: Gestion Clients -->
-                <div class="section-header">GESTION CLIENTS</div>
-
-                <a href="{{ route('admin.clients.index') }}" class="sidebar-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
+                <div class="sidebar-section-title">Portefeuille Clients</div>
+                <a href="{{ route('admin.clients.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i>
-                    <span class="text-sm">Clients</span>
+                    <span>Registre des Clients</span>
+                </a>
+                <a href="{{ route('admin.accounts.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.accounts.*') ? 'active' : '' }}">
+                    <i class="fas fa-vault"></i>
+                    <span>Registre des Actifs</span>
                 </a>
 
-                <a href="{{ route('admin.accounts.index') }}" class="sidebar-link {{ request()->routeIs('admin.accounts.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-wallet"></i>
-                    <span class="text-sm">Comptes</span>
+                <div class="sidebar-section-title">Division Trésorerie</div>
+                <a href="{{ route('admin.accounts.depot') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.accounts.depot') ? 'active' : '' }}">
+                    <i class="fas fa-circle-dollar-to-slot text-emerald-500"></i>
+                    <span>Injections de Flux (Dépôts)</span>
+                </a>
+                <a href="{{ route('admin.accounts.retrait') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.accounts.retrait') ? 'active' : '' }}">
+                    <i class="fas fa-hand-holding-dollar text-rose-500"></i>
+                    <span>Décaissements (Retraits)</span>
+                </a>
+                <a href="{{ route('admin.cashier.sessions.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.cashier.sessions.*') ? 'active' : '' }}">
+                    <i class="fas fa-cash-register text-blue-500"></i>
+                    <span>Sessions de Caisse</span>
+                </a>
+                <a href="{{ route('admin.loans.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.loans.*') ? 'active' : '' }}">
+                    <i class="fas fa-hand-holding-dollar"></i>
+                    <span>Engagements de Crédit</span>
+                </a>
+                <a href="{{ route('admin.tontines.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.tontines.*') ? 'active' : '' }}">
+                    <i class="fas fa-rotate"></i>
+                    <span>Épargne Mutuelle (Tontines)</span>
                 </a>
 
-                <!-- Section: Opérations -->
-                <div class="section-header">OPÉRATIONS FINANCIÈRES</div>
-
-                <a href="{{ route('admin.accounts.depot') }}" class="sidebar-link {{ request()->routeIs('admin.accounts.depot') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="w-5 mr-3 fas fa-bolt"></i>
-                    <span class="text-sm">Dépôt Rapide</span>
+                <div class="sidebar-section-title">Audit Interne</div>
+                <a href="{{ route('admin.profitability.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.profitability.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-pie text-emerald-500"></i>
+                    <span>Rentabilité</span>
                 </a>
-                <a href="{{ route('admin.loans.index') }}" class="sidebar-link {{ request()->routeIs('admin.loans.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-hand-holding-usd"></i>
-                    <span class="text-sm">Prêts</span>
+                <a href="{{ route('admin.transactions.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Audit du Grand Livre</span>
                 </a>
-
-                <a href="{{ route('admin.tontines.index') }}" class="sidebar-link {{ request()->routeIs('admin.tontines.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-hands-helping"></i>
-                    <span class="text-sm">Tontines</span>
+                <a href="{{ route('admin.reports.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.reports.index') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analyses Officiers</span>
                 </a>
-                <a href="{{ route('admin.transactions.index') }}" class="sidebar-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-exchange-alt"></i>
-                    <span class="text-sm">Transactions</span>
+                <a href="{{ route('admin.reports.regulatory.aging') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.reports.regulatory.aging') ? 'active' : '' }}">
+                    <i class="fas fa-file-shield text-amber-600"></i>
+                    <span>Balance Agée (Réglementaire)</span>
                 </a>
-                <!-- Section: Analyse & Rapports -->
-                <div class="section-header">ANALYSE & RAPPORTS</div>
-
-                <a href="{{-- route('admin.reports.index') --}}" class="sidebar-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-chart-pie"></i>
-                    <span class="text-sm">Rapports</span>
+                <a href="{{ route('admin.reports.agencies.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.reports.agencies*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-column"></i>
+                    <span>Performance Réseau</span>
                 </a>
 
-                <a href="{{ route('admin.reports.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.reports.users*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-chart-pie"></i>
-                    <span class="text-sm">Rapports utilisateurs</span>
+                <div class="sidebar-section-title">Infrastructure</div>
+                <a href="{{ route('admin.users.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Registre du Personnel</span>
                 </a>
-
-                <a href="{{-- route('admin.geography.index') --}}" class="sidebar-link {{ request()->routeIs('admin.geography.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <span class="text-sm">Géographie</span>
+                <a href="{{ route('admin.agencies.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.agencies.*') ? 'active' : '' }}">
+                    <i class="fas fa-landmark"></i>
+                    <span>Réseau d'Agences</span>
                 </a>
-
-                <!-- Section: Administration -->
-                <div class="section-header">ADMINISTRATION</div>
-
-                <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-user-shield"></i>
-                    <span class="text-sm">Utilisateurs</span>
+                <a href="{{ route('admin.config.parameters') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.config.parameters') ? 'active' : '' }}">
+                    <i class="fas fa-cogs"></i>
+                    <span>Configuration Système</span>
                 </a>
-
-                <a href="{{ route('admin.agencies.index') }}" class="sidebar-link {{ request()->routeIs('admin.agencies.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-building"></i>
-                    <span class="text-sm">Agences</span>
-                </a>
-
-                <a href="{{ route('admin.profitability.index') }}" class="sidebar-link {{ request()->routeIs('admin.profitability.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-building"></i>
-                    <span class="text-sm">profitability</span>
-                </a>
-
-                <!-- Section: Système -->
-                <div class="section-header">SYSTÈME</div>
-
-                <a href="{{ route('admin.system-health') }}" class="sidebar-link {{ request()->routeIs('admin.system-health') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-heartbeat"></i>
-                    <span class="text-sm">Santé Système</span>
-                </a>
-
-                <a href="{{ route('admin.config.backups') }}" class="sidebar-link {{ request()->routeIs('admin.config.backups') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-database"></i>
-                    <span class="text-sm">Sauvegardes</span>
-                </a>
-
-                <a href="{{ route('admin.config.parameters') }}" class="sidebar-link {{ request()->routeIs('admin.config.parameters') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-sliders-h"></i>
-                    <span class="text-sm">Configuration</span>
-                </a>
-
-                <a href="{{-- route('admin.config.integrations') --}}" class="sidebar-link {{ request()->routeIs('admin.config.integrations') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-plug"></i>
-                    <span class="text-sm">Intégrations API</span>
-                </a>
-
-                <a href="{{-- route('admin.settings.index') --}}" class="sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }} flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-gray-700">
-                    <i class="fas fa-cog"></i>
-                    <span class="text-sm">Paramètres</span>
+                <a href="{{ route('admin.system-health') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.system-health') ? 'active' : '' }}">
+                    <i class="fas fa-server"></i>
+                    <span>Santé du Système</span>
                 </a>
             </nav>
 
-            <!-- User Profile Section -->
-            <div class="p-4 border-t border-gray-200 bg-gray-50">
+            <!-- Auditor Profile -->
+            <div class="p-6 border-t border-slate-100">
                 <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center w-10 h-10 text-sm font-semibold text-white rounded-full user-avatar">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-[10px] border border-slate-200">
                         {{ strtoupper(substr(auth()->user()->first_name ?? 'A', 0, 1) . substr(auth()->user()->last_name ?? 'D', 0, 1)) }}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">{{ auth()->user()->full_name ?? 'Admin Système' }}</p>
-                        <p class="text-xs text-gray-500 truncate">{{ ucfirst(str_replace('_', ' ', auth()->user()->role ?? 'administrateur')) }}</p>
-                    </div>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="flex items-center justify-center w-8 h-8 text-gray-400 transition rounded-lg hover:text-red-600 hover:bg-red-50">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </button>
-                    </form>
-                </div>
-                <div class="pt-3 mt-3 border-t border-gray-200">
-                    <div class="security-indicator">
-                        <span class="security-dot"></span>
-                        <span>Connexion sécurisée</span>
+                        <p class="text-xs font-bold text-slate-800 truncate">{{ auth()->user()->full_name ?? 'Auditeur' }}</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">{{ auth()->user()->role ?? 'Admin' }}</p>
                     </div>
                 </div>
+                <form method="POST" action="{{ route('logout') }}" class="mt-4">
+                    @csrf
+                    <button type="submit" class="w-full flex items-center justify-center gap-2 py-2 text-[10px] font-bold text-slate-500 hover:text-red-600 transition border border-slate-100 rounded-lg">
+                        <i class="fas fa-power-off"></i>
+                        <span>Déconnexion Sécurisée</span>
+                    </button>
+                </form>
             </div>
         </div>
     </aside>
 
     <!-- Main Content Area -->
-    <div class="min-h-screen md:ml-64">
-        <!-- Top Navbar -->
-        <nav class="sticky top-0 z-30 bg-white navbar-shadow">
-            <div class="px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between h-16">
-                    <!-- Left Section -->
-                    <div class="flex items-center gap-4">
-                        <button id="menuToggle" class="flex items-center justify-center w-10 h-10 text-gray-600 transition rounded-lg hover:text-gray-900 md:hidden hover:bg-gray-100">
-                            <i class="text-xl fas fa-bars"></i>
-                        </button>
+    <div class="min-h-screen lg:ml-[280px]">
+        <!-- Institutional Navbar -->
+        <nav class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 h-16 flex items-center shadow-sm">
+            <div class="px-6 w-full flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <button id="menuToggle" class="p-2 text-slate-500 lg:hidden">
+                        <i class="fas fa-bars-staggered"></i>
+                    </button>
+                    <h1 class="text-sm font-bold text-slate-800 tracking-tight">
+                        <span class="text-slate-400 font-medium">Console /</span> @yield('page-title', 'Aperçu')
+                    </h1>
+                </div>
 
-                        <div>
-                            <h1 class="text-lg font-bold text-gray-900">@yield('page-title', 'Tableau de bord')</h1>
-                            @if(isset($period))
-                            <p class="hidden sm:block text-xs text-gray-500 mt-0.5">
-                                <i class="mr-1 far fa-calendar"></i>
-                                Période: {{ $period }} jours
-                            </p>
-                            @endif
-                        </div>
+                <div class="flex items-center gap-6">
+                    <!-- Global Search -->
+                    <div class="relative hidden sm:block">
+                        <input type="text" placeholder="Rechercher ID Membre..." class="w-64 bg-slate-50 border border-slate-200 rounded-lg px-8 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none transition">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400"></i>
                     </div>
 
-                    <!-- Right Section -->
+                    <!-- System Notifications -->
                     <div class="flex items-center gap-3">
-                        <!-- Period Selector -->
-                        @if(request()->routeIs('admin.dashboard'))
-                        <form method="GET" action="{{ route('admin.dashboard') }}" class="hidden lg:block">
-                            <select name="period" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer" onchange="this.form.submit()">
-                                <option value="7" {{ ($period ?? 7) == 7 ? 'selected' : '' }}>7 derniers jours</option>
-                                <option value="30" {{ ($period ?? 7) == 30 ? 'selected' : '' }}>30 derniers jours</option>
-                                <option value="90" {{ ($period ?? 7) == 90 ? 'selected' : '' }}>90 derniers jours</option>
-                                <option value="365" {{ ($period ?? 7) == 365 ? 'selected' : '' }}>1 an</option>
-                            </select>
-                        </form>
-                        @endif
-
-                        <!-- Search -->
-                        <div class="relative hidden lg:block">
-                            <input type="text"
-                                   placeholder="Rechercher client, transaction..."
-                                   class="py-2 pl-10 pr-4 text-sm transition border border-gray-300 rounded-lg search-input w-72 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <i class="absolute text-gray-400 fas fa-search left-3 top-2.5 text-sm"></i>
-                        </div>
-
-                        <!-- Notifications -->
                         <div class="relative">
-                            <button id="notificationBtn" class="relative flex items-center justify-center w-10 h-10 text-gray-600 transition rounded-lg hover:text-gray-900 hover:bg-gray-100">
-                                <i class="text-lg fas fa-bell"></i>
-                                @if(isset($operational['pending_tasks']))
-                                @php
-                                    $totalAlerts = ($operational['pending_tasks']['kyc_pending'] ?? 0) +
-                                                   ($operational['pending_tasks']['loan_applications'] ?? 0) +
-                                                   (count($operational['system_alerts'] ?? []));
-                                @endphp
-                                @if($totalAlerts > 0)
-                                <span class="absolute flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full notification-badge -top-1 -right-1">{{ min($totalAlerts, 99) }}</span>
-                                @endif
-                                @endif
+                            <button id="notificationBtn" class="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-blue-600 transition relative">
+                                <i class="fas fa-bell text-xs"></i>
+                                <span id="notificationBadge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center notification-badge hidden">0</span>
                             </button>
-
-                            <!-- Notifications Dropdown -->
-                            <div id="notificationDropdown" class="dropdown-menu">
-                                <div class="p-4 border-b border-gray-200">
-                                    <div class="flex items-center justify-between">
-                                        <h3 class="text-sm font-bold text-gray-900">Notifications</h3>
-                                        <span class="text-xs font-semibold text-blue-600 cursor-pointer hover:underline">Tout marquer comme lu</span>
-                                    </div>
-                                </div>
-                                <div class="overflow-y-auto max-h-96 custom-scrollbar">
-                                    @if(isset($operational['pending_tasks']))
-                                        @if(($operational['pending_tasks']['kyc_pending'] ?? 0) > 0)
-                                        <div class="border-b border-gray-100 dropdown-item">
-                                            <div class="flex items-start gap-3">
-                                                <div class="w-2 h-2 bg-amber-500 rounded-full mt-1.5"></div>
-                                                <div class="flex-1">
-                                                    <p class="text-sm font-medium text-gray-900">KYC en attente</p>
-                                                    <p class="text-xs text-gray-500 mt-0.5">{{ $operational['pending_tasks']['kyc_pending'] }} documents à vérifier</p>
-                                                    <p class="mt-1 text-xs text-gray-400">En attente</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @endif
-
-                                        @if(($operational['pending_tasks']['loan_applications'] ?? 0) > 0)
-                                        <div class="border-b border-gray-100 dropdown-item">
-                                            <div class="flex items-start gap-3">
-                                                <div class="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-                                                <div class="flex-1">
-                                                    <p class="text-sm font-medium text-gray-900">Demandes de prêt</p>
-                                                    <p class="text-xs text-gray-500 mt-0.5">{{ $operational['pending_tasks']['loan_applications'] }} demandes en attente</p>
-                                                    <p class="mt-1 text-xs text-gray-400">À traiter</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @endif
-                                    @else
-                                    <div class="p-4 text-sm text-center text-gray-500">
-                                        Aucune notification
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- User Menu -->
-                        <div class="relative">
-                            <button id="userMenuBtn" class="flex items-center gap-2 hover:bg-gray-100 rounded-lg px-2 py-1.5 transition">
-                                <div class="flex items-center justify-center w-8 h-8 text-xs font-semibold text-white rounded-full user-avatar">
-                                    {{ strtoupper(substr(auth()->user()->first_name ?? 'A', 0, 1) . substr(auth()->user()->last_name ?? 'D', 0, 1)) }}
-                                </div>
-                                <i class="hidden text-xs text-gray-600 fas fa-chevron-down sm:block"></i>
-                            </button>
-
-                            <!-- User Dropdown -->
-                            <div id="userDropdown" class="dropdown-menu">
-                                <div class="p-4 border-b border-gray-200">
-                                    <p class="text-sm font-bold text-gray-900">{{ auth()->user()->full_name ?? 'Admin Système' }}</p>
-                                    <p class="text-xs text-gray-500 mt-0.5">{{ auth()->user()->email ?? 'admin@mieyayra.com' }}</p>
-                                    <div class="mt-2">
-                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded">{{ ucfirst(str_replace('_', ' ', auth()->user()->role ?? 'administrateur')) }}</span>
-                                    </div>
-                                </div>
-                                <a href="#" class="flex items-center gap-3 dropdown-item">
-                                    <i class="w-5 text-gray-400 fas fa-user"></i>
-                                    <span class="text-sm text-gray-700">Mon profil</span>
-                                </a>
-                                <a href="#" class="flex items-center gap-3 dropdown-item">
-                                    <i class="w-5 text-gray-400 fas fa-cog"></i>
-                                    <span class="text-sm text-gray-700">Paramètres</span>
-                                </a>
-                                <a href="#" class="flex items-center gap-3 dropdown-item">
-                                    <i class="w-5 text-gray-400 fas fa-shield-alt"></i>
-                                    <span class="text-sm text-gray-700">Sécurité</span>
-                                </a>
-                                <div class="my-1 border-t border-gray-200"></div>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="flex items-center w-full gap-3 text-red-600 dropdown-item hover:bg-red-50">
-                                        <i class="w-5 fas fa-sign-out-alt"></i>
-                                        <span class="text-sm font-semibold">Déconnexion</span>
+                            
+                            <!-- Notification Dropdown -->
+                            <div id="notificationDropdown" class="dropdown-menu w-[360px]">
+                                <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                                    <h3 class="font-bold text-slate-800 text-sm">Notifications</h3>
+                                    <button id="markAllReadBtn" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                        Tout marquer lu
                                     </button>
-                                </form>
+                                </div>
+                                
+                                <div id="notificationList" class="max-h-[400px] overflow-y-auto custom-scrollbar">
+                                    <!-- Les notifications seront chargées ici dynamiquement -->
+                                    <div class="p-8 text-center text-slate-400">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p class="text-xs">Chargement...</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3 border-t border-slate-100 text-center">
+                                    <a href="{{ route('admin.notifications.all') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                        Voir toutes les notifications
+                                    </a>
+                                </div>
                             </div>
+                        </div>
+                        
+                        <!-- Test Notification Button (pour debug - à supprimer en production) -->
+                        @if(config('app.debug'))
+                        <button id="testNotificationBtn" class="w-8 h-8 rounded-lg bg-green-50 border border-green-200 flex items-center justify-center text-green-500 hover:text-green-600 transition" title="Créer notification test">
+                            <i class="fas fa-plus text-xs"></i>
+                        </button>
+                        @endif
+                        
+                        <div class="text-right hidden xl:block">
+                            <p class="text-[10px] font-bold text-slate-700 leading-none">{{ auth()->user()->full_name }}</p>
+                            <p class="text-[8px] font-bold text-green-600 uppercase mt-1">Session Vérifiée</p>
                         </div>
                     </div>
                 </div>
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="p-4 sm:p-6 lg:p-8">
-            <!-- Flash Messages -->
-            @if (session('success'))
-                <div class="p-4 mb-6 text-green-800 bg-green-100 border border-green-200 rounded-lg">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-check-circle"></i>
-                        <span>{{ session('success') }}</span>
-                    </div>
-                    @if (session('temporary_password'))
-                        <p class="mt-2 text-sm"><strong>Mot de passe temporaire :</strong> <code class="px-2 py-1 bg-green-200 rounded">{{ session('temporary_password') }}</code></p>
-                    @endif
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="p-4 mb-6 text-red-800 bg-red-100 border border-red-200 rounded-lg">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>{{ session('error') }}</span>
-                    </div>
-                </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="p-4 mb-6 text-red-800 bg-red-100 border border-red-200 rounded-lg">
-                    <div class="flex items-center gap-2 mb-2">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span class="font-semibold">Erreurs de validation :</span>
-                    </div>
-                    <ul class="ml-6 text-sm list-disc">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
+        <!-- Dynamic Content -->
+        <main class="p-8 max-w-[1600px] mx-auto">
+            <!-- Professional Messaging -->
+            <!-- Renplacement des alertes statiques par des Toasts SweetAlert2 via JS -->
+            <!-- Les messages de session seront gérés par le script en bas de page -->
             @yield('content')
         </main>
     </div>
@@ -635,12 +561,6 @@
         const userDropdown = document.getElementById('userDropdown');
 
         if (notificationBtn && notificationDropdown) {
-            notificationBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                notificationDropdown.classList.toggle('show');
-                userDropdown?.classList.remove('show');
-            });
-
             // Empêcher la fermeture quand on clique DANS le menu de notifications
             notificationDropdown.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -685,7 +605,7 @@
         // ===============================
         // 🔹 CLOSE SIDEBAR ON MOBILE LINK CLICK
         // ===============================
-        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        const sidebarLinks = document.querySelectorAll('.sidebar-link-premium');
         sidebarLinks.forEach(link => {
             link.addEventListener('click', () => {
                 if (window.innerWidth < 768) {
@@ -740,25 +660,165 @@
             }, 250);
         });
 
-        // ===============================
-        // 🔹 AUTO-HIDE ALERTS (5 sec)
-        // ===============================
-        // setTimeout(() => {
-        //     const alerts = document.querySelectorAll('.bg-green-100, .bg-red-100, .bg-yellow-100');
-        //     alerts.forEach(alert => {
-        //         alert.style.transition = 'opacity 0.5s ease';
-        //         alert.style.opacity = '0';
-        //         setTimeout(() => alert.remove(), 500);
-        //     });
-        // }, 5000);
-
-        // ===============================
-        // 🔹 CONSOLE LOG DEMO
-        // ===============================
-        console.log('🏦 MIE YAYRA Admin Dashboard');
+        console.log('🏦 MIE YAYRA - Console d\'Administration');
         console.log('✅ Interface chargée avec succès');
         console.log('📱 Mode responsive activé');
         console.log('🔐 Connexion sécurisée établie');
+
+        // ===============================
+        // 🔔 NOTIFICATION SYSTEM
+        // ===============================
+        const notificationList = document.getElementById('notificationList');
+        const notificationBadge = document.getElementById('notificationBadge');
+        const markAllReadBtn = document.getElementById('markAllReadBtn');
+        const testNotificationBtn = document.getElementById('testNotificationBtn');
+
+        // Charger les notifications
+        async function loadNotifications() {
+            try {
+                const response = await fetch('{{ route("admin.notifications.index") }}', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erreur réseau');
+                
+                const data = await response.json();
+                
+                // Mise à jour du badge
+                if (data.unread_count > 0) {
+                    notificationBadge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+                    notificationBadge.classList.remove('hidden');
+                } else {
+                    notificationBadge.classList.add('hidden');
+                }
+                
+                // Afficher les notifications
+                if (data.notifications.length === 0) {
+                    notificationList.innerHTML = `
+                        <div class="p-8 text-center text-slate-400">
+                            <i class="fas fa-bell-slash text-3xl mb-3"></i>
+                            <p class="text-sm font-medium">Aucune notification</p>
+                            <p class="text-xs mt-1">Vous êtes à jour !</p>
+                        </div>
+                    `;
+                } else {
+                    notificationList.innerHTML = data.notifications.map(notification => `
+                        <div class="notification-item p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition ${notification.is_read ? 'opacity-60' : ''}" 
+                             data-id="${notification.id}"
+                             onclick="markNotificationRead(${notification.id})">
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-lg ${notification.type_class} flex items-center justify-center shrink-0">
+                                    <i class="fas ${notification.icon} text-xs"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <p class="text-sm font-semibold text-slate-800 truncate">${notification.title}</p>
+                                        ${!notification.is_read ? '<span class="w-2 h-2 bg-blue-500 rounded-full shrink-0"></span>' : ''}
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-0.5 line-clamp-2">${notification.message}</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">${notification.time_ago}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                console.log('🔔 Notifications chargées:', data.notifications.length);
+                
+            } catch (error) {
+                console.error('Erreur chargement notifications:', error);
+                notificationList.innerHTML = `
+                    <div class="p-8 text-center text-red-400">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p class="text-xs">Erreur de chargement</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Marquer une notification comme lue
+        async function markNotificationRead(id) {
+            try {
+                await fetch(`/admin/notifications/${id}/read`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                // Recharger les notifications
+                loadNotifications();
+                
+            } catch (error) {
+                console.error('Erreur marquage notification:', error);
+            }
+        }
+
+        // Marquer toutes comme lues
+        markAllReadBtn?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                await fetch('{{ route("admin.notifications.markAllRead") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                loadNotifications();
+                
+            } catch (error) {
+                console.error('Erreur marquage toutes notifications:', error);
+            }
+        });
+
+        // Créer une notification de test (debug)
+        testNotificationBtn?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                await fetch('{{ route("admin.notifications.createTest") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                loadNotifications();
+                
+            } catch (error) {
+                console.error('Erreur création notification test:', error);
+            }
+        });
+
+        // Charger les notifications au chargement et ouvrir le dropdown
+        document.addEventListener('DOMContentLoaded', loadNotifications);
+        
+        notificationBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Fermer l'éventuel menu utilisateur s'il existe
+            userDropdown?.classList.remove('show');
+            
+            const isShowing = notificationDropdown.classList.toggle('show');
+            if (isShowing) {
+                loadNotifications();
+            }
+        });
+
+        // Rafraîchir les notifications toutes les 60 secondes
+        setInterval(loadNotifications, 60000);
+
+        // Exposer la fonction globalement
+        window.markNotificationRead = markNotificationRead;
     </script>
     @stack('scripts')
 </body>

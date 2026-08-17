@@ -19,4 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withExceptions(function (Exceptions $exceptions) {
         //
-    })->create();
+    })
+    ->withSchedule(function ($schedule) {
+        // Frais de gestion mensuels
+        $schedule->command('app:apply-management-fees')->monthly();
+        
+        // Accrual des intérêts quotidiens (Prorata)
+        $schedule->command('app:accrue-daily-interest')->dailyAt('00:00');
+    })
+    ->create();

@@ -203,16 +203,10 @@
                         <div><i class="fas fa-phone me-2"></i>{{ $client->phone }}</div>
                     </div>
                     <div class="mb-3">
-                        <small class="mb-1 text-muted d-block">Statut KYC</small>
-                        @if($client->kyc_status === 'approved')
-                            <span class="badge bg-success">
-                                <i class="fas fa-check-circle me-1"></i>Approuvé
-                            </span>
-                        @else
-                            <span class="badge bg-warning">
-                                <i class="fas fa-clock me-1"></i>{{ ucfirst($client->kyc_status) }}
-                            </span>
-                        @endif
+                        <small class="mb-1 text-muted d-block">Situation</small>
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle me-1"></i>Client prêt
+                        </span>
                     </div>
                     <div>
                         <small class="mb-1 text-muted d-block">Comptes existants</small>
@@ -269,16 +263,15 @@
             </div>
 
             <!-- Aide -->
-            <div class="border-0 border-4 shadow-sm card border-start border-primary">
+            <div class="border-4 shadow-sm card border-start border-primary">
                 <div class="card-body">
                     <h6 class="mb-3">
                         <i class="fas fa-question-circle text-primary me-2"></i>
                         Aide
                     </h6>
                     <ul class="mb-0 small ps-3">
-                        <li class="mb-2">Le compte sera créé en statut <strong>suspendu</strong></li>
-                        <li class="mb-2">Vous devrez l'<strong>activer</strong> avant utilisation</li>
-                        <li class="mb-2">Le premier cycle démarre à l'activation</li>
+                        <li class="mb-2 text-success"><strong>Le compte sera prêt immédiatement</strong></li>
+                        <li class="mb-2">Le premier cycle démarre immédiatement</li>
                         <li class="mb-2">Les cotisations peuvent être effectuées à tout moment</li>
                         <li>Le système gère automatiquement les cycles multiples</li>
                     </ul>
@@ -347,11 +340,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         switch(frequency) {
             case 'daily':
-                totalPeriods = cycleDuration * 30; // Approximation
+                totalPeriods = cycleDuration * 31;
                 periodLabel = 'jours';
                 break;
             case 'weekly':
-                totalPeriods = Math.floor(cycleDuration * 4.33); // Approximation
+                totalPeriods = Math.round((cycleDuration * 52) / 12);
                 periodLabel = 'semaines';
                 break;
             case 'monthly':

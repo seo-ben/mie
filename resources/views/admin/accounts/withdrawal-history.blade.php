@@ -1,233 +1,199 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Historique des Retraits')
+@section('title', 'Registres des Extractions de Fonds')
+@section('page-title', 'Trésorerie / Historique des Sorties')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- En-tête -->
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900 mb-2">Historique des Retraits</h1>
-        <p class="text-gray-600">Consultation de tous les retraits effectués</p>
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Archives des Extractions de Fonds</h2>
+            <p class="text-slate-500 text-sm font-medium">Répertoire centralisé des liquidations d'actifs et retraits</p>
+        </div>
+        <div class="flex items-center gap-3">
+             <span class="px-3 py-1 bg-rose-50 text-rose-700 text-[10px] font-extrabold rounded-full border border-rose-100 uppercase tracking-tighter shadow-sm">
+                <i class="fas fa-shield-halved mr-1"></i> Audit de Sortie Actif
+            </span>
+        </div>
     </div>
 
-    <!-- Statistiques -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-sm p-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-600 text-sm">Total Retraits</p>
-                    <h4 class="text-xl font-bold text-gray-900">{{ number_format($stats['total_withdrawals']) }}</h4>
-                </div>
-                <i class="fas fa-hand-holding-usd text-2xl text-blue-500"></i>
+    <!-- Matrice des Indicateurs de Liquidation -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
+        <div class="bank-card p-5 border-blue-100 flex flex-col justify-between">
+            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Extractions</p>
+            <div class="flex items-end justify-between">
+                <span class="text-2xl font-black text-slate-900 leading-none">{{ number_format($stats['total_withdrawals']) }}</span>
+                <i class="fas fa-hand-holding-dollar text-blue-200"></i>
             </div>
         </div>
 
-        <div class="bg-white border-l-4 border-green-500 rounded-lg shadow-sm p-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-600 text-sm">Montant Total</p>
-                    <h4 class="text-lg font-bold text-gray-900">{{ number_format($stats['total_amount'], 0, ',', ' ') }}</h4>
-                    <p class="text-xs text-gray-500">FCFA</p>
-                </div>
-                <i class="fas fa-coins text-2xl text-green-500"></i>
+        <div class="bank-card p-5 border-rose-100 bg-rose-50/20 flex flex-col justify-between">
+            <p class="text-[8px] font-black text-rose-800/40 uppercase tracking-widest mb-3">Volume Brut</p>
+            <div class="flex items-end justify-between">
+                <span class="text-lg font-black text-rose-600 leading-none">{{ number_format($stats['total_amount'], 0, ',', ' ') }} <small class="text-[9px]">XOF</small></span>
+                <i class="fas fa-arrow-right-from-bracket text-rose-300"></i>
             </div>
         </div>
 
-        <div class="bg-white border-l-4 border-red-500 rounded-lg shadow-sm p-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-600 text-sm">Frais Collectés</p>
-                    <h4 class="text-lg font-bold text-gray-900">{{ number_format($stats['total_fees'], 0, ',', ' ') }}</h4>
-                    <p class="text-xs text-gray-500">FCFA</p>
-                </div>
-                <i class="fas fa-percent text-2xl text-red-500"></i>
+        <div class="bank-card p-5 border-amber-100 bg-amber-50/20 flex flex-col justify-between">
+            <p class="text-[8px] font-black text-amber-800/40 uppercase tracking-widest mb-3">Redevances d'Arbitrage</p>
+            <div class="flex items-end justify-between">
+                <span class="text-lg font-black text-amber-600 leading-none text-right">{{ number_format($stats['total_fees'], 0, ',', ' ') }} <small class="text-[9px]">XOF</small></span>
+                <i class="fas fa-percentage text-amber-300"></i>
             </div>
         </div>
 
-        <div class="bg-white border-l-4 border-purple-500 rounded-lg shadow-sm p-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-600 text-sm">Montant Net</p>
-                    <h4 class="text-lg font-bold text-gray-900">{{ number_format($stats['total_net'], 0, ',', ' ') }}</h4>
-                    <p class="text-xs text-gray-500">FCFA</p>
-                </div>
-                <i class="fas fa-wallet text-2xl text-purple-500"></i>
+        <div class="bank-card p-5 border-emerald-100 bg-emerald-50/20 flex flex-col justify-between shadow-xl shadow-emerald-500/5">
+            <p class="text-[8px] font-black text-emerald-800/40 uppercase tracking-widest mb-3">Liquidation Nette</p>
+            <div class="flex items-end justify-between">
+                <span class="text-lg font-black text-emerald-600 leading-none">{{ number_format($stats['total_net'], 0, ',', ' ') }} <small class="text-[9px]">XOF</small></span>
+                <i class="fas fa-wallet text-emerald-300"></i>
             </div>
         </div>
 
-        <div class="bg-white border-l-4 border-orange-500 rounded-lg shadow-sm p-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="text-gray-600 text-sm">Aujourd'hui</p>
-                    <h4 class="text-xl font-bold text-gray-900">{{ number_format($stats['withdrawals_today']) }}</h4>
-                    <p class="text-xs text-gray-500">{{ number_format($stats['amount_today'], 0, ',', ' ') }} FCFA</p>
+        <div class="bank-card p-5 border-orange-100 bg-orange-50/20 flex flex-col justify-between">
+            <p class="text-[8px] font-black text-orange-800/40 uppercase tracking-widest mb-3">Sorties (24H)</p>
+            <div class="flex items-end justify-between">
+                <div class="space-y-1">
+                    <span class="text-2xl font-black text-orange-600 leading-none block">{{ number_format($stats['withdrawals_today']) }}</span>
+                    <span class="text-[9px] font-bold text-orange-800 opacity-50">{{ number_format($stats['amount_today'], 0, ',', ' ') }} XOF</span>
                 </div>
-                <i class="fas fa-calendar-day text-2xl text-orange-500"></i>
+                <i class="fas fa-calendar-minus text-orange-300"></i>
             </div>
         </div>
     </div>
 
-    <!-- Filtres -->
-    <div class="bg-white rounded-lg shadow-sm mb-6">
-        <div class="p-6">
-            <form method="GET" action="{{ route('admin.withdrawals.history') }}">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <div class="md:col-span-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
-                        <input type="text"
-                               name="search"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                               placeholder="Réf., client, bénéficiaire..."
-                               value="{{ request('search') }}">
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Méthode</label>
-                        <select name="payment_method"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="">Toutes</option>
-                            <option value="cash" {{ request('payment_method') === 'cash' ? 'selected' : '' }}>Espèces</option>
-                            <option value="bank_transfer" {{ request('payment_method') === 'bank_transfer' ? 'selected' : '' }}>Virement</option>
-                            <option value="mobile_money" {{ request('payment_method') === 'mobile_money' ? 'selected' : '' }}>Mobile Money</option>
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Date Début</label>
-                        <input type="date"
-                               name="date_from"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                               value="{{ request('date_from') }}">
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Date Fin</label>
-                        <input type="date"
-                               name="date_to"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                               value="{{ request('date_to') }}">
-                    </div>
-
-                    <div class="md:col-span-2 flex items-end">
-                        <button type="submit"
-                                class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                            <i class="fas fa-search mr-2"></i>Filtrer
-                        </button>
-                    </div>
+    <!-- Interface Filtres d'Audit de Sortie -->
+    <div class="bank-card p-8">
+        <form method="GET" action="{{ route('admin.withdrawals.history') }}" class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div class="md:col-span-4 space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Référence / Nom / Bénéficiaire</label>
+                <div class="relative">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="TRX-RET-XXXX..." class="bank-input pl-10 text-[11px] font-bold">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-[10px]"></i>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <div class="md:col-span-3 space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vecteur de Liquidation</label>
+                <select name="payment_method" class="bank-input text-[11px] font-bold">
+                    <option value="">Tous les Vecteurs</option>
+                    <option value="cash" {{ request('payment_method') === 'cash' ? 'selected' : '' }}>Espèces Physiques</option>
+                    <option value="bank_transfer" {{ request('payment_method') === 'bank_transfer' ? 'selected' : '' }}>Virements Internes</option>
+                    <option value="mobile_money" {{ request('payment_method') === 'mobile_money' ? 'selected' : '' }}>Flux Numériques</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-2 space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fenêtre (Début)</label>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" class="bank-input text-[11px] font-bold">
+            </div>
+
+            <div class="md:col-span-2 space-y-2">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fenêtre (Fin)</label>
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="bank-input text-[11px] font-bold">
+            </div>
+
+            <div class="md:col-span-1 flex items-end">
+                <button type="submit" class="btn-bank btn-bank-primary w-full !py-2.5">
+                    <i class="fas fa-magnifying-glass text-[10px]"></i>
+                </button>
+            </div>
+        </form>
     </div>
 
-    <!-- Liste des retraits -->
-    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold text-gray-900">
-                Liste des Retraits ({{ $withdrawals->total() }})
-            </h5>
+    <!-- Registre des Extractions (Tableau) -->
+    <div class="bank-card overflow-hidden">
+        <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h5 class="text-[10px] font-black text-slate-800 uppercase tracking-widest">Flux d'Extraction Identifiés ({{ $withdrawals->total() }})</h5>
+            <i class="fas fa-microchip text-slate-200"></i>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte / Client</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bénéficiaire</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Méthode</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Frais</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Net</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Traité Par</th>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100">
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Timestamp Audit</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Référence Audit</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">compte Source / Titulaire</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Bénéficiaire Liquide</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Vecteur</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Volume Brut</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Arbitrage</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Net Liquidé</th>
+                        <th class="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Opérateur</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-slate-50 italic">
                     @forelse($withdrawals as $withdrawal)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $withdrawal->transaction_date->format('d/m/Y') }}
-                            <div class="text-xs text-gray-500">
-                                {{ $withdrawal->transaction_date->format('H:i') }}
+                    <tr class="hover:bg-slate-50/50 transition-colors group">
+                        <td class="px-8 py-5 whitespace-nowrap">
+                            <span class="block text-[11px] font-black text-slate-700 leading-none">{{ $withdrawal->transaction_date->format('d/m/Y') }}</span>
+                            <span class="block text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{{ $withdrawal->transaction_date->format('H:i') }}</span>
+                        </td>
+                        <td class="px-8 py-5 whitespace-nowrap">
+                            <span class="block text-[10px] font-mono font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 shadow-sm">{{ $withdrawal->transaction_reference }}</span>
+                            <span class="block text-[8px] font-bold text-slate-300 mt-1 uppercase tracking-tighter italic">ID : {{ $withdrawal->payment_reference }}</span>
+                        </td>
+                        <td class="px-8 py-5">
+                            <div class="flex flex-col">
+                                <a href="{{ route('admin.accounts.show', $withdrawal->account_id) }}" class="text-[10px] font-mono font-black text-blue-600 hover:underline leading-none mb-1">
+                                    {{ $withdrawal->account->account_number }}
+                                </a>
+                                <span class="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{{ $withdrawal->account->client->full_name }}</span>
+                                <span class="text-[8px] font-bold text-slate-400 uppercase italic">{{ $withdrawal->account->client->client_number }}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-semibold text-blue-600">
-                                {{ $withdrawal->transaction_reference }}
-                            </div>
-                            <div class="text-xs text-gray-500">
-                                {{ $withdrawal->payment_reference }}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <a href="{{ route('admin.accounts.show', $withdrawal->account_id) }}"
-                               class="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                                {{ $withdrawal->account->account_number }}
-                            </a>
-                            <div class="text-sm text-gray-900">
-                                {{ $withdrawal->account->client->first_name }}
-                                {{ $withdrawal->account->client->last_name }}
-                            </div>
-                            <div class="text-xs text-gray-500">
-                                {{ $withdrawal->account->client->client_number }}
+                        <td class="px-8 py-5">
+                            <div class="flex flex-col">
+                                <span class="text-[11px] font-black text-slate-900 uppercase leading-none mb-1">{{ $withdrawal->recipient_name }}</span>
+                                @if($withdrawal->recipient_phone)
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter"><i class="fas fa-phone text-[8px] mr-1"></i>{{ $withdrawal->recipient_phone }}</span>
+                                @endif
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">
-                                {{ $withdrawal->recipient_name }}
-                            </div>
-                            @if($withdrawal->recipient_phone)
-                                <div class="text-xs text-gray-500">
-                                    <i class="fas fa-phone mr-1"></i>{{ $withdrawal->recipient_phone }}
-                                </div>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-8 py-5 whitespace-nowrap">
                             @switch($withdrawal->payment_method)
                                 @case('cash')
-                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                        <i class="fas fa-money-bill-wave mr-1"></i>Espèces
+                                    <span class="inline-flex items-center px-2 py-1 rounded-lg text-[8px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase tracking-widest shadow-sm">
+                                        <i class="fas fa-money-bill-transfer mr-1.5"></i> Espèces
                                     </span>
                                     @break
                                 @case('bank_transfer')
-                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                        <i class="fas fa-university mr-1"></i>Virement
+                                    <span class="inline-flex items-center px-2 py-1 rounded-lg text-[8px] font-black bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-widest shadow-sm">
+                                        <i class="fas fa-building-columns mr-1.5"></i> Virement
                                     </span>
                                     @break
                                 @case('mobile_money')
-                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                        <i class="fas fa-mobile-alt mr-1"></i>Mobile Money
+                                    <span class="inline-flex items-center px-2 py-1 rounded-lg text-[8px] font-black bg-purple-50 text-purple-700 border border-purple-100 uppercase tracking-widest shadow-sm">
+                                        <i class="fas fa-mobile-screen mr-1.5"></i> Mobile
                                     </span>
                                     @break
                             @endswitch
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <span class="text-sm font-semibold text-gray-900">
-                                {{ number_format($withdrawal->amount, 0, ',', ' ') }}
-                            </span>
-                            <div class="text-xs text-gray-500">FCFA</div>
+                        <td class="px-8 py-5 text-right whitespace-nowrap">
+                            <span class="text-[12px] font-black text-slate-900 font-numeric leading-none">{{ number_format($withdrawal->amount, 0, ',', ' ') }}</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <span class="text-sm font-semibold text-red-600">
-                                {{ number_format($withdrawal->fee_amount, 0, ',', ' ') }}
-                            </span>
-                            <div class="text-xs text-gray-500">FCFA</div>
+                        <td class="px-8 py-5 text-right whitespace-nowrap">
+                            <span class="text-[11px] font-black text-rose-500 font-numeric leading-none">{{ number_format($withdrawal->fee_amount, 0, ',', ' ') }}</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <span class="text-sm font-bold text-green-600">
-                                {{ number_format($withdrawal->net_amount, 0, ',', ' ') }}
-                            </span>
-                            <div class="text-xs text-gray-500">FCFA</div>
+                        <td class="px-8 py-5 text-right whitespace-nowrap bg-emerald-50/20 shadow-inner">
+                            <span class="text-[13px] font-black text-emerald-600 font-numeric leading-none">{{ number_format($withdrawal->net_amount, 0, ',', ' ') }}</span>
+                            <span class="text-[8px] font-black text-slate-400 ml-1 uppercase">XOF</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $withdrawal->processedBy->name ?? 'N/A' }}
+                        <td class="px-8 py-5 whitespace-nowrap">
+                            <span class="text-[10px] font-black text-slate-700 uppercase italic">{{ $withdrawal->processedBy->name ?? 'N/A' }}</span>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-12 text-center">
-                            <i class="fas fa-inbox text-5xl text-gray-400 mb-3"></i>
-                            <p class="text-gray-500">Aucun retrait trouvé</p>
+                        <td colspan="9" class="px-8 py-20 text-center">
+                            <div class="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-300">
+                                <i class="fas fa-inbox text-2xl"></i>
+                            </div>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Registre d'Extraction Néant</h4>
+                            <p class="text-[10px] font-bold text-slate-300 mt-2 italic">Aucune extraction d'actifs n'a été identifiée pour cette période.</p>
                         </td>
                     </tr>
                     @endforelse
@@ -236,7 +202,7 @@
         </div>
 
         @if($withdrawals->hasPages())
-        <div class="px-6 py-4 border-t border-gray-200">
+        <div class="px-8 py-5 bg-slate-50/50 border-t border-slate-100 text-[10px] font-black uppercase">
             {{ $withdrawals->links() }}
         </div>
         @endif

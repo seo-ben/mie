@@ -1,236 +1,248 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Échéancier de Paiement')
+@section('title', 'Échéancier de Remboursement - ' . $loan->loan_number)
+@section('page-title', 'Crédits / Échéancier de Paiement')
 
 @section('content')
-<div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-    <!-- En-tête -->
-    <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center">
-            <a href="{{ route('admin.loans.show', $loan->id) }}" class="mr-4 text-gray-600 hover:text-gray-900">
-                <i class="fas fa-arrow-left"></i>
+<div class="space-y-8 no-print">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.loans.show', $loan->id) }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
             </a>
             <div>
-                <h1 class="text-2xl font-semibold text-gray-900">Échéancier de Paiement</h1>
-                <p class="text-gray-600">{{ $loan->loan_number }} - {{ $loan->client->first_name }} {{ $loan->client->last_name }}</p>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Protocole de Remboursement</h2>
+                <div class="flex items-center gap-3 mt-1">
+                    <p class="text-slate-500 text-sm font-medium">Référence Prêt : <span class="font-mono text-blue-600 font-bold tracking-widest uppercase">{{ $loan->loan_number }}</span></p>
+                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <p class="text-slate-500 text-sm font-bold uppercase">{{ $loan->client->full_name }}</p>
+                </div>
             </div>
         </div>
-
-        <div class="flex space-x-3">
-            <button onclick="window.print()" class="px-4 py-2 text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50">
-                <i class="mr-2 fas fa-print"></i>Imprimer
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="btn-bank btn-bank-outline">
+                <i class="fas fa-print mr-2 text-[10px]"></i> Version Imprimable
             </button>
-            <a href="{{ route('admin.loans.show', $loan->id) }}" class="px-4 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
-                <i class="mr-2 fas fa-arrow-left"></i>Retour au Prêt
+            <a href="{{ route('admin.loans.show', $loan->id) }}" class="btn-bank btn-bank-primary">
+                <i class="fas fa-file-contract mr-2 text-[10px]"></i> Dossier du Prêt
             </a>
         </div>
     </div>
 
-    <!-- Résumé du prêt -->
-    <div class="p-6 mb-6 bg-white rounded-lg shadow-sm">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+    <!-- Synthèse Financière du Prêt -->
+    <div class="bank-card p-6 border-trust relative overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-8 relative z-10">
             <div>
-                <p class="text-sm text-gray-600">Montant Prêt</p>
-                <p class="text-xl font-bold text-gray-900">{{ number_format($loan->approved_amount, 0, ',', ' ') }} FCFA</p>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Capital Engagé</p>
+                <p class="text-xl font-black text-slate-900">{{ number_format($loan->approved_amount, 0, ',', ' ') }} <small class="text-xs">XOF</small></p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Taux d'Intérêt</p>
-                <p class="text-xl font-bold text-gray-900">{{ $loan->interest_rate }}%</p>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Taux Appliqué</p>
+                <p class="text-xl font-black text-slate-900">{{ $loan->interest_rate }}%</p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Durée</p>
-                <p class="text-xl font-bold text-gray-900">{{ $loan->duration_months }} mois</p>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Horizon Temporel</p>
+                <p class="text-xl font-black text-slate-900">{{ $loan->duration_months }} <small class="text-xs">Mois</small></p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Paiement Mensuel</p>
-                <p class="text-xl font-bold text-blue-600">{{ number_format($loan->monthly_payment, 0, ',', ' ') }} FCFA</p>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Mensualité Fixe</p>
+                <p class="text-xl font-black text-blue-600">{{ number_format($loan->monthly_payment, 0, ',', ' ') }} <small class="text-xs">XOF</small></p>
             </div>
             <div>
-                <p class="text-sm text-gray-600">Total à Rembourser</p>
-                <p class="text-xl font-bold text-gray-900">{{ number_format($loan->total_amount_due, 0, ',', ' ') }} FCFA</p>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Total Recouvrement</p>
+                <p class="text-xl font-black text-emerald-700">{{ number_format($loan->total_amount_due, 0, ',', ' ') }} <small class="text-xs">XOF</small></p>
             </div>
         </div>
     </div>
 
-    <!-- Statistiques de progression -->
-    <div class="p-6 mb-6 bg-white rounded-lg shadow-sm">
-        <h3 class="mb-4 text-lg font-semibold text-gray-900">Progression des Remboursements</h3>
+    <!-- Séquenceur de Progression -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bank-card p-6">
+            <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center justify-between">
+                <span>Avancement du Recouvrement</span>
+                @php
+                    $totalPaid = $loan->payments->where('status', 'paid')->sum('paid_amount');
+                    $totalRemaining = $loan->total_amount_due - $totalPaid;
+                    $progressPercent = $loan->total_amount_due > 0 ? ($totalPaid / $loan->total_amount_due) * 100 : 0;
+                @endphp
+                <span class="text-emerald-600">{{ round($progressPercent, 1) }}% Complété</span>
+            </h3>
 
-        @php
-            $totalPaid = $loan->payments->where('status', 'paid')->sum('paid_amount');
-            $totalRemaining = $loan->total_amount_due - $totalPaid;
-            $progressPercent = $loan->total_amount_due > 0 ? ($totalPaid / $loan->total_amount_due) * 100 : 0;
-
-            $paidCount = $loan->payments->where('status', 'paid')->count();
-            $pendingCount = $loan->payments->where('status', 'pending')->count();
-            $overdueCount = $loan->payments->where('status', 'overdue')->count();
-        @endphp
-
-        <div class="mb-4">
-            <div class="flex justify-between mb-2 text-sm">
-                <span class="text-gray-600">Payé: {{ number_format($totalPaid, 0, ',', ' ') }} FCFA</span>
-                <span class="text-gray-600">Restant: {{ number_format($totalRemaining, 0, ',', ' ') }} FCFA</span>
+            <div class="relative h-4 bg-slate-100 rounded-full overflow-hidden mb-4">
+                <div class="absolute h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out" style="width: {{ min($progressPercent, 100) }}%"></div>
             </div>
-            <div class="w-full h-4 bg-gray-200 rounded-full">
-                <div class="h-4 transition-all duration-300 bg-green-600 rounded-full" style="width: {{ min($progressPercent, 100) }}%"></div>
+
+            <div class="flex justify-between items-center text-xs font-bold uppercase">
+                <div>
+                    <span class="text-slate-400 block text-[9px]">Volume Recouvré</span>
+                    <span class="text-emerald-700">{{ number_format($totalPaid, 0, ',', ' ') }} XOF</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-slate-400 block text-[9px]">Reste à Courir</span>
+                    <span class="text-slate-700">{{ number_format($totalRemaining, 0, ',', ' ') }} XOF</span>
+                </div>
             </div>
-            <p class="mt-2 text-sm text-center text-gray-600">{{ round($progressPercent, 1) }}% remboursé</p>
         </div>
 
-        <div class="grid grid-cols-3 gap-4">
-            <div class="p-4 text-center rounded-lg bg-green-50">
-                <p class="text-3xl font-bold text-green-600">{{ $paidCount }}</p>
-                <p class="text-sm text-gray-600">Paiements Effectués</p>
+        <div class="bank-card p-0 overflow-hidden flex flex-col">
+            @php
+                $paidCount = $loan->payments->where('status', 'paid')->count();
+                $pendingCount = $loan->payments->where('status', 'pending')->count();
+                $overdueCount = $loan->payments->where('status', 'overdue')->count();
+            @endphp
+            <div class="flex-1 bg-emerald-50/50 p-4 border-b border-emerald-100 flex items-center justify-between">
+                <span class="text-[9px] font-black text-emerald-800 uppercase tracking-widest">Soldés</span>
+                <span class="text-sm font-black text-emerald-600 bg-white px-3 py-1 rounded-lg border border-emerald-100 shadow-sm">{{ $paidCount }}</span>
             </div>
-            <div class="p-4 text-center rounded-lg bg-yellow-50">
-                <p class="text-3xl font-bold text-yellow-600">{{ $pendingCount }}</p>
-                <p class="text-sm text-gray-600">En Attente</p>
+            <div class="flex-1 bg-amber-50/50 p-4 border-b border-amber-100 flex items-center justify-between">
+                <span class="text-[9px] font-black text-amber-800 uppercase tracking-widest">En Attente</span>
+                <span class="text-sm font-black text-amber-600 bg-white px-3 py-1 rounded-lg border border-amber-100 shadow-sm">{{ $pendingCount }}</span>
             </div>
-            <div class="p-4 text-center rounded-lg bg-red-50">
-                <p class="text-3xl font-bold text-red-600">{{ $overdueCount }}</p>
-                <p class="text-sm text-gray-600">En Retard</p>
+            <div class="flex-1 bg-rose-50/50 p-4 flex items-center justify-between">
+                <span class="text-[9px] font-black text-rose-800 uppercase tracking-widest">En Souffrance</span>
+                <span class="text-sm font-black text-rose-600 bg-white px-3 py-1 rounded-lg border border-rose-100 shadow-sm">{{ $overdueCount }}</span>
             </div>
         </div>
     </div>
 
-    <!-- Échéancier détaillé -->
-    <div class="overflow-hidden bg-white rounded-lg shadow-sm">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Détail des Échéances</h3>
+    @if($overdueCount > 0)
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-4 animate-pulse">
+        <i class="fas fa-triangle-exclamation text-rose-500 mt-1"></i>
+        <div>
+            <h4 class="text-sm font-black text-rose-800 uppercase tracking-tight">Alerte de Conformité</h4>
+            <p class="text-xs font-bold text-rose-700 mt-1">
+                Ce dossier présente {{ $overdueCount }} échéance(s) en souffrance. Le protocole de recouvrement contentieux doit être activé.
+            </p>
+        </div>
+    </div>
+    @endif
+
+    <!-- Matrice d'Échéancier -->
+    <div class="bank-card overflow-hidden">
+        <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest">Tableau d'Amortissement</h3>
+            <span class="px-3 py-1 bg-slate-200 text-slate-600 text-[8px] font-black rounded-full uppercase">{{ $loan->payments->count() }} Périodes</span>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">N°</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Date d'Échéance</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Montant Attendu</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Capital</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Intérêts</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Montant Payé</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Date de Paiement</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Pénalités</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Statut</th>
-                        <th class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Actions</th>
+            <table class="bank-table">
+                <thead>
+                    <tr class="!bg-slate-50/20">
+                        <th class="uppercase tracking-widest text-[9px] w-16 text-center">Cycle</th>
+                        <th class="uppercase tracking-widest text-[9px]">Échéance</th>
+                        <th class="uppercase tracking-widest text-[9px] text-right">Montant Dû</th>
+                        <th class="uppercase tracking-widest text-[9px] text-right">Principal</th>
+                        <th class="uppercase tracking-widest text-[9px] text-right">Intérêts</th>
+                        <th class="uppercase tracking-widest text-[9px] text-right">Réalisé</th>
+                        <th class="uppercase tracking-widest text-[9px]">Date Ops.</th>
+                        <th class="uppercase tracking-widest text-[9px] text-right">Pénalités</th>
+                        <th class="uppercase tracking-widest text-[9px] text-center">Statut</th>
+                        <th class="uppercase tracking-widest text-[9px] text-right">Contrôle</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-slate-100">
                     @forelse($loan->payments->sortBy('payment_number') as $payment)
-                    <tr class="hover:bg-gray-50 {{ $payment->status === 'overdue' ? 'bg-red-50' : '' }}">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full
-                                {{ $payment->status === 'paid' ? 'bg-green-100 text-green-800' :
-                                   ($payment->status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800') }}">
+                    <tr class="hover:bg-slate-50/50 transition-colors group {{ $payment->status === 'overdue' ? 'bg-rose-50/30' : '' }}">
+                        <td class="text-center py-4">
+                            <span class="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black mx-auto
+                                {{ $payment->status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 
+                                   ($payment->status === 'overdue' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600') }}">
                                 {{ $payment->payment_number }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $payment->due_date->format('d/m/Y') }}</div>
+                        <td>
+                            <div class="text-[11px] font-bold text-slate-700">{{ $payment->due_date->format('d/m/Y') }}</div>
                             @if($payment->status === 'pending' && $payment->due_date->isPast())
-                            <div class="text-xs text-red-600">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                Retard: {{ $payment->due_date->diffInDays(now()) }} jour(s)
-                            </div>
+                                <span class="text-[8px] font-black text-rose-500 uppercase flex items-center gap-1 mt-0.5">
+                                    <i class="fas fa-clock"></i> J+{{ $payment->due_date->diffInDays(now()) }}
+                                </span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="font-semibold text-gray-900">{{ number_format($payment->expected_amount, 0, ',', ' ') }}</span>
-                            <span class="text-xs text-gray-500">FCFA</span>
+                        <td class="text-right">
+                            <span class="text-xs font-black text-slate-900">{{ number_format($payment->expected_amount, 0, ',', ' ') }}</span>
+                            <span class="text-[9px] text-slate-400 font-bold">XOF</span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                        <td class="text-right text-[11px] font-medium text-slate-500">
                             {{ number_format($payment->principal_amount, 0, ',', ' ') }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                        <td class="text-right text-[11px] font-medium text-slate-500">
                             {{ number_format($payment->interest_amount, 0, ',', ' ') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="text-right">
                             @if($payment->paid_amount)
-                            <span class="font-semibold text-green-600">{{ number_format($payment->paid_amount, 0, ',', ' ') }}</span>
-                            <span class="text-xs text-gray-500">FCFA</span>
+                                <span class="text-xs font-black text-emerald-600">{{ number_format($payment->paid_amount, 0, ',', ' ') }}</span>
+                                <span class="text-[9px] text-emerald-400 font-bold">XOF</span>
                             @else
-                            <span class="text-gray-400">-</span>
+                                <span class="text-slate-300 font-bold">—</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                        <td class="text-[10px] font-bold">
                             @if($payment->paid_date)
-                            {{ $payment->paid_date->format('d/m/Y') }}
+                                <span class="text-emerald-700">{{ $payment->paid_date->format('d/m/Y') }}</span>
                             @else
-                            <span class="text-gray-400">-</span>
+                                <span class="text-slate-300 italic">Non traité</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="text-right">
                             @if($payment->penalty_amount > 0)
-                            <span class="font-semibold text-red-600">{{ number_format($payment->penalty_amount, 0, ',', ' ') }}</span>
-                            <span class="text-xs text-gray-500">FCFA</span>
+                                <span class="text-[10px] font-black text-rose-600">+{{ number_format($payment->penalty_amount, 0, ',', ' ') }}</span>
                             @else
-                            <span class="text-gray-400">-</span>
+                                <span class="text-slate-300 font-bold">-</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="text-center">
                             @php
-                                $statusConfig = [
-                                    'pending' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'icon' => 'fa-clock', 'label' => 'En Attente'],
-                                    'paid' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'icon' => 'fa-check-circle', 'label' => 'Payé'],
-                                    'overdue' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'icon' => 'fa-exclamation-triangle', 'label' => 'En Retard'],
-                                    'partial' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'icon' => 'fa-minus-circle', 'label' => 'Partiel'],
+                                $statusStyles = [
+                                    'pending' => 'bg-amber-100 text-amber-700',
+                                    'paid' => 'bg-emerald-100 text-emerald-700',
+                                    'overdue' => 'bg-rose-100 text-rose-700',
+                                    'partial' => 'bg-blue-100 text-blue-700',
                                 ];
-                                $status = $statusConfig[$payment->status] ?? ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'icon' => 'fa-question', 'label' => $payment->status];
+                                $label = match($payment->status) {
+                                    'pending' => 'Attente',
+                                    'paid' => 'Soldé',
+                                    'overdue' => 'Retard',
+                                    'partial' => 'Partiel',
+                                    default => 'Inconnu'
+                                };
                             @endphp
-
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $status['bg'] }} {{ $status['text'] }}">
-                                <i class="fas {{ $status['icon'] }} mr-1"></i>
-                                {{ $status['label'] }}
+                            <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tight {{ $statusStyles[$payment->status] ?? 'bg-gray-100 text-gray-700' }}">
+                                {{ $label }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            @if(in_array($payment->status, ['pending', 'overdue']))
-                            <button onclick="openPaymentModal({{ $payment->id }}, {{ $payment->expected_amount }})"
-                                    class="px-3 py-1 text-sm text-white transition-colors bg-blue-600 rounded hover:bg-blue-700">
-                                <i class="mr-1 fas fa-plus"></i>Payer
-                            </button>
+                        <td class="text-right pr-6">
+                            @if(in_array($payment->status, ['pending', 'overdue', 'partial']))
+                                <button onclick="openPaymentModal({{ $payment->id }}, {{ $payment->expected_amount - ($payment->paid_amount ?? 0) }})"
+                                        class="btn-bank btn-bank-primary !py-1 !px-3 !text-[9px] !h-auto">
+                                    <i class="fas fa-coins mr-1"></i> Encaisser
+                                </button>
                             @elseif($payment->status === 'paid')
-                            <button class="px-3 py-1 text-sm text-green-600 transition-colors border border-green-600 rounded hover:bg-green-50"
-                                    title="Paiement effectué le {{ $payment->paid_date->format('d/m/Y') }}">
-                                <i class="fas fa-check"></i> Payé
-                            </button>
+                                <span class="text-emerald-500 text-[10px]">
+                                    <i class="fas fa-check-double"></i>
+                                </span>
                             @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="px-6 py-12 text-center">
-                            <i class="mb-3 text-5xl text-gray-400 fas fa-inbox"></i>
-                            <p class="text-gray-500">Aucun échéancier généré</p>
-                            <p class="text-sm text-gray-400">L'échéancier sera créé lors du décaissement</p>
+                        <td colspan="10" class="py-20 text-center">
+                            <i class="fas fa-file-invoice text-4xl text-slate-200 mb-4 block"></i>
+                            <p class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Protocole d'amortissement non initialisé</p>
                         </td>
                     </tr>
                     @endforelse
                 </tbody>
-
                 @if($loan->payments->count() > 0)
-                <tfoot class="font-semibold bg-gray-50">
+                <tfoot class="bg-slate-50 border-t-2 border-slate-200">
                     <tr>
-                        <td colspan="2" class="px-6 py-4 text-right">TOTAL:</td>
-                        <td class="px-6 py-4">
-                            <span class="font-bold text-gray-900">{{ number_format($loan->payments->sum('expected_amount'), 0, ',', ' ') }}</span>
-                            <span class="text-xs text-gray-500">FCFA</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ number_format($loan->payments->sum('principal_amount'), 0, ',', ' ') }}
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ number_format($loan->payments->sum('interest_amount'), 0, ',', ' ') }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="font-bold text-green-600">{{ number_format($loan->payments->sum('paid_amount'), 0, ',', ' ') }}</span>
-                            <span class="text-xs text-gray-500">FCFA</span>
-                        </td>
-                        <td class="px-6 py-4">-</td>
-                        <td class="px-6 py-4">
-                            <span class="font-bold text-red-600">{{ number_format($loan->payments->sum('penalty_amount'), 0, ',', ' ') }}</span>
-                            <span class="text-xs text-gray-500">FCFA</span>
-                        </td>
+                        <td colspan="2" class="px-6 py-4 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Cumul Global :</td>
+                        <td class="px-4 py-4 text-right text-xs font-black text-slate-900">{{ number_format($loan->payments->sum('expected_amount'), 0, ',', ' ') }} <small>XOF</small></td>
+                        <td class="px-4 py-4 text-right text-xs font-bold text-slate-500">{{ number_format($loan->payments->sum('principal_amount'), 0, ',', ' ') }}</td>
+                        <td class="px-4 py-4 text-right text-xs font-bold text-slate-500">{{ number_format($loan->payments->sum('interest_amount'), 0, ',', ' ') }}</td>
+                        <td class="px-4 py-4 text-right text-xs font-black text-emerald-600">{{ number_format($loan->payments->sum('paid_amount'), 0, ',', ' ') }} <small>XOF</small></td>
+                        <td class="px-4 py-4"></td>
+                        <td class="px-4 py-4 text-right text-xs font-black text-rose-600">{{ number_format($loan->payments->sum('penalty_amount'), 0, ',', ' ') }} <small>XOF</small></td>
                         <td colspan="2"></td>
                     </tr>
                 </tfoot>
@@ -238,171 +250,138 @@
             </table>
         </div>
     </div>
-
-    <!-- Légende -->
-    <div class="p-6 mt-6 bg-white rounded-lg shadow-sm">
-        <h3 class="mb-3 text-sm font-semibold text-gray-900">Légende</h3>
-        <div class="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-            <div class="flex items-center">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mr-2">
-                    <i class="mr-1 fas fa-clock"></i>En Attente
-                </span>
-                <span class="text-gray-600">Non encore payé</span>
-            </div>
-            <div class="flex items-center">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
-                    <i class="mr-1 fas fa-check-circle"></i>Payé
-                </span>
-                <span class="text-gray-600">Paiement complet</span>
-            </div>
-            <div class="flex items-center">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-2">
-                    <i class="mr-1 fas fa-exclamation-triangle"></i>En Retard
-                </span>
-                <span class="text-gray-600">Échéance dépassée</span>
-            </div>
-            <div class="flex items-center">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                    <i class="mr-1 fas fa-minus-circle"></i>Partiel
-                </span>
-                <span class="text-gray-600">Paiement incomplet</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notes importantes -->
-    @if($loan->payments->where('status', 'overdue')->count() > 0)
-    <div class="p-4 mt-6 border border-red-200 rounded-lg bg-red-50">
-        <div class="flex">
-            <i class="mr-3 text-xl text-red-600 fas fa-exclamation-triangle"></i>
-            <div>
-                <h4 class="mb-1 font-semibold text-red-900">Attention: Paiements en Retard</h4>
-                <p class="text-sm text-red-700">
-                    Ce prêt a {{ $loan->payments->where('status', 'overdue')->count() }} paiement(s) en retard.
-                    Des pénalités de 1% par jour s'appliquent. Veuillez contacter le client rapidement.
-                </p>
-            </div>
-        </div>
-    </div>
-    @endif
 </div>
 
-<!-- Modal Paiement (réutilisé du show.blade.php) -->
-<div id="paymentModal" class="fixed inset-0 z-50 hidden w-full h-full overflow-y-auto bg-gray-600 bg-opacity-50">
-    <div class="relative w-full max-w-xl p-5 mx-auto bg-white border rounded-lg shadow-lg top-20">
-        <div class="flex items-center justify-between pb-3 border-b border-gray-200">
-            <h3 class="text-xl font-semibold text-gray-900">Enregistrer un Paiement</h3>
-            <button onclick="closePaymentModal()" class="text-gray-400 hover:text-gray-600">
-                <i class="text-xl fas fa-times"></i>
+<!-- Modal Paiement Pro -->
+<div id="paymentModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div class="bank-card w-full max-w-md animate-scale-in overflow-hidden shadow-2xl">
+        <div class="px-6 py-4 bg-blue-600 text-white flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-cash-register"></i> Guichet de Recouvrement
+            </h3>
+            <button onclick="closePaymentModal()" class="text-white/70 hover:text-white transition">
+                <i class="fas fa-times text-lg"></i>
             </button>
         </div>
 
-        <form method="POST" action="{{ route('admin.loans.record-payment', $loan->id) }}" class="mt-4" id="paymentForm">
+        <form method="POST" action="{{ route('admin.loans.record-payment', $loan->id) }}" id="paymentForm">
             @csrf
             <input type="hidden" name="payment_id" id="payment_id">
 
-            <div class="space-y-4">
-                <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-600">Montant attendu:</span>
-                        <span class="text-lg font-bold text-gray-900" id="expected_amount_display">0 FCFA</span>
+            <div class="p-6 space-y-6">
+                <!-- Montant Attendu -->
+                <div class="p-4 bg-slate-50 border-l-4 border-blue-500 rounded-r-xl">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Solde Exigible</p>
+                    <p class="text-2xl font-black text-slate-800" id="expected_amount_display">0 XOF</p>
+                </div>
+
+                <!-- Saisie -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Montant Perçu <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" name="paid_amount" id="paid_amount" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-4 pr-12 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder="0" min="0">
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400">XOF</span>
+                        </div>
                     </div>
-                </div>
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        Montant Payé <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" name="paid_amount" id="paid_amount" required
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Montant reçu"
-                           min="0" step="100">
-                </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Canal de Règlement <span class="text-rose-500">*</span></label>
+                        <select name="payment_method" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs font-bold text-slate-700 uppercase focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="cash">Espèces (Caisse Physique)</option>
+                            <option value="mobile_money">Mobile Money (Numérique)</option>
+                            <option value="bank_transfer">Virement Bancaire (Interbancaire)</option>
+                        </select>
+                    </div>
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        Méthode de Paiement <span class="text-red-500">*</span>
-                    </label>
-                    <select name="payment_method" required
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Sélectionner...</option>
-                        <option value="cash">Espèces</option>
-                        <option value="bank_transfer">Virement bancaire</option>
-                        <option value="mobile_money">Mobile Money</option>
-                    </select>
-                </div>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Référence (Optionnel)</label>
+                        <input type="text" name="payment_reference"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none uppercase"
+                               placeholder="REF-TRANSACTION-000">
+                    </div>
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        Référence de Paiement
-                    </label>
-                    <input type="text" name="payment_reference"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="N° de transaction...">
-                </div>
-
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">
-                        Notes
-                    </label>
-                    <textarea name="payment_notes" rows="2"
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Commentaires optionnels..."></textarea>
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Annotation</label>
+                        <textarea name="payment_notes" rows="2"
+                                  class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                  placeholder="Note d'observation éventuelle..."></textarea>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-end pt-4 mt-6 space-x-3 border-t border-gray-200">
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
                 <button type="button" onclick="closePaymentModal()"
-                        class="px-6 py-2 text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50">
+                        class="flex-1 btn-bank btn-bank-outline py-3 text-xs uppercase font-black">
                     Annuler
                 </button>
                 <button type="submit"
-                        class="px-6 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
-                    <i class="mr-2 fas fa-check"></i>Enregistrer le Paiement
+                        class="flex-1 btn-bank btn-bank-primary py-3 text-xs uppercase font-black shadow-lg shadow-blue-500/20">
+                    Confirmer
                 </button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Layout Impression -->
+<div class="hidden print:block font-serif p-8">
+    <div class="text-center border-b-2 border-black pb-8 mb-8">
+        <h1 class="text-3xl font-bold uppercase tracking-widest mb-2">Tableau d'Amortissement</h1>
+        <p class="text-sm">Document émis le {{ now()->format('d/m/Y à H:i') }}</p>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-8 mb-8 text-sm">
+        <div>
+            <p class="font-bold uppercase border-b border-black mb-2">Emprunteur</p>
+            <p>{{ $loan->client->full_name }}</p>
+            <p>ID: {{ $loan->client->client_number }}</p>
+        </div>
+        <div class="text-right">
+            <p class="font-bold uppercase border-b border-black mb-2 inline-block">Détails Prêt</p>
+            <p>Réf: {{ $loan->loan_number }}</p>
+            <p>Montant: {{ number_format($loan->approved_amount, 0, ',', ' ') }} XOF</p>
+        </div>
+    </div>
+    
+    <!-- Table content for print would be duplicated or CSS customized, handled by media query above -->
+</div>
+
+@push('scripts')
 <script>
 function openPaymentModal(paymentId, expectedAmount) {
     document.getElementById('payment_id').value = paymentId;
     document.getElementById('paid_amount').value = expectedAmount;
-    document.getElementById('expected_amount_display').textContent = expectedAmount.toLocaleString('fr-FR') + ' FCFA';
-    document.getElementById('paymentModal').classList.remove('hidden');
+    document.getElementById('expected_amount_display').textContent = new Intl.NumberFormat('fr-FR').format(expectedAmount) + ' XOF';
+    
+    const modal = document.getElementById('paymentModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
 function closePaymentModal() {
-    document.getElementById('paymentModal').classList.add('hidden');
+    const modal = document.getElementById('paymentModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
     document.getElementById('paymentForm').reset();
 }
 
-// Fermer le modal en cliquant à l'extérieur
-window.onclick = function(event) {
-    const modal = document.getElementById('paymentModal');
-    if (event.target === modal) {
-        modal.classList.add('hidden');
-    }
-}
-
-// Style d'impression
-window.onbeforeprint = function() {
-    document.querySelectorAll('button').forEach(btn => btn.style.display = 'none');
-    document.querySelectorAll('.no-print').forEach(el => el.style.display = 'none');
-}
-
-window.onafterprint = function() {
-    document.querySelectorAll('button').forEach(btn => btn.style.display = '');
-    document.querySelectorAll('.no-print').forEach(el => el.style.display = '');
-}
+// Close on outside click
+document.getElementById('paymentModal').addEventListener('click', function(e) {
+    if (e.target === this) closePaymentModal();
+});
 </script>
+@endpush
 
 <style>
 @media print {
-    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    button, .no-print { display: none !important; }
-    .bg-gray-50 { background-color: #f9fafb !important; }
+    body * { visibility: hidden; }
+    .print\:block, .print\:block * { visibility: visible; }
+    .print\:block { position: absolute; left: 0; top: 0; width: 100%; }
+    .no-print { display: none !important; }
 }
 </style>
 @endsection

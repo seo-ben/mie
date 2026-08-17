@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\web\Shared;
+namespace App\Http\Controllers\Web\Shared;
 
 use App\Http\Controllers\Controller;
 use App\Services\FileUploadService;

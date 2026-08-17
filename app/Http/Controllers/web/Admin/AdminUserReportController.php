@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\web\Admin;
+namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -82,12 +82,24 @@ class AdminUserReportController extends Controller
                 ->sum('amount'),
         ];
 
+        // Données pour le graphique de performance globale
+        $chartData = Transaction::where('transaction_date', '>=', now()->subDays(30))
+            ->where('status', 'completed')
+            ->select(
+                DB::raw('DATE(transaction_date) as date'),
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(amount) as total')
+            )
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get();
+
         // Liste des agences pour le filtre
         $agencies = Agency::where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
 
-        return view('admin.reports.users.index', compact('users', 'stats', 'agencies'));
+        return view('admin.reports.users.index', compact('users', 'stats', 'agencies', 'chartData'));
     }
 
     /**
@@ -171,29 +183,25 @@ class AdminUserReportController extends Controller
         $stats = [
             'total_users' => $agency->users_count,
             'active_users' => $agency->users->where('is_active', true)->count(),
-            'total_clients' => Client::whereIn('registered_by', $userIds)->count(),
-            'clients_period' => Client::whereIn('registered_by', $userIds)
+            'total_clients' => Client::where('agency_id', $agency->id)->count(),
+            'clients_period' => Client::where('agency_id', $agency->id)
                 ->where('created_at', '>=', $startDate)
                 ->where('created_at', '<=', $endDate)
                 ->count(),
-            'total_accounts' => Account::whereHas('client', function($q) use ($userIds) {
-                $q->whereIn('registered_by', $userIds);
+            'total_accounts' => Account::whereHas('client', function($q) use ($agency) {
+                $q->where('agency_id', $agency->id);
             })->count(),
-            'active_accounts' => Account::whereHas('client', function($q) use ($userIds) {
-                $q->whereIn('registered_by', $userIds);
+            'active_accounts' => Account::whereHas('client', function($q) use ($agency) {
+                $q->where('agency_id', $agency->id);
             })->where('status', 'active')->count(),
-            'total_balance' => Account::whereHas('client', function($q) use ($userIds) {
-                $q->whereIn('registered_by', $userIds);
+            'total_balance' => Account::whereHas('client', function($q) use ($agency) {
+                $q->where('agency_id', $agency->id);
             })->where('status', 'active')->sum('balance'),
-            'transactions_period' => Transaction::whereHas('account.client', function($q) use ($userIds) {
-                $q->whereIn('registered_by', $userIds);
-            })
+            'transactions_period' => Transaction::where('agency_id', $agency->id)
             ->where('transaction_date', '>=', $startDate)
             ->where('transaction_date', '<=', $endDate)
             ->count(),
-            'amount_period' => Transaction::whereHas('account.client', function($q) use ($userIds) {
-                $q->whereIn('registered_by', $userIds);
-            })
+            'amount_period' => Transaction::where('agency_id', $agency->id)
             ->where('transaction_date', '>=', $startDate)
             ->where('transaction_date', '<=', $endDate)
             ->where('status', 'completed')
@@ -253,6 +261,78 @@ class AdminUserReportController extends Controller
             'stats',
             'userPerformances',
             'dailyPerformance'
+        ));
+    }
+
+    /**
+     * Performance globale de toutes les agences
+     */
+    public function agenciesPerformance(Request $request)
+    {
+        $startDate = $request->filled('start_date')
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : now()->startOfMonth();
+
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : now()->endOfDay();
+
+        $agencies = Agency::withCount(['users', 'users as active_users_count' => function($q) {
+                $q->where('is_active', true);
+            }])
+            ->get();
+
+        $agenciesPerformance = [];
+
+        foreach ($agencies as $agency) {
+            $userIds = $agency->users->pluck('id')->toArray();
+
+            $stats = [
+                'agency' => $agency,
+                'clients_count' => Client::where('agency_id', $agency->id)->count(),
+                'clients_period' => Client::where('agency_id', $agency->id)
+                    ->where('created_at', '>=', $startDate)
+                    ->where('created_at', '<=', $endDate)
+                    ->count(),
+                'transactions_count' => Transaction::where('agency_id', $agency->id)
+                    ->where('transaction_date', '>=', $startDate)
+                    ->where('transaction_date', '<=', $endDate)
+                    ->where('status', 'completed')
+                    ->count(),
+                'transactions_amount' => Transaction::where('agency_id', $agency->id)
+                    ->where('transaction_date', '>=', $startDate)
+                    ->where('transaction_date', '<=', $endDate)
+                    ->where('status', 'completed')
+                    ->sum('amount'),
+                'total_balance' => Account::whereHas('client', function($q) use ($agency) {
+                        $q->where('agency_id', $agency->id);
+                    })
+                    ->where('status', 'active')
+                    ->sum('balance'),
+            ];
+
+            $agenciesPerformance[] = $stats;
+        }
+
+        // Global stats for all agencies
+        $globalStats = [
+            'total_agencies' => $agencies->count(),
+            'total_clients' => Client::count(),
+            'total_transactions' => Transaction::where('transaction_date', '>=', $startDate)
+                ->where('transaction_date', '<=', $endDate)
+                ->where('status', 'completed')
+                ->count(),
+            'total_amount' => Transaction::where('transaction_date', '>=', $startDate)
+                ->where('transaction_date', '<=', $endDate)
+                ->where('status', 'completed')
+                ->sum('amount'),
+        ];
+
+        return view('admin.reports.agencies.index', compact(
+            'agenciesPerformance',
+            'globalStats',
+            'startDate',
+            'endDate'
         ));
     }
 
@@ -474,7 +554,7 @@ class AdminUserReportController extends Controller
             'transfers_count' => (clone $completedQuery)->where('transaction_type', 'transfer')->count(),
             'transfers_amount' => (clone $completedQuery)->where('transaction_type', 'transfer')->sum('amount'),
             'avg_transaction_amount' => (clone $completedQuery)->avg('amount') ?? 0,
-            'total_fees' => (clone $completedQuery)->sum('amount') ?? 0,
+            'total_fees' => (clone $completedQuery)->sum('fee_amount') + (clone $completedQuery)->sum('withdrawal_fee') ?? 0,
         ];
     }
 

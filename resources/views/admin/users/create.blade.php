@@ -49,6 +49,7 @@
                     <select name="role" id="role" class="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500" required>
                         <option value="administrateur_reglementaire" {{ old('role') === 'administrateur_reglementaire' ? 'selected' : '' }}>Administrateur Réglementaire</option>
                         <option value="administrateur_systeme" {{ old('role') === 'administrateur_systeme' ? 'selected' : '' }}>Administrateur Système</option>
+                        <option value="caissier" {{ old('role') === 'caissier' ? 'selected' : '' }}>caissier</option>
                         <option value="agent_terrain" {{ old('role') === 'agent_terrain' ? 'selected' : '' }}>Agent Terrain</option>
                     </select>
                     @error('role')

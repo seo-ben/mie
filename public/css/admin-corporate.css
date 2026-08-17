@@ -1,0 +1,306 @@
+:root {
+    /* Institutional Color Palette - Focused on Trust & Clarity */
+    --primary-institutional: #0F172A;
+    /* Deep Slate Navy */
+    --accent-bank: #2563EB;
+    /* Trust Blue */
+    --success-bank: #059669;
+    /* Banking Green */
+    --warning-bank: #D97706;
+    /* Risk Orange */
+    --danger-bank: #DC2626;
+    /* Alert Red */
+
+    --bg-main: #F8FAFC;
+    --bg-sidebar: #FFFFFF;
+    --bg-card: #FFFFFF;
+
+    --text-main: #1E293B;
+    --text-muted: #64748B;
+    --text-on-dark: #FFFFFF;
+
+    --border-light: #E2E8F0;
+    --radius-bank: 12px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
+}
+
+/* Sidebar - Institutional Style */
+.sidebar-corporate {
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-light);
+    width: 280px;
+    transition: all 0.3s ease;
+}
+
+.sidebar-item-corporate {
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 1rem;
+    margin: 0.125rem 0.75rem;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.sidebar-item-corporate:hover {
+    background: #F1F5F9;
+    color: var(--primary-institutional);
+}
+
+.sidebar-item-corporate.active {
+    background: #EFF6FF;
+    color: var(--accent-bank);
+    font-weight: 600;
+}
+
+.sidebar-item-corporate i {
+    width: 20px;
+    margin-right: 12px;
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.sidebar-section-title {
+    padding: 1.5rem 1.75rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94A3B8;
+}
+
+/* Card - Professional Data Container */
+.bank-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-bank);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+}
+
+.bank-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* KPIs Display */
+.kpi-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.kpi-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--primary-institutional);
+    line-height: 1;
+    margin: 0.5rem 0;
+}
+
+.kpi-trend-up {
+    color: var(--success-bank);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.kpi-trend-down {
+    color: var(--danger-bank);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Table - Financial Ledger Style */
+.bank-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.bank-table th {
+    background: #F8FAFC;
+    padding: 0.875rem 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748B;
+    border-bottom: 1px solid var(--border-light);
+    text-align: left;
+}
+
+.bank-table td {
+    padding: 1rem 1.5rem;
+    font-size: 0.875rem;
+    color: var(--text-main);
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.bank-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Professional Buttons */
+.btn-bank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.btn-bank-primary {
+    background: var(--accent-bank);
+    color: white;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.btn-bank-primary:hover {
+    background: #1D4ED8;
+}
+
+.btn-bank-outline {
+    border: 1px solid var(--border-light);
+    background: white;
+    color: var(--text-main);
+}
+
+.btn-bank-outline:hover {
+    background: #F8FAFC;
+    border-color: #CBD5E1;
+}
+
+/* Badge - Status Indicators */
+.bank-badge {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.badge-success {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.badge-warning {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.badge-danger {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.badge-info {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+/* Professional Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F8FAFC;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
+/* Utility Classes */
+.font-numeric {
+    font-variant-numeric: tabular-nums;
+}
+
+.border-trust {
+    border-left: 4px solid var(--accent-bank);
+}
+
+/* Institutional Form Inputs */
+.bank-input {
+    width: 100%;
+    height: 42px;
+    /* Standardize height for select/input */
+    background-color: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 40px;
+    /* Vertically center text (-2px for borders) */
+    color: var(--text-main);
+    transition: all 0.2s ease-in-out;
+    outline: none;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+select.bank-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+textarea.bank-input {
+    height: auto;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+}
+
+.bank-input:hover {
+    border-color: #9CA3AF;
+}
+
+.bank-input:focus {
+    border-color: var(--accent-bank);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1), inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    background-color: #FFFFFF;
+}
+
+.bank-input::placeholder {
+    color: #94A3B8;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.bank-input:disabled {
+    background-color: #F1F5F9;
+    cursor: not-allowed;
+    color: #94A3B8;
+    border-color: #E2E8F0;
+}
+
+/* Specific styling for range or specialized inputs if needed */
+input[type="number"].bank-input::-webkit-inner-spin-button,
+input[type="number"].bank-input::-webkit-outer-spin-button {
+    opacity: 1;
+}

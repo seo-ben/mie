@@ -49,9 +49,9 @@ class AgentDashboardController extends Controller
     {
         $dateRange = $this->getDateRange($period);
 
-        // Clients enregistrés PAR cet agent uniquement
+        // Clients enregistrés PAR cet agent uniquement (y compris en attente de validation KYC)
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         // Comptes des clients de l'agent
@@ -109,7 +109,7 @@ class AgentDashboardController extends Controller
         $dateRange = $this->getDateRange($period);
 
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)
@@ -207,7 +207,7 @@ class AgentDashboardController extends Controller
     private function getReminders($agentId)
     {
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $today = Carbon::today();
@@ -323,7 +323,7 @@ class AgentDashboardController extends Controller
     private function getRecentActivities($agentId, $limit = 15)
     {
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)
@@ -362,7 +362,7 @@ class AgentDashboardController extends Controller
     private function getChartData($agentId)
     {
         $clientIds = Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
+            ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)

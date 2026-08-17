@@ -10,6 +10,7 @@ use App\Models\LoanPayment;
 use App\Models\TontineAccount;
 use App\Models\TontineCycle;
 use App\Models\SavingsAccount;
+use App\Models\StaffPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -165,7 +166,9 @@ class AdminProfitabilityController extends Controller
                     ->where('status', 'completed')
                     ->sum('payout_amount'),
 
-                'operational_costs' => 0,
+                'operational_costs' => StaffPayment::whereBetween('payment_date', [$startDate, $endDate])
+                    ->where('status', 'paid')
+                    ->sum('amount'),
             ],
         ];
 
@@ -281,8 +284,11 @@ class AdminProfitabilityController extends Controller
     private function getTotalCosts($startDate, $endDate)
     {
         $savingsInterest = $this->getSavingsPaidInterest($startDate, $endDate);
-        $operationalCosts = 0;
-        return $savingsInterest + $operationalCosts;
+        $payroll = StaffPayment::whereBetween('payment_date', [$startDate, $endDate])
+            ->where('status', 'paid')
+            ->sum('amount');
+            
+        return $savingsInterest + $payroll;
     }
 
     /**
@@ -787,7 +793,31 @@ class AdminProfitabilityController extends Controller
             'liquidity_ratio' => $this->getLiquidityRatio(),
             'risk_exposure' => $this->getRiskExposure(),
             'npl_ratio' => $this->getNPLRatio(),
+            'par_1' => $this->calculatePAR(1),
+            'par_30' => $this->calculatePAR(30),
+            'par_60' => $this->calculatePAR(60),
+            'par_90' => $this->calculatePAR(90),
         ];
+    }
+
+    /**
+     * Calcul du PAR (Portfolio at Risk) pour la rentabilité
+     */
+    private function calculatePAR(int $days): float
+    {
+        $cutoffDate = Carbon::now()->subDays($days);
+
+        $overduePrincipal = Loan::whereIn('status', ['active', 'disbursed'])
+            ->whereHas('payments', function ($query) use ($cutoffDate) {
+                $query->where('status', 'overdue')
+                    ->where('due_date', '<=', $cutoffDate);
+            })
+            ->sum('outstanding_principal');
+
+        $totalOutstanding = Loan::whereIn('status', ['active', 'disbursed'])
+            ->sum('outstanding_principal');
+
+        return $totalOutstanding > 0 ? round(($overduePrincipal / $totalOutstanding) * 100, 2) : 0;
     }
 
     /**

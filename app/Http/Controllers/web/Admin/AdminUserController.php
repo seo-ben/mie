@@ -30,7 +30,8 @@ class AdminUserController extends Controller
                       ->orWhere('email', 'like', "%{$search}%");
                 });
             })
-            ->select(['id', 'first_name', 'last_name', 'email', 'role', 'is_active']);
+            ->select(['id', 'first_name', 'last_name', 'email', 'role', 'is_active', 'agency_id'])
+            ->with(['agency']);
 
         $users = $query->get();
 
@@ -88,12 +89,14 @@ class AdminUserController extends Controller
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => 'CREATE_USER',
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
+            'table_name' => 'users',
+            'record_id' => $user->id,
             'additional_data' => [
                 'created_user_role' => $user->role,
                 'created_user_agency' => $user->agency_id
-            ]
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
         ]);
 
         return redirect()->route('admin.users.index')
@@ -112,9 +115,15 @@ class AdminUserController extends Controller
             ->limit(10)
             ->get();
 
+        $otherUsers = User::where('id', '!=', $userId)
+            ->where('is_active', true)
+            ->whereIn('role', ['agent_terrain', 'manager_agence'])
+            ->get();
+
         return view('admin.users.show', [
             'user' => $user,
-            'recent_activities' => $recentActivities
+            'recent_activities' => $recentActivities,
+            'otherUsers' => $otherUsers
         ]);
     }
 
@@ -168,12 +177,14 @@ class AdminUserController extends Controller
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => 'DEACTIVATE_USER',
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
+            'table_name' => 'users',
+            'record_id' => $user->id,
             'additional_data' => [
                 'deactivated_user' => $user->first_name . ' ' . $user->last_name,
                 'deactivated_role' => $user->role
-            ]
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
         ]);
 
         return redirect()->route('admin.users.index')
@@ -233,8 +244,10 @@ class AdminUserController extends Controller
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => $enable ? 'ENABLE_2FA' : 'DISABLE_2FA',
-            'entity_type' => 'user',
-            'entity_id' => $user->id
+            'table_name' => 'users',
+            'record_id' => $user->id,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
         ]);
 
         return redirect()->route('admin.users.index')
@@ -245,23 +258,73 @@ class AdminUserController extends Controller
     {
         $user = User::findOrFail($userId);
         if ($user->id === auth()->id()) {
-            return redirect()->route('users.index')
+            return redirect()->route('admin.users.index')
                 ->with('error', 'Vous ne pouvez pas modifier votre propre statut.');
         }
         $user->update(['is_active' => !$user->is_active]);
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => $user->is_active ? 'ACTIVATE_USER' : 'DEACTIVATE_USER',
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
+            'table_name' => 'users',
+            'record_id' => $user->id,
             'additional_data' => [
                 'user' => $user->first_name . ' ' . $user->last_name,
                 'role' => $user->role
-            ]
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
         ]);
-        return redirect()->route('users.index')
+        return redirect()->route('admin.users.index')
             ->with('success', 'Statut de l\'utilisateur mis à jour avec succès.');
     }
+
+    /**
+     * Transférer le portefeuille client d'un utilisateur à un autre
+     */
+    public function transferClients(Request $request, $userId)
+    {
+        $request->validate([
+            'target_user_id' => 'required|exists:users,id|different:' . $userId,
+        ]);
+
+        $sourceUser = User::findOrFail($userId);
+        $targetUser = User::findOrFail($request->target_user_id);
+
+        $clientCount = $sourceUser->clients()->count();
+
+        if ($clientCount === 0) {
+            return redirect()->back()
+                ->with('error', "Cet utilisateur ne possède aucun client à transférer.");
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($sourceUser, $targetUser, $clientCount) {
+            // Transférer les clients
+            $sourceUser->clients()->update([
+                'registered_by' => $targetUser->id,
+                'agency_id' => $targetUser->agency_id // Aligner l'agence du client sur le nouvel agent si différent
+            ]);
+
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'TRANSFER_PORTFOLIO',
+                'table_name' => 'clients',
+                'record_id' => $targetUser->id,
+                'additional_data' => [
+                    'source_user_id' => $sourceUser->id,
+                    'source_user_name' => $sourceUser->full_name,
+                    'target_user_id' => $targetUser->id,
+                    'target_user_name' => $targetUser->full_name,
+                    'client_count' => $clientCount
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+        });
+
+        return redirect()->back()
+            ->with('success', "Le portefeuille de {$clientCount} client(s) a été transféré avec succès de {$sourceUser->full_name} vers {$targetUser->full_name}.");
+    }
+
     /**
      * Historique des connexions d'un utilisateur
      */

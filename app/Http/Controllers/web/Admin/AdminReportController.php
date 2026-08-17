@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\web\Admin;
+namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\ReportService;
@@ -16,6 +16,14 @@ class AdminReportController extends Controller
 
     /**
      * Dashboard global avec toutes les métriques
+     */
+    public function index()
+    {
+        return view('admin.reports.index');
+    }
+
+    /**
+     * Dashboard global avec toutes les métriques - API
      */
     public function globalDashboard(Request $request)
     {
@@ -58,6 +66,21 @@ class AdminReportController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Rapport Balance Agée Analytique (Vue Web)
+     */
+    public function regulatoryAgingReport(Request $request)
+    {
+        $reportData = $this->adminReportService->getRegulatoryAgingReport();
+        
+        return view('admin.reports.regulatory_aging', [
+            'data' => $reportData['data'],
+            'totals' => $reportData['totals'],
+            'summary' => $reportData['summary'],
+            'date' => now()
+        ]);
     }
 
     /**

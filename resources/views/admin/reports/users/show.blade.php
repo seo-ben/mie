@@ -1,263 +1,225 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Rapport - ' . $user->full_name)
+@section('title', 'Dossier Analytique - ' . $user->full_name)
+@section('page-title', 'Protocole / Dossier d\'Intelligence')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header avec retour et actions -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div class="flex items-center gap-4">
-            <a href="{{ route('admin.reports.users.index') }}"
-               class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
-                <i class="fas fa-arrow-left text-gray-600"></i>
+            <a href="{{ route('admin.reports.users.index') }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
             </a>
             <div>
-                <h2 class="text-2xl font-bold text-gray-800">Rapport d'Activité</h2>
-                <p class="text-gray-600 text-sm">{{ $user->full_name }} - {{ ucfirst(str_replace('_', ' ', $user->role)) }}</p>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Rapport d'Intelligence de l'Officier</h2>
+                <p class="text-slate-500 text-sm font-medium">{{ $user->full_name }} • Portefeuille de {{ ucfirst(str_replace('_', ' ', $user->role)) }}</p>
             </div>
         </div>
-        <div class="flex gap-2">
-            <a href="{{ route('admin.reports.users.export', $user->id) }}?start_date={{ $startDate->format('Y-m-d') }}&end_date={{ $endDate->format('Y-m-d') }}"
-               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
-                <i class="fas fa-download"></i>
-                <span>Exporter</span>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.reports.users.export', $user->id) }}?start_date={{ $startDate->format('Y-m-d') }}&end_date={{ $endDate->format('Y-m-d') }}" class="btn-bank btn-bank-outline">
+                <i class="fas fa-file-arrow-down mr-2 text-[10px]"></i> Exportation Secondaire
             </a>
-            <button onclick="window.print()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
-                <i class="fas fa-print"></i>
-                <span>Imprimer</span>
+            <button onclick="window.print()" class="btn-bank btn-bank-primary">
+                <i class="fas fa-print mr-2 text-[10px]"></i> Impression Protocolaire
             </button>
         </div>
     </div>
 
-    <!-- Filtre de période -->
-    <div class="bg-white rounded-xl shadow-sm p-4">
-        <form method="GET" action="{{ route('admin.reports.users.show', $user->id) }}"
-              class="flex flex-wrap items-end gap-4">
+    <!-- Sélection de la Fenêtre d'Audit -->
+    <div class="bank-card p-6 no-print">
+        <form method="GET" action="{{ route('admin.reports.users.show', $user->id) }}" class="flex flex-wrap items-end gap-4">
             <div class="flex-1 min-w-[200px]">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Date début</label>
-                <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Début Fenêtre d'Audit</label>
+                <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
             </div>
             <div class="flex-1 min-w-[200px]">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Date fin</label>
-                <input type="date" name="end_date" value="{{ $endDate->format('Y-m-d') }}"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Fin Fenêtre d'Audit</label>
+                <input type="date" name="end_date" value="{{ $endDate->format('Y-m-d') }}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
             </div>
-            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                <i class="fas fa-filter mr-2"></i>Appliquer
-            </button>
+            <button type="submit" class="btn-bank btn-bank-primary px-8">Actualiser l'Analyse</button>
         </form>
-        <p class="text-sm text-gray-500 mt-2">
-            <i class="fas fa-calendar-alt mr-1"></i>
-            Période: {{ $startDate->format('d/m/Y') }} au {{ $endDate->format('d/m/Y') }}
-            ({{ $startDate->diffInDays($endDate) }} jours)
-        </p>
     </div>
 
-    <!-- Informations de l'utilisateur -->
-    <div class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-        <div class="flex flex-wrap items-center justify-between gap-6">
-            <div class="flex items-center gap-4">
-                <div class="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold">
+    <!-- Carte de Résumé d'Identité -->
+    <div class="bank-card !bg-slate-900 p-8 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div class="flex flex-wrap items-center justify-between gap-8 relative z-10">
+            <div class="flex items-center gap-6">
+                <div class="w-24 h-24 bg-white/10 rounded-2xl flex items-center justify-center text-4xl font-black border border-white/10 backdrop-blur-md">
                     {{ strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1)) }}
                 </div>
                 <div>
-                    <h3 class="text-2xl font-bold">{{ $user->full_name }}</h3>
-                    <div class="flex flex-wrap items-center gap-3 mt-2 text-sm">
-                        <span class="bg-white/20 px-3 py-1 rounded-full">
-                            <i class="fas fa-envelope mr-1"></i>{{ $user->email }}
+                    <h3 class="text-3xl font-black text-white leading-tight">{{ $user->full_name }}</h3>
+                    <div class="flex flex-wrap items-center gap-4 mt-3">
+                        <span class="flex items-center gap-2 text-[10px] font-bold text-white/50 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                            <i class="fas fa-envelope text-blue-400"></i> {{ $user->email }}
                         </span>
                         @if($user->phone)
-                        <span class="bg-white/20 px-3 py-1 rounded-full">
-                            <i class="fas fa-phone mr-1"></i>{{ $user->phone }}
+                        <span class="flex items-center gap-2 text-[10px] font-bold text-white/50 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                            <i class="fas fa-phone text-blue-400"></i> {{ $user->phone }}
                         </span>
                         @endif
-                        <span class="bg-white/20 px-3 py-1 rounded-full">
-                            <i class="fas fa-user-tag mr-1"></i>{{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                        <span class="px-3 py-1.5 bg-blue-600 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                            {{ ucfirst(str_replace('_', ' ', $user->role)) }}
                         </span>
                     </div>
                 </div>
             </div>
             <div class="text-right">
-                @if($user->agency)
-                <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                    <p class="text-sm opacity-80">Agence</p>
-                    <p class="text-xl font-bold">{{ $user->agency->name }}</p>
-                    <p class="text-sm mt-1">{{ $user->agency->city }} - {{ $user->agency->code }}</p>
+                <div class="bg-white/5 backdrop-blur-md rounded-xl p-5 border border-white/10 min-w-[200px]">
+                    <p class="text-[9px] font-extrabold text-white/40 uppercase tracking-widest mb-1">Division Assignée</p>
+                    <p class="text-[9px] font-extrabold text-white/40 uppercase tracking-widest mb-1">Division Assignée</p>
+                    <p class="text-xl font-black text-white capitalize">{{ $user->agency->name ?? 'Administration Centrale' }}</p>
+                    <p class="text-[10px] font-bold text-blue-400 mt-1 uppercase">{{ $user->agency->city ?? 'Siège' }} • {{ $user->agency->code ?? 'DIR-GEN' }}</p>
                 </div>
-                @else
-                <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                    <p class="text-sm opacity-80">Aucune agence</p>
-                </div>
-                @endif
             </div>
         </div>
     </div>
 
-    <!-- Statistiques principales -->
+    <!-- KPIs de Performance -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Clients -->
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
+        <div class="bank-card p-6 border-trust">
             <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-users text-blue-600 text-xl"></i>
-                </div>
-                <span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Clients</span>
+                <span class="kpi-label">Adhérents Capturés</span>
+                <i class="fas fa-users text-blue-500 text-xs"></i>
             </div>
-            <p class="text-3xl font-bold text-gray-800">{{ number_format($clientStats['total']) }}</p>
-            <p class="text-sm text-gray-600 mt-1">Total clients</p>
-            <div class="mt-4 pt-4 border-t border-gray-100 space-y-1 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">KYC Approuvé:</span>
-                    <span class="font-semibold text-green-600">{{ $clientStats['kyc_approved'] }}</span>
+            <div class="kpi-value !text-2xl mt-1">{{ number_format($clientStats['total']) }}</div>
+            <div class="mt-4 space-y-2 border-t border-slate-100 pt-4">
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">KYC Vérifiés</span>
+                    <span class="text-emerald-600">{{ $clientStats['kyc_approved'] }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">En attente:</span>
-                    <span class="font-semibold text-orange-600">{{ $clientStats['kyc_pending'] }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Créés (période):</span>
-                    <span class="font-semibold text-blue-600">{{ $clientStats['created_period'] }}</span>
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">Créations (Fenêtre)</span>
+                    <span class="text-blue-600">{{ $clientStats['created_period'] }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- Comptes -->
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
+        <div class="bank-card p-6">
             <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-wallet text-green-600 text-xl"></i>
-                </div>
-                <span class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Comptes</span>
+                <span class="kpi-label">Portefeuilles de comptes Actifs</span>
+                <i class="fas fa-vault text-emerald-500 text-xs"></i>
             </div>
-            <p class="text-3xl font-bold text-gray-800">{{ number_format($accountStats['total']) }}</p>
-            <p class="text-sm text-gray-600 mt-1">Total comptes</p>
-            <div class="mt-4 pt-4 border-t border-gray-100 space-y-1 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Actifs:</span>
-                    <span class="font-semibold text-green-600">{{ $accountStats['active'] }}</span>
+            <div class="kpi-value !text-2xl mt-1">{{ number_format($accountStats['total']) }}</div>
+            <div class="mt-4 space-y-2 border-t border-slate-100 pt-4">
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">Épargne Mutuelle</span>
+                    <span class="text-purple-600">{{ $accountStats['tontine_count'] }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Épargne:</span>
-                    <span class="font-semibold text-blue-600">{{ $accountStats['savings_count'] }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Tontine:</span>
-                    <span class="font-semibold text-purple-600">{{ $accountStats['tontine_count'] }}</span>
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">Comptes d'Actifs</span>
+                    <span class="text-blue-600">{{ $accountStats['savings_count'] }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- Transactions -->
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-purple-500">
+        <div class="bank-card p-6">
             <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-exchange-alt text-purple-600 text-xl"></i>
-                </div>
-                <span class="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full">Transactions</span>
+                <span class="kpi-label">Débit Opérationnel</span>
+                <i class="fas fa-right-left text-purple-500 text-xs"></i>
             </div>
-            <p class="text-3xl font-bold text-gray-800">{{ number_format($transactionStats['completed_count']) }}</p>
-            <p class="text-sm text-gray-600 mt-1">Complétées</p>
-            <div class="mt-4 pt-4 border-t border-gray-100 space-y-1 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Dépôts:</span>
-                    <span class="font-semibold text-green-600">{{ $transactionStats['deposits_count'] }}</span>
+            <div class="kpi-value !text-2xl mt-1">{{ number_format($transactionStats['completed_count']) }}</div>
+            <div class="mt-4 space-y-2 border-t border-slate-100 pt-4">
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">Injections (Entrées)</span>
+                    <span class="text-emerald-600">{{ $transactionStats['deposits_count'] }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Retraits:</span>
-                    <span class="font-semibold text-red-600">{{ $transactionStats['withdrawals_count'] }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">En attente:</span>
-                    <span class="font-semibold text-orange-600">{{ $transactionStats['pending_count'] }}</span>
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">Règlements (Sorties)</span>
+                    <span class="text-rose-600">{{ $transactionStats['withdrawals_count'] }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- Montants -->
-        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-orange-500">
+        <div class="bank-card p-6">
             <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-coins text-orange-600 text-xl"></i>
-                </div>
-                <span class="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded-full">Montants</span>
+                <span class="kpi-label">Classe d'Actifs Gérée</span>
+                <i class="fas fa-coins text-amber-500 text-xs"></i>
             </div>
-            <p class="text-2xl font-bold text-gray-800">{{ number_format($transactionStats['total_amount'], 0, ',', ' ') }}</p>
-            <p class="text-sm text-gray-600 mt-1">FCFA traités</p>
-            <div class="mt-4 pt-4 border-t border-gray-100 space-y-1 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Solde total:</span>
-                    <span class="font-semibold text-blue-600">{{ number_format($accountStats['total_balance'], 0, ',', ' ') }}</span>
+            <div class="kpi-value !text-2xl mt-1">{{ number_format($transactionStats['total_amount'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <div class="mt-4 space-y-2 border-t border-slate-100 pt-4">
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">Solde Sous Gestion</span>
+                    <span class="text-blue-600">{{ number_format($accountStats['total_balance'], 0, ',', ' ') }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Moy/transaction:</span>
-                    <span class="font-semibold text-gray-800">{{ number_format($transactionStats['avg_transaction_amount'], 0, ',', ' ') }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Frais collectés:</span>
-                    <span class="font-semibold text-green-600">{{ number_format($transactionStats['total_fees'], 0, ',', ' ') }}</span>
+                <div class="flex justify-between text-[9px] font-bold uppercase">
+                    <span class="text-slate-400">Frais Institutionnels</span>
+                    <span class="text-emerald-600">{{ number_format($transactionStats['total_fees'], 0, ',', ' ') }}</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Graphique de performance quotidienne -->
-    <div class="bg-white rounded-xl shadow-sm p-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">
-            <i class="fas fa-chart-line mr-2 text-blue-600"></i>
-            Performance Quotidienne
+    <!-- Visualiseur de Tendances -->
+    <div class="bank-card p-8">
+        <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-6 block flex items-center gap-2">
+            <i class="fas fa-chart-line text-blue-600"></i> Tendance de la Performance Opérationnelle
         </h3>
         <div class="h-80">
             <canvas id="dailyPerformanceChart"></canvas>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Répartition par type de compte -->
-        <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">
-                <i class="fas fa-chart-pie mr-2 text-purple-600"></i>
-                Répartition par Type de Compte
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Matrice de Distribution -->
+        <div class="bank-card p-8">
+            <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-6 block flex items-center gap-2">
+                <i class="fas fa-chart-pie text-purple-600"></i> Distribution du Portefeuille
             </h3>
             <div class="h-64">
                 <canvas id="accountTypeChart"></canvas>
             </div>
-            <div class="mt-4 space-y-2">
+            <div class="mt-8 space-y-3">
                 @foreach($accountTypeDistribution as $type)
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
                     <div class="flex items-center gap-3">
-                        <div class="w-4 h-4 rounded {{ $type->account_type === 'savings' ? 'bg-blue-500' : 'bg-purple-500' }}"></div>
-                        <span class="font-medium text-gray-800">{{ ucfirst($type->account_type) }}</span>
+                        <div class="w-1.5 h-6 rounded-full {{ $type->account_type === 'savings' ? 'bg-blue-500' : 'bg-purple-500' }}"></div>
+                        @php
+                            $translatedType = match($type->account_type) {
+                                'savings' => 'Épargne Standard',
+                                'tontine' => 'Épargne Tontine',
+                                default => ucfirst($type->account_type)
+                            };
+                        @endphp
+                        <span class="text-[10px] font-extrabold text-slate-700 uppercase">Module {{ $translatedType }}</span>
                     </div>
                     <div class="text-right">
-                        <p class="font-bold text-gray-800">{{ $type->count }} comptes</p>
-                        <p class="text-sm text-gray-600">{{ number_format($type->total_balance, 0, ',', ' ') }} FCFA</p>
+                        <p class="text-sm font-black text-slate-800">{{ $type->count }} comptes</p>
+                        <p class="text-[9px] font-bold text-slate-400">{{ number_format($type->total_balance, 0, ',', ' ') }} XOF</p>
                     </div>
                 </div>
                 @endforeach
             </div>
         </div>
 
-        <!-- Répartition par méthode de paiement -->
-        <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">
-                <i class="fas fa-credit-card mr-2 text-green-600"></i>
-                Méthodes de Paiement
+        <!-- Matrice des Canaux -->
+        <div class="bank-card p-8">
+            <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest mb-6 block flex items-center gap-2">
+                <i class="fas fa-network-wired text-emerald-600"></i> Matrice des Canaux de Règlement
             </h3>
             <div class="h-64">
                 <canvas id="paymentMethodChart"></canvas>
             </div>
-            <div class="mt-4 space-y-2">
+            <div class="mt-8 space-y-3">
                 @foreach($paymentMethodDistribution as $method)
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-{{ $method->payment_method === 'cash' ? 'money-bill-wave' : ($method->payment_method === 'mobile_money' ? 'mobile-alt' : 'university') }} text-gray-600"></i>
-                        <span class="font-medium text-gray-800">{{ ucfirst(str_replace('_', ' ', $method->payment_method)) }}</span>
+                        <i class="fas fa-{{ $method->payment_method === 'cash' ? 'money-bill-wave' : ($method->payment_method === 'mobile_money' ? 'mobile-screen' : 'building-columns') }} text-slate-400 text-xs"></i>
+                        @php
+                            $translatedMethod = match($method->payment_method) {
+                                'cash' => 'Espèces (Caisse)',
+                                'mobile_money' => 'Paiement Mobile',
+                                'bank_transfer' => 'Virement Bancaire',
+                                default => ucfirst(str_replace('_', ' ', $method->payment_method))
+                            };
+                        @endphp
+                        <span class="text-[10px] font-extrabold text-slate-700 uppercase">Canal {{ $translatedMethod }}</span>
                     </div>
                     <div class="text-right">
-                        <p class="font-bold text-gray-800">{{ $method->count }} trans.</p>
-                        <p class="text-sm text-gray-600">{{ number_format($method->total_amount, 0, ',', ' ') }} FCFA</p>
+                        <p class="text-sm font-black text-slate-800">{{ $method->count }} Ops</p>
+                        <p class="text-[9px] font-bold text-slate-400">{{ number_format($method->total_amount, 0, ',', ' ') }} XOF</p>
                     </div>
                 </div>
                 @endforeach
@@ -265,59 +227,49 @@
         </div>
     </div>
 
-    <!-- Top Clients -->
-    <div class="bg-white rounded-xl shadow-sm p-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">
-            <i class="fas fa-star mr-2 text-yellow-500"></i>
-            Top 10 Clients (par activité)
-        </h3>
+    <!-- Performance du Registre Individuel -->
+    <div class="bank-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Matrice des Adhérents Cibles (Top 10)</h3>
+            <span class="text-[9px] font-bold text-slate-400 uppercase">Filtré par Indice d'Activité</span>
+        </div>
         <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
+            <table class="bank-table">
+                <thead>
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Rang</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Client</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Comptes</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Transactions</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Solde Total</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Statut</th>
+                        <th class="w-16">Audit #</th>
+                        <th>Identité du Membre</th>
+                        <th>comptes</th>
+                        <th>Décompte Opérationnel</th>
+                        <th>Total Actifs</th>
+                        <th class="text-right">Statut de Validation</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
+                <tbody class="divide-y divide-slate-100">
                     @foreach($topClients as $index => $client)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3">
-                            <span class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
-                                {{ $index === 0 ? 'bg-yellow-100 text-yellow-700' : '' }}
-                                {{ $index === 1 ? 'bg-gray-200 text-gray-700' : '' }}
-                                {{ $index === 2 ? 'bg-orange-100 text-orange-700' : '' }}
-                                {{ $index > 2 ? 'bg-gray-100 text-gray-600' : '' }}">
-                                {{ $index + 1 }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div>
-                                <p class="font-medium text-gray-800">{{ $client->first_name }} {{ $client->last_name }}</p>
-                                <p class="text-xs text-gray-500">{{ $client->client_number }}</p>
+                    <tr class="hover:bg-slate-50/50">
+                        <td class="text-center font-black text-slate-400 text-xs">#{{ $index + 1 }}</td>
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                    {{ strtoupper(substr($client->first_name, 0, 1) . substr($client->last_name, 0, 1)) }}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800 leading-none">{{ $client->first_name }} {{ $client->last_name }}</p>
+                                    <p class="text-[9px] font-mono text-blue-600 font-bold mt-1">{{ $client->client_number }}</p>
+                                </div>
                             </div>
                         </td>
-                        <td class="px-4 py-3">
-                            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium">
-                                {{ $client->active_accounts_count }}/{{ $client->accounts_count }}
+                        <td>
+                            <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-black rounded border border-blue-100">
+                                {{ $client->active_accounts_count }} Actifs
                             </span>
                         </td>
-                        <td class="px-4 py-3">
-                            <span class="font-semibold text-gray-800">{{ number_format($client->transactions_count) }}</span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span class="font-bold text-green-600">{{ number_format($client->total_balance, 0, ',', ' ') }} FCFA</span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span class="px-2 py-1 text-xs font-medium rounded
-                                {{ $client->kyc_status === 'approved' ? 'bg-green-100 text-green-700' : '' }}
-                                {{ $client->kyc_status === 'pending' ? 'bg-orange-100 text-orange-700' : '' }}
-                                {{ $client->kyc_status === 'rejected' ? 'bg-red-100 text-red-700' : '' }}">
-                                {{ ucfirst($client->kyc_status) }}
+                        <td class="font-bold text-slate-700">{{ number_format($client->transactions_count) }} Ops</td>
+                        <td><span class="font-black text-slate-900">{{ number_format($client->total_balance, 0, ',', ' ') }} <small class="text-[9px] text-slate-400">XOF</small></span></td>
+                        <td class="text-right">
+                            <span class="bank-badge {{ $client->kyc_status === 'approved' ? 'badge-success' : 'badge-warning' }} !text-[8px]">
+                                KYC {{ $client->kyc_status === 'approved' ? 'APPROUVÉ' : 'EN ATTENTE' }}
                             </span>
                         </td>
                     </tr>
@@ -327,163 +279,164 @@
         </div>
     </div>
 
-    <!-- Activités récentes -->
-    <div class="bg-white rounded-xl shadow-sm p-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">
-            <i class="fas fa-history mr-2 text-gray-600"></i>
-            20 Dernières Activités
-        </h3>
-        <div class="space-y-3">
-            @forelse($recentActivities as $activity)
-            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center
-                        {{ $activity->transaction_type === 'deposit' ? 'bg-green-100' : '' }}
-                        {{ $activity->transaction_type === 'withdrawal' ? 'bg-red-100' : '' }}
-                        {{ $activity->transaction_type === 'transfer' ? 'bg-blue-100' : '' }}">
-                        <i class="fas fa-{{ $activity->transaction_type === 'deposit' ? 'arrow-down' : ($activity->transaction_type === 'withdrawal' ? 'arrow-up' : 'exchange-alt') }}
-                            {{ $activity->transaction_type === 'deposit' ? 'text-green-600' : '' }}
-                            {{ $activity->transaction_type === 'withdrawal' ? 'text-red-600' : '' }}
-                            {{ $activity->transaction_type === 'transfer' ? 'text-blue-600' : '' }}"></i>
-                    </div>
-                    <div>
-                        <p class="font-medium text-gray-800">{{ $activity->account->client->first_name }} {{ $activity->account->client->last_name }}</p>
-                        <p class="text-sm text-gray-600">{{ $activity->description }}</p>
-                        <p class="text-xs text-gray-400 mt-1">{{ $activity->transaction_date->format('d/m/Y H:i') }}</p>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <p class="font-bold text-gray-800">{{ number_format($activity->amount, 0, ',', ' ') }} FCFA</p>
-                    <span class="text-xs px-2 py-1 rounded
-                        {{ $activity->status === 'completed' ? 'bg-green-100 text-green-700' : '' }}
-                        {{ $activity->status === 'pending' ? 'bg-orange-100 text-orange-700' : '' }}
-                        {{ $activity->status === 'failed' ? 'bg-red-100 text-red-700' : '' }}">
-                        {{ ucfirst($activity->status) }}
-                    </span>
-                </div>
-            </div>
-            @empty
-            <p class="text-center text-gray-400 py-8">Aucune activité récente</p>
-            @endforelse
+    <!-- Journal des Activités Récentes -->
+    <div class="bank-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-[10px] font-extrabold text-slate-700 uppercase tracking-widest">Journal des Opérations Récentes</h3>
+            <span class="text-[9px] font-bold text-slate-400 uppercase">Audit des 20 dernières transactions</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="bank-table">
+                <thead>
+                    <tr>
+                        <th>Date & Heure</th>
+                        <th>Référence</th>
+                        <th>Client / Compte</th>
+                        <th>Type d'Opération</th>
+                        <th>Montant</th>
+                        <th class="text-right">Statut</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($recentActivities as $activity)
+                    <tr class="hover:bg-slate-50/50">
+                        <td class="text-[10px] font-bold text-slate-500">{{ $activity->transaction_date->format('d/m/Y H:i') }}</td>
+                        <td class="text-[10px] font-mono font-bold text-blue-600">{{ $activity->transaction_reference }}</td>
+                        <td>
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold text-slate-800">{{ $activity->account->client->full_name }}</span>
+                                <span class="text-[9px] text-slate-400">{{ $activity->account->account_number }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            @php
+                                $typeColor = match($activity->transaction_type) {
+                                    'deposit' => 'emerald',
+                                    'withdrawal' => 'rose',
+                                    'transfer' => 'blue',
+                                    default => 'slate'
+                                };
+                            @endphp
+                            <span class="text-[9px] font-black uppercase text-{{ $typeColor }}-600 bg-{{ $typeColor }}-50 px-2 py-0.5 rounded border border-{{ $typeColor }}-100">
+                                {{ match($activity->transaction_type) {
+                                    'deposit' => 'Dépôt',
+                                    'withdrawal' => 'Retrait',
+                                    'transfer' => 'Transfert',
+                                    'payout' => 'Décaissement',
+                                    default => ucfirst($activity->transaction_type)
+                                } }}
+                            </span>
+                        </td>
+                        <td class="font-black text-slate-800 text-xs">{{ number_format($activity->amount, 0, ',', ' ') }} <small class="text-slate-400">XOF</small></td>
+                        <td class="text-right">
+                            <span class="bank-badge {{ $activity->status === 'completed' ? 'badge-success' : ($activity->status === 'pending' ? 'badge-warning' : 'badge-danger') }} !text-[8px]">
+                                {{ strtoupper($activity->status) }}
+                            </span>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="6" class="py-12 text-center text-slate-400 text-xs italic">Aucune activité enregistrée sur la période</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// Graphique de performance quotidienne
-const dailyPerformanceCtx = document.getElementById('dailyPerformanceChart').getContext('2d');
-new Chart(dailyPerformanceCtx, {
-    type: 'line',
-    data: {
-        labels: {!! json_encode($dailyPerformance->pluck('date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!},
-        datasets: [{
-            label: 'Transactions',
-            data: {!! json_encode($dailyPerformance->pluck('transactions_count')) !!},
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true,
-            yAxisID: 'y'
-        }, {
-            label: 'Montant (FCFA)',
-            data: {!! json_encode($dailyPerformance->pluck('total_amount')) !!},
-            borderColor: 'rgb(34, 197, 94)',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            tension: 0.4,
-            fill: true,
-            yAxisID: 'y1'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            mode: 'index',
-            intersect: false,
-        },
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top',
-            }
-        },
-        scales: {
-            y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                title: {
-                    display: true,
-                    text: 'Nombre de transactions'
-                }
-            },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
-                    display: true,
-                    text: 'Montant (FCFA)'
-                },
-                grid: {
-                    drawOnChartArea: false,
-                }
-            }
-        }
-    }
-});
+    // Configuration Thème Système
+    const chartTheme = {
+        font: { family: "'Inter', sans-serif" },
+        grid: { color: 'rgba(0,0,0,0.03)' }
+    };
 
-// Graphique par type de compte
-const accountTypeCtx = document.getElementById('accountTypeChart').getContext('2d');
-new Chart(accountTypeCtx, {
-    type: 'doughnut',
-    data: {
-        labels: {!! json_encode($accountTypeDistribution->pluck('account_type')->map(fn($t) => ucfirst($t))) !!},
-        datasets: [{
-            data: {!! json_encode($accountTypeDistribution->pluck('count')) !!},
-            backgroundColor: ['rgb(59, 130, 246)', 'rgb(168, 85, 247)', 'rgb(34, 197, 94)'],
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
+    // Tendance de Performance
+    const dailyPerformanceCtx = document.getElementById('dailyPerformanceChart').getContext('2d');
+    new Chart(dailyPerformanceCtx, {
+        type: 'line',
+        data: {
+            labels: {!! json_encode($dailyPerformance->pluck('date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d M'))) !!},
+            datasets: [{
+                label: 'Volume Ops',
+                data: {!! json_encode($dailyPerformance->pluck('transactions_count')) !!},
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                yAxisID: 'y'
+            }, {
+                label: 'Valeur Actifs (XOF)',
+                data: {!! json_encode($dailyPerformance->pluck('total_amount')) !!},
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { display: true, grid: chartTheme.grid, ticks: { font: { size: 9, weight: '700' } } },
+                y1: { position: 'right', display: true, grid: { display: false }, ticks: { font: { size: 9, weight: '700' } } },
+                x: { grid: { display: false }, ticks: { font: { size: 9, weight: '700' } } }
             }
         }
-    }
-});
+    });
 
-// Graphique par méthode de paiement
-const paymentMethodCtx = document.getElementById('paymentMethodChart').getContext('2d');
-new Chart(paymentMethodCtx, {
-    type: 'doughnut',
-    data: {
-        labels: {!! json_encode($paymentMethodDistribution->pluck('payment_method')->map(fn($m) => ucfirst(str_replace('_', ' ', $m)))) !!},
-        datasets: [{
-            data: {!! json_encode($paymentMethodDistribution->pluck('count')) !!},
-            backgroundColor: ['rgb(34, 197, 94)', 'rgb(59, 130, 246)', 'rgb(249, 115, 22)'],
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-            }
+    // Distribution par Type de Compte
+    const accountTypeCtx = document.getElementById('accountTypeChart').getContext('2d');
+    new Chart(accountTypeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {!! json_encode($accountTypeDistribution->pluck('account_type')->map(fn($t) => match($t) { 'savings' => 'Épargne', 'tontine' => 'Tontine', default => ucfirst($t) })) !!},
+            datasets: [{
+                data: {!! json_encode($accountTypeDistribution->pluck('count')) !!},
+                backgroundColor: ['#3b82f6', '#a855f7', '#10b981'],
+                borderWidth: 0,
+                cutout: '75%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { weight: '700', size: 9 } } } }
         }
-    }
-});
+    });
+
+    // Distribution par Méthode de Paiement
+    const paymentMethodCtx = document.getElementById('paymentMethodChart').getContext('2d');
+    new Chart(paymentMethodCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {!! json_encode($paymentMethodDistribution->pluck('payment_method')->map(fn($m) => match($m) { 'cash' => 'Espèces', 'mobile_money' => 'Paiement Mobile', 'bank_transfer' => 'Banque', default => ucfirst(str_replace('_', ' ', $m)) })) !!},
+            datasets: [{
+                data: {!! json_encode($paymentMethodDistribution->pluck('count')) !!},
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'],
+                borderWidth: 0,
+                cutout: '75%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { weight: '700', size: 9 } } } }
+        }
+    });
 </script>
 
 <style>
-@media print {
-    .no-print {
-        display: none !important;
+    @media print {
+        .no-print { display: none !important; }
+        .bank-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+        body { background: white !important; }
     }
-}
 </style>
 @endsection

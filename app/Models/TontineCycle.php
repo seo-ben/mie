@@ -12,7 +12,10 @@ class TontineCycle extends Model
         'start_date',
         'end_date',
         'target_amount',
-        'status'
+        'collected_amount',
+        'payout_amount',
+        'status',
+        'payout_date'
     ];
 
     protected $casts = [

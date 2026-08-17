@@ -129,4 +129,19 @@ class User extends Authenticatable
     // {
     //     $this->attributes['password'] = bcrypt($password);
     // }
+    /**
+     * Relation avec les sessions de caisse.
+     */
+    public function cashierSessions()
+    {
+        return $this->hasMany(CashierSession::class);
+    }
+
+    /**
+     * Relation avec les transactions traitées par cet utilisateur.
+     */
+    public function processedTransactions()
+    {
+        return $this->hasMany(Transaction::class, 'processed_by');
+    }
 }

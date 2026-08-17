@@ -33,6 +33,14 @@ class ClientAccountController extends Controller
     {
         $client = auth()->user()->client ?? auth()->user();
         
+        // Vérification KYC pour les comptes épargne
+        if ($request->account_type === 'savings' && $client->kyc_status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le client doit avoir un KYC approuvé pour ouvrir un compte d\'épargne.'
+            ], 403);
+        }
+
         $account = $this->accountService->createAccount(
             $client->id, 
             $request->validated()

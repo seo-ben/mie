@@ -224,7 +224,7 @@
                                     <p class="mb-1 text-sm font-weight-bold text-success">
                                         {{ number_format($expectedAmount, 0, ',', ' ') }} FCFA
                                     </p>
-                                    <a href="{{ route('agent.accounts.deposit-form', $account->id) }}"
+                                    <a href="{{ route('agent.accounts.deposit.form', $account->id) }}"
                                        class="btn btn-success btn-sm">
                                         <i class="fas fa-plus-circle me-1"></i>
                                         Collecter
@@ -351,7 +351,7 @@
                     <i class="fas fa-bolt me-2"></i>
                     Collecte Rapide
                 </a>
-                <a href="{{ route('agent.accounts.deposit-history') }}" class="btn btn-info">
+                <a href="{{ route('agent.transactions.index') }}" class="btn btn-info">
                     <i class="fas fa-history me-2"></i>
                     Historique des Collectes
                 </a>

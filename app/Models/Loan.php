@@ -16,7 +16,20 @@ class Loan extends Model
         'purpose',
         'collateral_description',
         'status',
-        'risk_level'
+        'risk_level',
+        'loan_type',
+        'approved_amount',
+        'monthly_payment',
+        'total_amount_due',
+        'outstanding_principal',
+        'outstanding_interest',
+        'total_paid',
+        'penalty_amount',
+        'days_overdue',
+        'approved_by',
+        'approved_at',
+        'reviewed_by',
+        'approval_notes'
     ];
 
     protected $casts = [
@@ -60,5 +73,13 @@ class Loan extends Model
     public function disbursedBy()
     {
         return $this->belongsTo(User::class, 'disbursed_by');
+    }
+
+    /**
+     * Accessor pour le montant restant
+     */
+    public function getRemainingAmountAttribute()
+    {
+        return max(0, ($this->total_amount_due ?? 0) - ($this->total_paid ?? 0));
     }
 }

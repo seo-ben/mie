@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\web\Agent;
+namespace App\Http\Controllers\Web\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
@@ -64,6 +64,10 @@ class AgentAccountController extends Controller
                 ->sum('balance'),
         ];
 
+        if (request()->routeIs('caissier.*')) {
+            return view('agent.cashier.accounts.index', compact('accounts', 'stats'));
+        }
+
         return view('agent.accounts.index', compact('accounts', 'stats'));
     }
 
@@ -79,13 +83,6 @@ class AgentAccountController extends Controller
             ->where('registered_by', $user->id)
             ->with(['accounts'])
             ->firstOrFail();
-
-        // Vérifier que le KYC est approuvé
-        if ($client->kyc_status !== 'approved') {
-            return redirect()
-                ->route('agent.clients.show', $clientId)
-                ->with('error', 'Le client doit avoir un KYC approuvé avant de créer un compte.');
-        }
 
         return view('agent.accounts.create', compact('client'));
     }
@@ -111,63 +108,60 @@ class AgentAccountController extends Controller
                 ->where('registered_by', $user->id)
                 ->firstOrFail();
 
-            if ($client->kyc_status !== 'approved') {
-                throw new \Exception('Le KYC du client doit être approuvé.');
-            }
-
             // 1. Créer le compte de base
-            $account = Account::create([
-                'client_id' => $clientId,
-                'account_number' => $this->generateAccountNumber('tontine'),
-                'account_type' => 'tontine',
-                'status' => 'suspended',
-                'activation_fee' => 0,
-                'balance' => 0,
-                'created_by' => $user->id,
-                'created_at' => now(),
-            ]);
+        $account = Account::create([
+            'client_id' => $clientId,
+            'account_number' => $this->generateAccountNumber('tontine'),
+            'account_type' => 'tontine',
+            'status' => 'active',
+            'activation_fee' => 0,
+            'balance' => 0,
+            'created_by' => $user->id,
+            'created_at' => now(),
+            'activated_by' => $user->id,
+            'activated_at' => now(),
+        ]);
 
-            // 2. Calcul du nombre de périodes selon la fréquence
-            $startDate = now();
-            $endDate = (clone $startDate)->addMonths((int) $request->cycle_duration_months);
+        // 2. Calcul du nombre de périodes selon la fréquence
+        $startDate = now();
+        $duration = (int) $request->cycle_duration_months;
+        $endDate = (clone $startDate)->addMonths($duration);
 
-            $totalPeriods = 0;
-            switch ($request->payment_frequency) {
-                case 'daily':
-                    $totalPeriods = $startDate->diffInDays($endDate);
-                    break;
-                case 'weekly':
-                    $totalPeriods = $startDate->diffInWeeks($endDate);
-                    break;
-                case 'monthly':
-                    $totalPeriods = (int) $request->cycle_duration_months;
-                    break;
-            }
+        // 🔹 Calcul du nombre de périodes (Règles institutionnelles : 31j par mois / 52s par an)
+        $totalPeriods = match ($request->payment_frequency) {
+            'daily' => $duration * 31,
+            'weekly' => (int) round(($duration * 52) / 12),
+            'monthly' => $duration,
+            default => 0,
+        };
 
-            // 3. Calcul des montants
-            $targetAmount = (float) $request->target_amount;
-            $totalExpected = $targetAmount * $totalPeriods;
+        // 3. Calcul des montants
+        $targetAmount = (float) $request->target_amount;
+        $totalExpected = $targetAmount * $totalPeriods;
 
-            // 4. Création du compte tontine
-            $tontineAccount = TontineAccount::create([
-                'account_id' => $account->id,
-                'tontine_amount' => $targetAmount,
-                'cycle_duration_months' => (int) $request->cycle_duration_months,
-                'payment_frequency' => $request->payment_frequency,
-                'expected_monthly_payment' => $targetAmount,
-                'total_expected' => $totalExpected,
-                'total_paid' => 0,
-                'penalty_rate' => 0.05,
-                'total_penalties' => 0,
-                'cycle_start_date' => $startDate,
-                'cycle_end_date' => $endDate,
-            ]);
+        // 4. Création du compte tontine
+        $tontineAccount = TontineAccount::create([
+            'account_id' => $account->id,
+            'tontine_amount' => $targetAmount,
+            'cycle_duration_months' => (int) $request->cycle_duration_months,
+            'payment_frequency' => $request->payment_frequency,
+            'expected_monthly_payment' => $targetAmount,
+            'total_expected' => $totalExpected,
+            'total_paid' => 0,
+            'penalty_rate' => 0.05,
+            'total_penalties' => 0,
+            'cycle_start_date' => $startDate,
+            'cycle_end_date' => $endDate,
+        ]);
 
-            DB::commit();
+        // 5. Initialiser le premier cycle automatiquement
+        $this->createTontineCycle($tontineAccount);
 
-            return redirect()
-                ->route('agent.accounts.show', $account->id)
-                ->with('success', 'Compte tontine créé avec succès. Le compte doit être activé avant utilisation.');
+        DB::commit();
+
+        return redirect()
+            ->route('agent.accounts.show', $account->id)
+            ->with('success', 'Compte tontine créé avec succès et prêt pour les cotisations.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -219,6 +213,10 @@ class AgentAccountController extends Controller
             'transaction_count' => $account->transactions()->count(),
         ];
 
+        if (request()->routeIs('caissier.*')) {
+            return view('agent.cashier.accounts.show', compact('account', 'stats'));
+        }
+
         return view('agent.accounts.show', compact('account', 'stats'));
     }
 
@@ -235,6 +233,10 @@ class AgentAccountController extends Controller
             ->where('account_type', 'tontine')
             ->where('status', 'suspended')
             ->findOrFail($accountId);
+
+        if (request()->routeIs('caissier.*')) {
+            return view('agent.cashier.accounts.activate', compact('account'));
+        }
 
         return view('agent.accounts.activate', compact('account'));
     }
@@ -300,6 +302,7 @@ class AgentAccountController extends Controller
                     'description' => 'Dépôt initial à l\'activation',
                     'status' => 'completed',
                     'processed_by' => $user->id,
+                    'agency_id' => $user->agency_id,
                     'processed_at' => now(),
                     'transaction_date' => now(),
                 ]);
@@ -527,7 +530,7 @@ class AgentAccountController extends Controller
      */
     private function generateAccountNumber($type): string
     {
-        $prefix = 'TON';
+        $prefix = $type === 'savings' ? 'SAV' : 'ACC';
 
         do {
             $number = $prefix . '-' . date('ym') . '-' . strtoupper(Str::random(6));
@@ -752,7 +755,7 @@ class AgentAccountController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $accounts->map(function($account) {
+            'data' => $accounts->map(function(Account $account) {
                 return $this->formatAccountForSearch($account);
             })
         ]);
@@ -1029,5 +1032,56 @@ class AgentAccountController extends Controller
         ];
 
         return view('agent.accounts.dashboard', compact('stats'));
+    }
+
+    /**
+     * Gérer la tournée de collecte quotidienne
+     */
+    public function dailyCollection()
+    {
+        $user = auth()->user();
+        $agentId = $user->id;
+
+        // 1. Récupérer les IDs des clients de l'agent
+        $clientIds = Client::where('registered_by', $agentId)->pluck('id');
+
+        // 2. Récupérer les comptes tontine actifs de ces clients
+        $activeTontineAccounts = Account::with(['client', 'tontineAccount.activeCycle'])
+            ->whereIn('client_id', $clientIds)
+            ->where('account_type', 'tontine')
+            ->where('status', 'active')
+            ->get();
+
+        // 3. Identifier ceux qui ont déjà cotisé AUJOURD'HUI
+        $collectedTodayIds = Transaction::whereIn('account_id', $activeTontineAccounts->pluck('id'))
+            ->where('transaction_type', 'deposit')
+            ->where('status', 'completed')
+            ->whereDate('transaction_date', today())
+            ->pluck('account_id');
+
+        // 4. Séparer en deux listes
+        $accountsToCollect = $activeTontineAccounts->filter(function($account) use ($collectedTodayIds) {
+            return !$collectedTodayIds->contains($account->id);
+        });
+
+        $collectedToday = $activeTontineAccounts->filter(function($account) use ($collectedTodayIds) {
+            return $collectedTodayIds->contains($account->id);
+        });
+
+        // 5. Calculer les statistiques pour la vue
+        $stats = [
+            'to_collect_count' => $accountsToCollect->count(),
+            'collected_count' => $collectedToday->count(),
+            'collected_amount' => Transaction::whereIn('account_id', $activeTontineAccounts->pluck('id'))
+                ->where('transaction_type', 'deposit')
+                ->where('status', 'completed')
+                ->whereDate('transaction_date', today())
+                ->sum('amount'),
+            'target_amount' => $activeTontineAccounts->sum(function($account) {
+                return $account->tontineAccount->tontine_amount ?? 0;
+            }),
+        ];
+
+        return view('agent.accounts.daily-collection', compact('accountsToCollect', 'collectedToday', 'stats'));
     }
 }

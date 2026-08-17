@@ -217,17 +217,26 @@
         </div>
         @endif
 
-        <!-- Reçu -->
-        @if($transaction->receipt)
+        <!-- Reçu Numérique Sécurisé -->
         <div class="pt-4 border-t border-gray-200">
-            <label class="block mb-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Reçu</label>
-            <a href="{{ $transaction->receipt->receipt_url }}"
-               target="_blank"
-               class="flex items-center justify-center px-4 py-2 text-blue-600 transition-colors rounded-lg bg-blue-50 hover:bg-blue-100">
-                <i class="mr-2 fas fa-receipt"></i>Télécharger le Reçu
-            </a>
+            <label class="block mb-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Gouvernance & Protocole</label>
+            <div class="space-y-2">
+                <a href="{{ route('admin.transactions.receipt', $transaction->id) }}"
+                   target="_blank"
+                   class="flex items-center justify-center px-4 py-3 text-white transition-all bg-slate-900 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-200 group">
+                    <i class="mr-2 fas fa-fingerprint text-blue-400 group-hover:scale-110 transition"></i>
+                    <span class="text-xs font-black uppercase tracking-widest">Générer l'Artefact de Transaction</span>
+                </a>
+                
+                @if($transaction->receipt)
+                <a href="{{ $transaction->receipt->receipt_url }}"
+                   target="_blank"
+                   class="flex items-center justify-center px-4 py-2 text-blue-600 transition-colors rounded-lg bg-blue-50 hover:bg-blue-100 text-xs font-bold uppercase">
+                    <i class="mr-2 fas fa-receipt"></i>Télécharger le Reçu Leguacy
+                </a>
+                @endif
+            </div>
         </div>
-        @endif
 
         <!-- Timeline d'activité -->
         <div class="pt-4 border-t border-gray-200">

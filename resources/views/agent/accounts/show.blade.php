@@ -60,15 +60,6 @@
                                 <span class="badge bg-purple-soft text-purple fs-6">
                                     {{ $account->account_number }}
                                 </span>
-                                @if($account->status === 'active')
-                                    <span class="badge bg-success fs-6">
-                                        <i class="fas fa-check-circle me-1"></i>Actif
-                                    </span>
-                                @else
-                                    <span class="badge bg-warning fs-6">
-                                        <i class="fas fa-pause-circle me-1"></i>Suspendu
-                                    </span>
-                                @endif
                             </div>
                         </div>
                         <div class="text-end">
@@ -131,25 +122,14 @@
                         <i class="fas fa-bolt me-2"></i>Actions Rapides
                     </h6>
                     <div class="gap-2 d-grid">
-                        @if($account->status === 'active')
-                            <a href="{{ route('agent.accounts.deposit.form', $account->id) }}"
-                               class="shadow-sm btn btn-success btn-lg">
-                                <i class="fas fa-plus-circle me-2"></i>Effectuer un Dépôt
-                            </a>
-                            <a href="{{ route('agent.accounts.transactions', $account->id) }}"
-                               class="btn btn-outline-primary">
-                                <i class="fas fa-history me-2"></i>Historique des transactions
-                            </a>
-                        @else
-                            <a href="{{ route('agent.accounts.activate.form', $account->id) }}"
-                               class="shadow-sm btn btn-warning btn-lg">
-                                <i class="fas fa-play-circle me-2"></i>Activer le Compte
-                            </a>
-                            <div class="mb-0 border-0 alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <small>Le compte doit être activé avant toute transaction</small>
-                            </div>
-                        @endif
+                        <a href="{{ route('agent.accounts.deposit.form', $account->id) }}"
+                           class="shadow-sm btn btn-success btn-lg">
+                            <i class="fas fa-plus-circle me-2"></i>Effectuer un Dépôt
+                        </a>
+                        <a href="{{ route('agent.accounts.transactions', $account->id) }}"
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-history me-2"></i>Historique
+                        </a>
                         <a href="{{ route('agent.clients.show', $account->client->id) }}"
                            class="btn btn-outline-secondary">
                             <i class="fas fa-user me-2"></i>Voir le Client

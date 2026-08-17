@@ -1,213 +1,206 @@
 @extends('layouts.app_admin')
 
+@section('title', 'Arbitrage de Conformité KYC - ' . $client->full_name)
+@section('page-title', 'Protocole / Audit de Sécurité')
+
 @section('content')
-<div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-
-        <!-- En-tête -->
-        <div class="mb-6">
-            <a href="{{ route('admin.clients.show', $client->id) }}" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-2">
-                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                Retour au profil
+<div class="max-w-6xl mx-auto space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.clients.show', $client->id) }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
             </a>
-            <h1 class="text-3xl font-bold text-gray-900">Validation KYC</h1>
-            <p class="mt-1 text-sm text-gray-600">Vérifiez les informations du client avant validation</p>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Arbitrage de Conformité KYC</h2>
+                <p class="text-slate-500 text-sm font-medium">Révision et complétion du dossier avant validation opérationnelle</p>
+            </div>
         </div>
+        <span class="px-4 py-1.5 bg-amber-50 text-amber-700 text-[10px] font-black rounded-full border border-amber-200 uppercase tracking-widest">
+            Audit en Cours
+        </span>
+    </div>
 
-        <!-- Informations principales -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+    <!-- Alertes de Validation -->
+    @if ($errors->any())
+        <div class="bank-card !border-rose-200 !bg-rose-50/50 p-6">
+            <div class="flex gap-3">
+                <i class="fas fa-triangle-exclamation text-rose-500 mt-1"></i>
+                <div>
+                    <h3 class="text-sm font-black text-rose-900 uppercase tracking-widest leading-none">Données KYC Manquantes ou Invalides</h3>
+                    <ul class="mt-3 space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li class="text-[11px] font-bold text-rose-700 list-disc list-inside">{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <form action="{{ route('admin.clients.approve-kyc', $client->id) }}" method="POST" id="kycForm">
+        @csrf
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Colonne Gauche : Documents & Preuves -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bank-card p-6">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 border-b pb-2">Artefact de Profil</h3>
+                    <div class="flex flex-col items-center gap-4">
                         @if($client->profile_photo_url)
-                            <img src="{{ asset('storage/' . $client->profile_photo_url) }}"
-                                alt="Photo de {{ $client->full_name }}"
-                                class="object-cover w-16 h-16 border border-gray-300 rounded-full">
+                            <img src="{{ asset('storage/' . $client->profile_photo_url) }}" class="w-full aspect-square rounded-2xl object-cover shadow-sm border border-slate-100">
                         @else
-                            <span class="text-2xl text-blue-600 font-bold">{{ strtoupper(substr($client->first_name,0,1)) }}{{ strtoupper(substr($client->last_name,0,1)) }}</span>
+                            <div class="w-full aspect-square bg-slate-100 rounded-2xl flex items-center justify-center text-4xl font-black text-slate-300 border-2 border-dashed border-slate-200 uppercase">
+                                {{ substr($client->first_name, 0, 1) }}{{ substr($client->last_name, 0, 1) }}
+                            </div>
                         @endif
                     </div>
-                    <div class="ml-4">
-                        <h2 class="text-xl font-semibold text-gray-900">{{ $client->full_name }}</h2>
-                        <p class="text-sm text-gray-600">{{ $client->client_number }} • {{ $client->phone }}</p>
+                </div>
+
+                <div class="bank-card p-6">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 border-b pb-2">Documents Versés au Dossier</h3>
+                    <div class="space-y-3">
+                        @forelse($client->documents as $doc)
+                            <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition group">
+                                <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-blue-600 shadow-sm border border-slate-100">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[10px] font-black text-slate-800 truncate uppercase">{{ $doc->document_type }}</p>
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase">Versé le {{ $doc->created_at->format('d/m/Y') }}</p>
+                                </div>
+                                <i class="fas fa-external-link text-[10px] opacity-0 group-hover:opacity-100 transition"></i>
+                            </a>
+                        @empty
+                            <div class="py-12 text-center">
+                                <i class="fas fa-file-circle-exclamation text-3xl text-slate-200 mb-3 block"></i>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase">Aucun document numérisé</span>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
-                <span class="px-4 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">
-                    En attente
-                </span>
             </div>
 
-            <div class="px-6 py-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Informations personnelles -->
-                <div>
-                    <h3 class="text-gray-900 font-semibold text-sm mb-3 uppercase tracking-wide">Informations Personnelles</h3>
-                    <dl class="space-y-2">
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Nom complet</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->full_name }}</dd>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Date de naissance</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->date_of_birth?->format('d/m/Y') }}</dd>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Genre</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->gender === 'male' ? 'Masculin' : 'Féminin' }}</dd>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Téléphone</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->phone }}</dd>
-                        </div>
-                        <div class="flex justify-between py-2">
-                            <dt class="text-sm text-gray-600">Adresse</dt>
-                            <dd class="text-sm font-medium text-gray-900 text-right">{{ $client->address }}, {{ $client->city }}</dd>
-                        </div>
-                    </dl>
-                </div>
-
-                <!-- Pièce d'identité -->
-                <div>
-                    <h3 class="text-gray-900 font-semibold text-sm mb-3 uppercase tracking-wide">Pièce d'identité</h3>
-                    <dl class="space-y-2">
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Type</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ ucfirst(str_replace('_',' ',$client->id_type)) }}</dd>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Numéro</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->id_number }}</dd>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Date d'expiration</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->id_expiry_date?->format('d/m/Y') ?? 'Non renseignée' }}</dd>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-100 py-2">
-                            <dt class="text-sm text-gray-600">Profession</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->profession ?? 'Non renseignée' }}</dd>
-                        </div>
-                        <div class="flex justify-between py-2">
-                            <dt class="text-sm text-gray-600">Revenu mensuel</dt>
-                            <dd class="text-sm font-medium text-gray-900">{{ $client->monthly_income ? number_format($client->monthly_income,0,',',' ').' FCFA' : 'Non renseigné' }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-        </div>
-
-        <!-- Documents -->
-        @if($client->documents->isNotEmpty())
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Documents joints</h3>
-            </div>
-            <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                @foreach($client->documents as $document)
-                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-900">{{ ucfirst(str_replace('_',' ',$document->document_type)) }}</span>
-                            @if($document->is_verified)
-                                <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                            @endif
-                        </div>
-                        <a href="{{ $document->file_path }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                            Voir le document
-                        </a>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        <!-- KYC checklist -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Liste de vérification KYC</h3>
-            </div>
-            <div class="p-6 space-y-3">
-                @php
-                    $checklist = [
-                        ['label'=>'Nom et prénom renseignés','check'=>$client->first_name && $client->last_name],
-                        ['label'=>'Numéro de téléphone valide','check'=>$client->phone],
-                        ['label'=>'Date de naissance fournie','check'=>$client->date_of_birth],
-                        ['label'=>'Adresse complète fournie','check'=>$client->address && $client->city],
-                        ['label'=>'Pièce d\'identité valide','check'=>$client->id_type && $client->id_number],
-                        ['label'=>'Documents justificatifs','check'=>$client->documents->isNotEmpty()],
-                    ];
-                @endphp
-
-                @foreach($checklist as $item)
-                    <li class="flex items-start">
-                        <div class="flex-shrink-0">
-                            <div class="h-6 w-6 rounded-full {{ $item['check'] ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center">
-                                @if($item['check'])
-                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                    </svg>
-                                @else
-                                    <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                                    </svg>
-                                @endif
+            <!-- Colonne Droite : Formulaire d'Audit & Correction -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bank-card p-8">
+                    <div class="flex items-center justify-between mb-8 border-b pb-4 border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest">Audit des Données KYC</h3>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase">Vérifiez et complétez les informations selon les documents</p>
                             </div>
                         </div>
-                        <p class="ml-3 text-sm text-gray-700">{{ $item['label'] }}</p>
-                    </li>
-                @endforeach
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="col-span-2 grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-4">
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Nom Complet</p>
+                                <p class="text-sm font-black text-slate-900 uppercase">{{ $client->full_name }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Canal Téléphonique</p>
+                                <p class="text-sm font-black text-slate-900">{{ $client->phone }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Date de Naissance & Genre -->
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date de Naissance *</label>
+                            <input type="date" name="date_of_birth" value="{{ old('date_of_birth', $client->date_of_birth?->format('Y-m-d')) }}" required class="bank-input">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Genre / Sexe *</label>
+                            <select name="gender" required class="bank-input uppercase">
+                                <option value="">Choisir...</option>
+                                <option value="M" {{ old('gender', $client->gender) == 'M' ? 'selected' : '' }}>Masculin (M)</option>
+                                <option value="F" {{ old('gender', $client->gender) == 'F' ? 'selected' : '' }}>Féminin (F)</option>
+                                <option value="Other" {{ old('gender', $client->gender) == 'Other' ? 'selected' : '' }}>Autre</option>
+                            </select>
+                        </div>
+
+                        <!-- Localisation -->
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Adresse Physique *</label>
+                            <input type="text" name="address" value="{{ old('address', $client->address) }}" required class="bank-input" placeholder="Quartier, Rue...">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ville / Localisation *</label>
+                            <input type="text" name="city" value="{{ old('city', $client->city) }}" required class="bank-input" placeholder="Ex: Lomé">
+                        </div>
+
+                        <!-- Identification -->
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Type de Document *</label>
+                            <select name="id_type" required class="bank-input uppercase">
+                                <option value="">Choisir...</option>
+                                <option value="cni" {{ old('id_type', $client->id_type) == 'cni' ? 'selected' : '' }}>CNI</option>
+                                <option value="passport" {{ old('id_type', $client->id_type) == 'passport' ? 'selected' : '' }}>Passeport</option>
+                                <option value="driving_license" {{ old('id_type', $client->id_type) == 'driving_license' ? 'selected' : '' }}>Permis</option>
+                                <option value="other" {{ old('id_type', $client->id_type) == 'other' ? 'selected' : '' }}>Autre</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Numéro de Série du Doc *</label>
+                            <input type="text" name="id_number" value="{{ old('id_number', $client->id_number) }}" required class="bank-input font-mono" placeholder="S/N: XXXXXXXX">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Échéance de Validité</label>
+                            <input type="date" name="id_expiry_date" value="{{ old('id_expiry_date', $client->id_expiry_date?->format('Y-m-d')) }}" class="bank-input">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Revenu Estimé (XOF)</label>
+                            <input type="number" name="monthly_income" value="{{ old('monthly_income', $client->monthly_income) }}" step="1" class="bank-input font-bold" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div class="mt-12 flex items-center justify-between gap-4 border-t pt-8 border-slate-100">
+                        <button type="button" onclick="openRejectModal()" class="btn-bank btn-bank-danger px-8 py-3 text-xs shadow-lg shadow-rose-500/10">
+                            <i class="fas fa-shield-xmark mr-2 text-xs"></i> Rejeter le Dossier
+                        </button>
+                        
+                        <div class="flex items-center gap-4">
+                            <a href="{{ route('admin.clients.show', $client->id) }}" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition">Ajourner</a>
+                            <button type="submit" class="btn-bank btn-bank-success px-12 py-3 text-sm shadow-lg shadow-emerald-500/20 font-black uppercase">
+                                <i class="fas fa-shield-check mr-2 text-xs"></i> Approuver le KYC
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- Actions -->
-        <div class="bg-white rounded-lg shadow p-6 space-y-4">
-            <h3 class="text-lg font-semibold text-gray-900">Décision</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <form action="{{ route('admin.clients.approve-kyc', $client->id) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir approuver ce KYC ?')">
-                    @csrf
-                    <button type="submit" class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow flex items-center justify-center transition">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Approuver le KYC
-                    </button>
-                </form>
-
-                <button type="button" onclick="openRejectModal()" class="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg shadow flex items-center justify-center transition">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Rejeter le KYC
-                </button>
-            </div>
-
-            <a href="{{ route('admin.clients.show', $client->id) }}" class="block text-center px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Annuler</a>
-        </div>
-    </div>
+    </form>
 </div>
 
-<!-- Modal Rejet -->
-<div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-start justify-center overflow-y-auto pt-20">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-5 relative">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Rejeter le KYC</h3>
-            <button onclick="closeRejectModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+<!-- Modal de Rejet de Conformité -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-slate-100">
+        <div class="px-8 py-6 bg-rose-600 text-white flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-black uppercase tracking-tight">Notification de Rejet</h3>
+                <p class="text-[10px] font-bold text-white/70 uppercase">Protocole d'Audit de Sécurité</p>
+            </div>
+            <button onclick="closeRejectModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+                <i class="fas fa-xmark text-sm"></i>
             </button>
         </div>
-        <form action="{{ route('admin.clients.reject-kyc', $client->id) }}" method="POST">
+        <form action="{{ route('admin.clients.reject-kyc', $client->id) }}" method="POST" class="p-8 space-y-6">
             @csrf
-            <textarea name="rejection_reason" rows="4" required placeholder="Expliquez pourquoi le KYC est rejeté..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent mb-4"></textarea>
-            <div class="flex space-x-3">
-                <button type="button" onclick="closeRejectModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Annuler</button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">Confirmer le rejet</button>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Justification Administrative du Rejet *</label>
+                <textarea name="rejection_reason" rows="4" required placeholder="Spécifiez les anomalies détectées..." class="bank-input resize-none focus:ring-rose-500"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4 pt-2">
+                <button type="button" onclick="closeRejectModal()" class="btn-bank btn-bank-outline py-3 text-xs">Annuler</button>
+                <button type="submit" class="btn-bank btn-bank-danger py-3 text-xs shadow-lg shadow-rose-500/20 font-black">Confirmer le Rejet</button>
             </div>
         </form>
     </div>

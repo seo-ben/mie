@@ -1,213 +1,185 @@
 @extends('layouts.app_admin')
 
 @section('title', 'Historique des Cotisations')
+@section('page-title', 'Grand Livre / Flux Tontine')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- En-tête -->
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 mb-2">Historique des Cotisations</h1>
-            <p class="text-gray-600">{{ $tontine->account->client->first_name }} {{ $tontine->account->client->last_name }} - {{ $tontine->account->account_number }}</p>
-        </div>
-        <div class="flex space-x-2">
-            <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                <i class="fas fa-arrow-left mr-2"></i>Retour
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
             </a>
-            <a href="{{ route('admin.tontines.contribute-form', $tontine->id) }}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                <i class="fas fa-plus mr-2"></i>Nouvelle Cotisation
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Registre Historique des Cotisations</h2>
+                <div class="flex items-center gap-3">
+                    <p class="text-slate-500 text-sm font-medium">{{ $tontine->account->client->first_name }} {{ $tontine->account->client->last_name }}</p>
+                    <span class="text-slate-300">|</span>
+                    <p class="text-slate-500 text-sm font-medium font-mono uppercase">{{ $tontine->account->account_number }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.tontines.contribute-form', $tontine->id) }}" class="btn-bank btn-bank-primary">
+                <i class="fas fa-plus mr-2 text-[10px]"></i>
+                <span>Injecter une Cotisation</span>
             </a>
         </div>
     </div>
 
     <!-- Statistiques -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white border-l-4 border-purple-500 rounded-lg shadow-sm p-6">
-            <p class="text-gray-600 text-sm mb-1">Total Cotisé</p>
-            <p class="text-2xl font-bold text-purple-600">{{ number_format($stats['total_amount'], 0, ',', ' ') }} FCFA</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bank-card p-5 border-trust">
+            <span class="kpi-label">Volume Total Cotisé</span>
+            <div class="kpi-value !text-xl mt-1 text-purple-600">{{ number_format($stats['total_amount'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Cumul Historique</p>
         </div>
-        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-sm p-6">
-            <p class="text-gray-600 text-sm mb-1">Nombre de Cotisations</p>
-            <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_count']) }}</p>
+        <div class="bank-card p-5">
+            <span class="kpi-label">Nombre de Flux</span>
+            <div class="kpi-value !text-xl mt-1">{{ number_format($stats['total_count']) }}</div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Transactions Validées</p>
         </div>
-        <div class="bg-white border-l-4 border-cyan-500 rounded-lg shadow-sm p-6">
-            <p class="text-gray-600 text-sm mb-1">Montant Moyen</p>
-            <p class="text-2xl font-bold text-gray-900">{{ number_format($stats['average_amount'], 0, ',', ' ') }} FCFA</p>
+        <div class="bank-card p-5">
+            <span class="kpi-label">Moyenne des Flux</span>
+            <div class="kpi-value !text-xl mt-1 text-blue-600">{{ number_format($stats['average_amount'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Par Transaction</p>
         </div>
     </div>
 
     <!-- Filtres -->
-    <div class="bg-white rounded-lg shadow-sm mb-6">
-        <div class="p-6">
-            <form method="GET" action="{{ route('admin.tontines.contributions', $tontine->id) }}">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <div class="md:col-span-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Cycle</label>
-                        <select name="cycle_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                            <option value="">Tous les cycles</option>
-                            @foreach($cycles as $cycle)
-                                <option value="{{ $cycle->id }}" {{ request('cycle_id') == $cycle->id ? 'selected' : '' }}>
-                                    Cycle #{{ $cycle->cycle_number }}
-                                    ({{ $cycle->start_date->format('d/m/Y') }} - {{ $cycle->end_date->format('d/m/Y') }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+    <div class="bank-card p-6">
+        <form method="GET" action="{{ route('admin.tontines.contributions', $tontine->id) }}" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-3">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Cycle de Tontine</label>
+                <select name="cycle_id" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase">
+                    <option value="">Tous les cycles</option>
+                    @foreach($cycles as $cycle)
+                        <option value="{{ $cycle->id }}" {{ request('cycle_id') == $cycle->id ? 'selected' : '' }}>
+                            Cycle #{{ $cycle->cycle_number }} ({{ $cycle->start_date->format('d/m/Y') }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
-                    <div class="md:col-span-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Date Début</label>
-                        <input type="date"
-                               name="date_from"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                               value="{{ request('date_from') }}">
-                    </div>
+            <div class="md:col-span-3">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Période Du</label>
+                <input type="date"
+                       name="date_from"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase"
+                       value="{{ request('date_from') }}">
+            </div>
 
-                    <div class="md:col-span-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Date Fin</label>
-                        <input type="date"
-                               name="date_to"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                               value="{{ request('date_to') }}">
-                    </div>
+            <div class="md:col-span-3">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Au</label>
+                <input type="date"
+                       name="date_to"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase"
+                       value="{{ request('date_to') }}">
+            </div>
 
-                    <div class="md:col-span-3 flex items-end gap-2">
-                        <button type="submit" class="flex-1 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                            <i class="fas fa-filter mr-2"></i>Filtrer
-                        </button>
-                        <a href="{{ route('admin.tontines.contributions', $tontine->id) }}" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                            <i class="fas fa-redo"></i>
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
+            <div class="md:col-span-3 flex items-end gap-2">
+                <button type="submit" class="btn-bank btn-bank-primary flex-1 h-[38px]">
+                    <i class="fas fa-filter text-[10px] mr-2"></i>Filtrer
+                </button>
+                <a href="{{ route('admin.tontines.contributions', $tontine->id) }}" class="btn-bank btn-bank-outline h-[38px] px-4">
+                    <i class="fas fa-rotate"></i>
+                </a>
+            </div>
+        </form>
     </div>
 
     <!-- Liste des cotisations -->
-    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold text-gray-900">Cotisations ({{ $contributions->total() }})</h5>
+    <div class="bank-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h5 class="text-xs font-black text-slate-800 uppercase tracking-widest">Journal des Opérations ({{ $contributions->total() }})</h5>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="bank-table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Référence</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Méthode de Paiement</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Référence Paiement</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solde Après</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Traité Par</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                        <th>Date & Heure</th>
+                        <th>Référence Transaction</th>
+                        <th>Volume Financier</th>
+                        <th>Canal</th>
+                        <th>Référence Externe</th>
+                        <th>Solde Résiduel</th>
+                        <th>Opérateur</th>
+                        <th>Statut</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-slate-100">
                     @forelse($contributions as $contribution)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">
-                                {{ $contribution->transaction_date->format('d/m/Y') }}
-                            </div>
-                            <div class="text-xs text-gray-500">
-                                {{ $contribution->transaction_date->format('H:i') }}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td>
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold text-slate-700">{{ $contribution->transaction_date->format('d/m/Y') }}</span>
+                                <span class="text-[9px] font-bold text-slate-400">{{ $contribution->transaction_date->format('H:i') }}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-mono text-gray-900">
-                                {{ $contribution->transaction_reference }}
-                            </div>
+                        <td>
+                            <span class="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded">{{ $contribution->transaction_reference }}</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-lg font-bold text-purple-600">
-                                {{ number_format($contribution->amount, 0, ',', ' ') }} FCFA
-                            </div>
+                        <td>
+                            <span class="text-sm font-black text-purple-600 font-numeric">{{ number_format($contribution->amount, 0, ',', ' ') }} <small class="text-[9px]">XOF</small></span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td>
                             @switch($contribution->payment_method)
                                 @case('cash')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                        <i class="fas fa-money-bill-wave mr-1"></i>Espèces
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><i class="fas fa-money-bill-wave"></i> Espèces</span>
                                     @break
                                 @case('mobile_money')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                        <i class="fas fa-mobile-alt mr-1"></i>
-                                        {{ strtoupper($contribution->mobile_money_operator) }}
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-full"><i class="fas fa-mobile-screen-button"></i> Mobile {{ $contribution->mobile_money_operator ? '('.strtoupper($contribution->mobile_money_operator).')' : '' }}</span>
                                     @break
                                 @case('bank_transfer')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                                        <i class="fas fa-university mr-1"></i>Virement
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-purple-600 bg-purple-50 px-2 py-1 rounded-full"><i class="fas fa-building-columns"></i> Virement</span>
                                     @break
                                 @default
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                                        {{ $contribution->payment_method }}
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-slate-600 bg-slate-100 px-2 py-1 rounded-full">{{ $contribution->payment_method }}</span>
                             @endswitch
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td>
                             @if($contribution->payment_reference)
-                                <div class="text-sm font-mono text-gray-900">
-                                    {{ $contribution->payment_reference }}
-                                </div>
+                                <span class="font-mono text-[10px] font-bold text-slate-500 uppercase">{{ $contribution->payment_reference }}</span>
                             @else
-                                <span class="text-sm text-gray-400">-</span>
+                                <span class="text-slate-300 text-xs">-</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-600">
-                                Avant: {{ number_format($contribution->balance_before, 0, ',', ' ') }}
-                            </div>
-                            <div class="text-sm font-semibold text-green-600">
-                                Après: {{ number_format($contribution->balance_after, 0, ',', ' ') }}
+                        <td>
+                            <div class="flex flex-col text-right">
+                                <span class="text-[9px] font-bold text-slate-400 uppercase">Avant: {{ number_format($contribution->balance_before, 0, ',', ' ') }}</span>
+                                <span class="text-[10px] font-black text-emerald-600 uppercase">Après: {{ number_format($contribution->balance_after, 0, ',', ' ') }}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">
-                                {{ $contribution->processedBy->first_name ?? 'N/A' }} {{ $contribution->processedBy->last_name ?? '' }}
+                        <td>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-slate-700">{{ $contribution->processedBy->first_name ?? 'Système' }}</span>
+                                @if($contribution->processed_at)
+                                    <span class="text-[8px] font-bold text-slate-400 uppercase">{{ $contribution->processed_at->format('d/m/Y H:i') }}</span>
+                                @endif
                             </div>
-                            @if($contribution->processed_at)
-                                <div class="text-xs text-gray-500">
-                                    {{ $contribution->processed_at->format('d/m/Y H:i') }}
-                                </div>
-                            @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td>
                             @switch($contribution->status)
                                 @case('completed')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                        <i class="fas fa-check-circle mr-1"></i>Complété
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><i class="fas fa-check-circle"></i> Validé</span>
                                     @break
                                 @case('pending')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                                        <i class="fas fa-clock mr-1"></i>En attente
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-1 rounded-full"><i class="fas fa-clock"></i> En Attente</span>
                                     @break
                                 @case('failed')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                                        <i class="fas fa-times-circle mr-1"></i>Échoué
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-1 rounded-full"><i class="fas fa-times-circle"></i> Échec</span>
                                     @break
                                 @default
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                                        {{ $contribution->status }}
-                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase text-slate-600 bg-slate-100 px-2 py-1 rounded-full">{{ $contribution->status }}</span>
                             @endswitch
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center">
-                            <i class="fas fa-inbox text-5xl text-gray-400 mb-3"></i>
-                            <p class="text-gray-500">Aucune cotisation trouvée</p>
-                            @if(request()->hasAny(['cycle_id', 'date_from', 'date_to']))
-                                <a href="{{ route('admin.tontines.contributions', $tontine->id) }}" class="text-blue-600 hover:text-blue-800 mt-2 inline-block">
-                                    Afficher toutes les cotisations
-                                </a>
-                            @endif
+                        <td colspan="8" class="py-12 text-center">
+                            <i class="fas fa-search text-3xl text-slate-200 mb-3 block"></i>
+                            <p class="text-xs font-bold text-slate-400 uppercase">Aucun flux ne correspond aux critères de recherche</p>
                         </td>
                     </tr>
                     @endforelse
@@ -216,136 +188,67 @@
         </div>
 
         @if($contributions->hasPages())
-        <div class="px-6 py-4 border-t border-gray-200">
-            <div class="flex items-center justify-between">
-                <div class="text-sm text-gray-700">
-                    Affichage de <span class="font-medium">{{ $contributions->firstItem() ?? 0 }}</span> à
-                    <span class="font-medium">{{ $contributions->lastItem() ?? 0 }}</span> sur
-                    <span class="font-medium">{{ $contributions->total() }}</span> cotisations
-                </div>
-                <div class="flex space-x-1">
-                    {{-- Bouton Précédent --}}
-                    @if($contributions->onFirstPage())
-                        <button disabled class="px-3 py-2 bg-gray-100 text-gray-400 rounded cursor-not-allowed">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                    @else
-                        <a href="{{ $contributions->previousPageUrl() }}" class="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                            <i class="fas fa-chevron-left"></i>
-                        </a>
-                    @endif
-
-                    {{-- Numéros de page --}}
-                    @php
-                        $currentPage = $contributions->currentPage();
-                        $lastPage = $contributions->lastPage();
-                        $start = max(1, $currentPage - 2);
-                        $end = min($lastPage, $currentPage + 2);
-                    @endphp
-
-                    @if($start > 1)
-                        <a href="{{ $contributions->url(1) }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                            1
-                        </a>
-                        @if($start > 2)
-                            <span class="px-3 py-2">...</span>
-                        @endif
-                    @endif
-
-                    @for($i = $start; $i <= $end; $i++)
-                        @if($i == $currentPage)
-                            <button class="px-4 py-2 bg-purple-600 text-white rounded font-medium">
-                                {{ $i }}
-                            </button>
-                        @else
-                            <a href="{{ $contributions->url($i) }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                                {{ $i }}
-                            </a>
-                        @endif
-                    @endfor
-
-                    @if($end < $lastPage)
-                        @if($end < $lastPage - 1)
-                            <span class="px-3 py-2">...</span>
-                        @endif
-                        <a href="{{ $contributions->url($lastPage) }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                            {{ $lastPage }}
-                        </a>
-                    @endif
-
-                    {{-- Bouton Suivant --}}
-                    @if($contributions->hasMorePages())
-                        <a href="{{ $contributions->nextPageUrl() }}" class="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
-                    @else
-                        <button disabled class="px-3 py-2 bg-gray-100 text-gray-400 rounded cursor-not-allowed">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    @endif
-                </div>
-            </div>
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+            {{ $contributions->withQueryString()->links() }}
         </div>
         @endif
     </div>
 
     <!-- Résumé par cycle -->
     @if($cycles->isNotEmpty())
-    <div class="bg-white rounded-lg shadow-sm mt-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold text-gray-900">Résumé par Cycle</h5>
-        </div>
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach($cycles as $cycle)
-                    @php
-                        $cycleContributions = $contributions->filter(function($c) use ($cycle) {
-                            return $c->transaction_date >= $cycle->start_date && $c->transaction_date <= $cycle->end_date;
-                        });
-                        $cycleTotal = $cycleContributions->sum('amount');
-                        $cycleCount = $cycleContributions->count();
-                    @endphp
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
-                        <div class="flex items-center justify-between mb-2">
-                            <h6 class="font-semibold text-gray-900">Cycle #{{ $cycle->cycle_number }}</h6>
-                            @switch($cycle->status)
-                                @case('active')
-                                    <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">Actif</span>
-                                    @break
-                                @case('completed')
-                                    <span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">Complété</span>
-                                    @break
-                            @endswitch
+    <div class="bank-card p-6">
+        <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+            <i class="fas fa-layer-group text-purple-600"></i> Segmentation par Cycle
+        </h5>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach($cycles as $cycle)
+                @php
+                    $cycleContributions = $contributions->filter(function($c) use ($cycle) {
+                        return $c->transaction_date >= $cycle->start_date && $c->transaction_date <= $cycle->end_date;
+                    });
+                    $cycleTotal = $cycleContributions->sum('amount');
+                    $cycleCount = $cycleContributions->count();
+                    $cycleProgress = $cycle->target_amount > 0 ? round(($cycle->collected_amount / $cycle->target_amount) * 100, 1) : 0;
+                @endphp
+                <div class="p-4 rounded-xl border border-slate-200 hover:border-purple-300 transition-all group {{ $cycle->status === 'active' ? 'bg-purple-50/30' : 'bg-white' }}">
+                    <div class="flex items-center justify-between mb-3">
+                        <h6 class="text-xs font-black text-slate-800 uppercase">Cycle #{{ $cycle->cycle_number }}</h6>
+                        @switch($cycle->status)
+                            @case('active')
+                                <span class="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Actif</span>
+                                @break
+                            @case('completed')
+                                <span class="text-[8px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Clôturé</span>
+                                @break
+                        @endswitch
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
+                        <i class="fas fa-calendar-alt text-slate-300"></i>
+                        {{ $cycle->start_date->format('d/m/Y') }} → {{ $cycle->end_date->format('d/m/Y') }}
+                    </div>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between items-center bg-slate-50 p-2 rounded">
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Collecté</span>
+                            <span class="text-xs font-black text-purple-600">{{ number_format($cycleTotal, 0, ',', ' ') }} XOF</span>
                         </div>
-                        <div class="text-xs text-gray-500 mb-3">
-                            {{ $cycle->start_date->format('d/m/Y') }} → {{ $cycle->end_date->format('d/m/Y') }}
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Cotisations:</span>
-                                <span class="font-medium text-gray-900">{{ $cycleCount }}</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Total:</span>
-                                <span class="font-bold text-purple-600">{{ number_format($cycleTotal, 0, ',', ' ') }} FCFA</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Objectif:</span>
-                                <span class="font-medium text-gray-900">{{ number_format($cycle->target_amount, 0, ',', ' ') }} FCFA</span>
-                            </div>
-                            @php
-                                $cycleProgress = $cycle->target_amount > 0 ? round(($cycle->collected_amount / $cycle->target_amount) * 100, 1) : 0;
-                            @endphp
-                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="bg-purple-600 h-2 rounded-full" style="width: {{ min($cycleProgress, 100) }}%"></div>
-                            </div>
-                            <div class="text-xs text-gray-500 text-center">
-                                {{ $cycleProgress }}% complété
-                            </div>
+                        <div class="flex justify-between items-center px-2">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase">Cible</span>
+                            <span class="text-[10px] font-bold text-slate-600">{{ number_format($cycle->target_amount, 0, ',', ' ') }} XOF</span>
                         </div>
                     </div>
-                @endforeach
-            </div>
+
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[8px] font-bold uppercase">
+                            <span class="text-slate-400">Complétion</span>
+                            <span class="text-purple-600">{{ $cycleProgress }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-purple-500 h-1.5 rounded-full" style="width: {{ min($cycleProgress, 100) }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
     @endif

@@ -1,37 +1,87 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Nouvelle Cotisation')
+@section('title', 'Initialisation de Cotisation')
+@section('page-title', 'Opérations / Collecte Tontine')
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- En-tête -->
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 mb-2">Nouvelle Cotisation</h1>
-            <p class="text-gray-600">Enregistrer une cotisation pour le cycle actif</p>
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex items-center justify-between no-print">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition border border-slate-200 text-slate-600">
+                <i class="fas fa-chevron-left text-xs"></i>
+            </a>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Protocole de Cotisation</h2>
+                <p class="text-slate-500 text-sm font-medium">Enregistrement d'un flux entrant pour le cycle actif</p>
+            </div>
         </div>
-        <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-            <i class="fas fa-arrow-left mr-2"></i>Retour
-        </a>
     </div>
 
-    <!-- Informations du cycle actif -->
-    <div class="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 rounded-lg shadow-sm p-6 mb-6">
-        <h5 class="text-lg font-semibold text-gray-900 mb-4">Cycle Actif #{{ $activeCycle->cycle_number }}</h5>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-            <div>
-                <p class="text-sm text-gray-600 mb-1">Client</p>
-                <p class="text-lg font-semibold text-gray-900">
-                    {{ $tontine->account->client->first_name }} {{ $tontine->account->client->last_name }}
-                </p>
-                <p class="text-sm text-gray-500">{{ $tontine->account->account_number }}</p>
+    <!-- Alertes de Validation -->
+    @if ($errors->any())
+        <div class="bank-card !border-rose-200 !bg-rose-50/50 p-6">
+            <div class="flex gap-3">
+                <i class="fas fa-triangle-exclamation text-rose-500 mt-1"></i>
+                <div>
+                    <h3 class="text-sm font-black text-rose-900 uppercase tracking-widest leading-none">Anomalies de Protocole</h3>
+                    <ul class="mt-3 space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li class="text-[11px] font-bold text-rose-700 list-disc list-inside">{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
             </div>
-            <div>
-                <p class="text-sm text-gray-600 mb-1">Période du Cycle</p>
-                <p class="text-lg font-semibold text-gray-900">
-                    {{ $activeCycle->start_date->format('d/m/Y') }} → {{ $activeCycle->end_date->format('d/m/Y') }}
-                </p>
+        </div>
+    @endif
+
+    <!-- Alerte Compte Suspendu -->
+    @if($tontine->account->status === 'suspended')
+        <div class="bank-card !border-rose-300 !bg-rose-50/50 p-6">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-ban text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-rose-900 uppercase tracking-tight mb-1">Compte Suspendu - Cotisation Bloquée</h3>
+                        <p class="text-xs text-rose-700 font-medium mb-2">Ce compte est actuellement suspendu. Vous devez d'abord le réactiver pour pouvoir enregistrer une cotisation.</p>
+                        @if($tontine->account->suspension_reason)
+                            <p class="text-[10px] font-bold text-rose-600 bg-rose-100 px-3 py-1 rounded-lg inline-block">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Raison : {{ $tontine->account->suspension_reason }}
+                            </p>
+                        @endif
+                    </div>
+                </div>
+                <form action="{{ route('admin.accounts.reactivate', $tontine->account->id) }}" method="POST" 
+                      onsubmit="return confirm('Réactiver ce compte permettra à nouveau les cotisations. Continuer ?');">
+                    @csrf
+                    <button type="submit" class="btn-bank btn-bank-primary whitespace-nowrap">
+                        <i class="fas fa-unlock mr-2 text-[10px]"></i>
+                        <span>Réactiver</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- Informations du cycle actif -->
+    <div class="bank-card p-6 border-l-4 border-purple-600 bg-purple-50/10">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg shadow-sm">
+                    <i class="fas fa-rotate"></i>
+                </div>
+                <div>
+                    <h5 class="text-sm font-black text-slate-900 uppercase tracking-tight">Cycle Actif #{{ $activeCycle->cycle_number }}</h5>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">Période : {{ $activeCycle->start_date->format('d/m/Y') }} → {{ $activeCycle->end_date->format('d/m/Y') }}</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Titulaire du compte</p>
+                <p class="text-sm font-black text-slate-900">{{ $tontine->account->client->full_name }}</p>
+                <p class="text-[10px] font-mono font-bold text-blue-600 uppercase tracking-tighter">{{ $tontine->account->account_number }}</p>
             </div>
         </div>
 
@@ -42,247 +92,201 @@
                 : 0;
         @endphp
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div class="bg-white rounded-lg p-4">
-                <p class="text-sm text-gray-600 mb-1">Objectif</p>
-                <p class="text-xl font-bold text-gray-900">{{ number_format($activeCycle->target_amount, 0, ',', ' ') }} FCFA</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Cible du Cycle</p>
+                <p class="text-lg font-black text-slate-900">{{ number_format($activeCycle->target_amount, 0, ',', ' ') }} <small class="text-[10px]">XOF</small></p>
             </div>
-            <div class="bg-white rounded-lg p-4">
-                <p class="text-sm text-gray-600 mb-1">Déjà Collecté</p>
-                <p class="text-xl font-bold text-purple-600">{{ number_format($activeCycle->collected_amount, 0, ',', ' ') }} FCFA</p>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Capital Collecté</p>
+                <p class="text-lg font-black text-purple-600">{{ number_format($activeCycle->collected_amount, 0, ',', ' ') }} <small class="text-[10px]">XOF</small></p>
             </div>
-            <div class="bg-white rounded-lg p-4">
-                <p class="text-sm text-gray-600 mb-1">Restant</p>
-                <p class="text-xl font-bold text-orange-600">{{ number_format($remainingAmount, 0, ',', ' ') }} FCFA</p>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Solde Restant</p>
+                <p class="text-lg font-black text-amber-600">{{ number_format($remainingAmount, 0, ',', ' ') }} <small class="text-[10px]">XOF</small></p>
             </div>
         </div>
 
         <div>
-            <div class="flex justify-between text-sm mb-2">
-                <span class="font-medium text-gray-700">Progression</span>
-                <span class="font-bold text-purple-600">{{ $progressPercent }}%</span>
+            <div class="flex justify-between text-[10px] font-black uppercase mb-2">
+                <span class="text-slate-500">Progression de Collecte</span>
+                <span class="text-purple-600">{{ $progressPercent }}%</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-3">
-                <div class="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full" style="width: {{ min($progressPercent, 100) }}%"></div>
+            <div class="w-full bg-slate-200 rounded-full h-2 shadow-inner">
+                <div class="bg-gradient-to-r from-purple-500 to-purple-700 h-2 rounded-full transition-all duration-1000" style="width: {{ min($progressPercent, 100) }}%"></div>
             </div>
         </div>
     </div>
 
     <!-- Formulaire de cotisation -->
-    <div class="bg-white rounded-lg shadow-sm">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold text-gray-900">Informations de Cotisation</h5>
+    <div class="bank-card overflow-hidden">
+        <div class="px-8 py-5 border-b border-slate-100 bg-slate-50/50">
+            <h5 class="text-sm font-black text-slate-800 uppercase tracking-tight">Paramètres du Flux Entrant</h5>
         </div>
 
-        <form action="{{ route('admin.tontines.contribute', $tontine->id) }}" method="POST" class="p-6">
+        <form action="{{ route('admin.tontines.contribute', $tontine->id) }}" method="POST" class="p-8 space-y-8">
             @csrf
 
             <!-- Montant -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Montant de la Cotisation <span class="text-red-500">*</span>
-                </label>
+            <div class="space-y-3">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Montant de la Cotisation *</label>
                 <div class="relative">
                     <input type="number"
                            name="amount"
                            id="amount"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('amount') border-red-500 @enderror"
-                           placeholder="Montant en FCFA"
+                           class="w-full pl-4 pr-16 py-3 bg-white border border-slate-200 rounded-xl text-lg font-black text-slate-900 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                           placeholder="0"
                            value="{{ old('amount', $suggestedAmount) }}"
                            min="100"
-                           max="{{ $remainingAmount }}"
                            required>
-                    <span class="absolute right-4 top-3 text-gray-500 font-medium">FCFA</span>
+                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                        <span class="text-xs font-black text-slate-400 uppercase">XOF</span>
+                    </div>
                 </div>
-                @error('amount')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-                <p class="mt-2 text-sm text-gray-600">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Montant suggéré: <strong class="text-purple-600">{{ number_format($suggestedAmount, 0, ',', ' ') }} FCFA</strong>
-                    (Maximum: {{ number_format($remainingAmount, 0, ',', ' ') }} FCFA)
-                </p>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 text-[9px] font-bold uppercase">
+                        <i class="fas fa-lightbulb text-amber-500"></i>
+                        <span class="text-slate-500">Suggéré pour ce cycle : <span class="text-purple-600">{{ number_format($suggestedAmount, 0, ',', ' ') }} XOF</span></span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-slate-500">Reste : <span class="text-amber-600">{{ number_format($remainingAmount, 0, ',', ' ') }} XOF</span></span>
+                    </div>
+                    <div class="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                        <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                        <div class="text-[10px] font-bold text-blue-700 leading-relaxed">
+                            <p class="uppercase mb-1">💡 Paiements Anticipés Autorisés</p>
+                            <p class="text-blue-600 font-medium normal-case">Vous pouvez payer plus que le montant suggéré. Le surplus sera automatiquement réparti sur les prochains cycles.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Méthode de paiement -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Méthode de Paiement <span class="text-red-500">*</span>
-                </label>
+            <div class="space-y-3">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Canal de Transaction *</label>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors @error('payment_method') border-red-500 @else border-gray-300 @enderror">
-                        <input type="radio"
-                               name="payment_method"
-                               value="cash"
-                               class="sr-only payment-method-radio"
-                               {{ old('payment_method') === 'cash' ? 'checked' : '' }}
-                               required>
+                    <label class="relative flex items-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 transition-all group border-slate-200 bg-white">
+                        <input type="radio" name="payment_method" value="cash" class="peer sr-only payment-method-radio" {{ old('payment_method') === 'cash' ? 'checked' : '' }} required>
                         <div class="flex items-center w-full">
-                            <i class="fas fa-money-bill-wave text-2xl text-green-600 mr-3"></i>
+                            <i class="fas fa-money-bill-wave text-xl text-emerald-500 mr-3 opacity-50 peer-checked:opacity-100 grayscale peer-checked:grayscale-0 transition-all"></i>
                             <div>
-                                <p class="font-semibold text-gray-900">Espèces</p>
-                                <p class="text-sm text-gray-500">Paiement cash</p>
+                                <p class="text-xs font-black text-slate-700 uppercase peer-checked:text-emerald-700 transition-colors">Espèces</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Guichet Physique</p>
                             </div>
                         </div>
-                        <i class="fas fa-check-circle text-2xl text-green-600 ml-auto hidden check-icon"></i>
+                        <div class="absolute inset-0 border-2 border-transparent peer-checked:border-emerald-500 rounded-xl transition-all"></div>
+                        <i class="fas fa-check-circle text-emerald-500 absolute top-2 right-2 opacity-0 peer-checked:opacity-100 transition-all transform scale-50 peer-checked:scale-100"></i>
                     </label>
 
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors @error('payment_method') border-red-500 @else border-gray-300 @enderror">
-                        <input type="radio"
-                               name="payment_method"
-                               value="mobile_money"
-                               class="sr-only payment-method-radio"
-                               {{ old('payment_method') === 'mobile_money' ? 'checked' : '' }}
-                               required>
+                    <label class="relative flex items-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 transition-all group border-slate-200 bg-white">
+                        <input type="radio" name="payment_method" value="mobile_money" class="peer sr-only payment-method-radio" {{ old('payment_method') === 'mobile_money' ? 'checked' : '' }} required>
                         <div class="flex items-center w-full">
-                            <i class="fas fa-mobile-alt text-2xl text-blue-600 mr-3"></i>
+                            <i class="fas fa-mobile-screen-button text-xl text-blue-500 mr-3 opacity-50 peer-checked:opacity-100 grayscale peer-checked:grayscale-0 transition-all"></i>
                             <div>
-                                <p class="font-semibold text-gray-900">Mobile Money</p>
-                                <p class="text-sm text-gray-500">TMoney / Flooz</p>
+                                <p class="text-xs font-black text-slate-700 uppercase peer-checked:text-blue-700 transition-colors">Mobile Money</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">TMoney / Flooz</p>
                             </div>
                         </div>
-                        <i class="fas fa-check-circle text-2xl text-blue-600 ml-auto hidden check-icon"></i>
+                        <div class="absolute inset-0 border-2 border-transparent peer-checked:border-blue-500 rounded-xl transition-all"></div>
+                        <i class="fas fa-check-circle text-blue-500 absolute top-2 right-2 opacity-0 peer-checked:opacity-100 transition-all transform scale-50 peer-checked:scale-100"></i>
                     </label>
 
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors @error('payment_method') border-red-500 @else border-gray-300 @enderror">
-                        <input type="radio"
-                               name="payment_method"
-                               value="bank_transfer"
-                               class="sr-only payment-method-radio"
-                               {{ old('payment_method') === 'bank_transfer' ? 'checked' : '' }}
-                               required>
+                    <label class="relative flex items-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 transition-all group border-slate-200 bg-white">
+                        <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only payment-method-radio" {{ old('payment_method') === 'bank_transfer' ? 'checked' : '' }} required>
                         <div class="flex items-center w-full">
-                            <i class="fas fa-university text-2xl text-purple-600 mr-3"></i>
+                            <i class="fas fa-building-columns text-xl text-purple-500 mr-3 opacity-50 peer-checked:opacity-100 grayscale peer-checked:grayscale-0 transition-all"></i>
                             <div>
-                                <p class="font-semibold text-gray-900">Virement</p>
-                                <p class="text-sm text-gray-500">Virement bancaire</p>
+                                <p class="text-xs font-black text-slate-700 uppercase peer-checked:text-purple-700 transition-colors">Virement</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Interbancaire</p>
                             </div>
                         </div>
-                        <i class="fas fa-check-circle text-2xl text-purple-600 ml-auto hidden check-icon"></i>
+                        <div class="absolute inset-0 border-2 border-transparent peer-checked:border-purple-500 rounded-xl transition-all"></div>
+                        <i class="fas fa-check-circle text-purple-500 absolute top-2 right-2 opacity-0 peer-checked:opacity-100 transition-all transform scale-50 peer-checked:scale-100"></i>
                     </label>
                 </div>
-                @error('payment_method')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
             </div>
 
             <!-- Opérateur Mobile Money (conditionnel) -->
-            <div id="mobile-money-operator-field" class="mb-6 hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Opérateur Mobile Money <span class="text-red-500">*</span>
-                </label>
+            <div id="mobile-money-operator-field" class="hidden space-y-3 bg-slate-50 p-6 rounded-xl border border-slate-100">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Opérateur Réseau *</label>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors border-gray-300">
-                        <input type="radio"
-                               name="mobile_money_operator"
-                               value="tmoney"
-                               class="sr-only operator-radio"
-                               {{ old('mobile_money_operator') === 'tmoney' ? 'checked' : '' }}>
+                    <label class="relative flex items-center p-4 border rounded-xl cursor-pointer hover:bg-white transition-all group border-slate-200 bg-white/50">
+                        <input type="radio" name="mobile_money_operator" value="tmoney" class="peer sr-only operator-radio" {{ old('mobile_money_operator') === 'tmoney' ? 'checked' : '' }}>
                         <div class="flex items-center w-full">
-                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
-                                <span class="text-red-600 font-bold text-lg">T</span>
-                            </div>
+                            <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-black text-lg mr-3">T</div>
                             <div>
-                                <p class="font-semibold text-gray-900">TMoney</p>
-                                <p class="text-sm text-gray-500">Togocom</p>
+                                <p class="text-xs font-black text-slate-700 uppercase">TMoney</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Togocom</p>
                             </div>
                         </div>
-                        <i class="fas fa-check-circle text-2xl text-red-600 ml-auto hidden operator-check-icon"></i>
+                        <div class="absolute inset-0 border-2 border-transparent peer-checked:border-amber-400 rounded-xl transition-all"></div>
+                        <i class="fas fa-check-circle text-amber-400 absolute top-2 right-2 opacity-0 peer-checked:opacity-100 transition-all transform scale-50 peer-checked:scale-100"></i>
                     </label>
 
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors border-gray-300">
-                        <input type="radio"
-                               name="mobile_money_operator"
-                               value="flooz"
-                               class="sr-only operator-radio"
-                               {{ old('mobile_money_operator') === 'flooz' ? 'checked' : '' }}>
+                    <label class="relative flex items-center p-4 border rounded-xl cursor-pointer hover:bg-white transition-all group border-slate-200 bg-white/50">
+                        <input type="radio" name="mobile_money_operator" value="flooz" class="peer sr-only operator-radio" {{ old('mobile_money_operator') === 'flooz' ? 'checked' : '' }}>
                         <div class="flex items-center w-full">
-                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                                <span class="text-orange-600 font-bold text-lg">F</span>
-                            </div>
+                            <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-black text-lg mr-3">F</div>
                             <div>
-                                <p class="font-semibold text-gray-900">Flooz</p>
-                                <p class="text-sm text-gray-500">Moov Africa</p>
+                                <p class="text-xs font-black text-slate-700 uppercase">Flooz</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Moov Africa</p>
                             </div>
                         </div>
-                        <i class="fas fa-check-circle text-2xl text-orange-600 ml-auto hidden operator-check-icon"></i>
+                        <div class="absolute inset-0 border-2 border-transparent peer-checked:border-blue-400 rounded-xl transition-all"></div>
+                        <i class="fas fa-check-circle text-blue-400 absolute top-2 right-2 opacity-0 peer-checked:opacity-100 transition-all transform scale-50 peer-checked:scale-100"></i>
                     </label>
                 </div>
-                @error('mobile_money_operator')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
             </div>
 
             <!-- Référence de paiement -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Référence de Paiement
-                </label>
-                <input type="text"
-                       name="payment_reference"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('payment_reference') border-red-500 @enderror"
-                       placeholder="Numéro de transaction (optionnel)"
-                       value="{{ old('payment_reference') }}">
-                @error('payment_reference')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-                <p class="mt-1 text-sm text-gray-500">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Numéro de référence de la transaction mobile money ou virement
-                </p>
+            <div class="space-y-3">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Référence Externe (Optionnel)</label>
+                <div class="relative">
+                    <input type="text"
+                           name="payment_reference"
+                           class="w-full pl-4 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none transition font-mono uppercase"
+                           placeholder="ID Transaction..."
+                           value="{{ old('payment_reference') }}">
+                    <i class="fas fa-barcode absolute right-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                </div>
             </div>
 
             <!-- Description -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Description / Notes
-                </label>
+            <div class="space-y-3">
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Notes d'Audit (Optionnel)</label>
                 <textarea name="description"
-                          rows="3"
-                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('description') border-red-500 @enderror"
-                          placeholder="Notes ou informations complémentaires (optionnel)">{{ old('description') }}</textarea>
-                @error('description')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                          rows="2"
+                          class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none transition"
+                          placeholder="Observations ou contexte de la transaction...">{{ old('description') }}</textarea>
             </div>
 
             <!-- Récapitulatif -->
-            <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
-                <h6 class="font-semibold text-gray-900 mb-3">Récapitulatif</h6>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Client:</span>
-                        <span class="font-medium text-gray-900">{{ $tontine->account->client->first_name }} {{ $tontine->account->client->last_name }}</span>
+            <div class="bg-slate-50 border border-slate-100 rounded-xl p-6">
+                <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Simulation d'Impact</h6>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500 uppercase">Solde Actuel</span>
+                        <span class="text-xs font-mono font-bold text-slate-700">{{ number_format($tontine->account->balance, 0, ',', ' ') }} XOF</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Cycle:</span>
-                        <span class="font-medium text-gray-900">#{{ $activeCycle->cycle_number }}</span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500 uppercase">Apport Net</span>
+                        <span class="text-xs font-mono font-black text-emerald-600">+ <span id="recap-amount">{{ number_format($suggestedAmount, 0, ',', ' ') }}</span> XOF</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Solde avant:</span>
-                        <span class="font-medium text-gray-900">{{ number_format($tontine->account->balance, 0, ',', ' ') }} FCFA</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Montant cotisation:</span>
-                        <span class="font-bold text-purple-600" id="recap-amount">{{ number_format($suggestedAmount, 0, ',', ' ') }} FCFA</span>
-                    </div>
-                    <div class="border-t border-purple-300 pt-2 mt-2">
-                        <div class="flex justify-between">
-                            <span class="font-semibold text-gray-900">Nouveau solde:</span>
-                            <span class="font-bold text-green-600" id="recap-new-balance">{{ number_format($tontine->account->balance + $suggestedAmount, 0, ',', ' ') }} FCFA</span>
-                        </div>
+                    <div class="border-t border-slate-200 pt-3 flex justify-between items-center">
+                        <span class="text-xs font-black text-slate-800 uppercase">Nouveau Solde Projeté</span>
+                        <span class="text-sm font-mono font-black text-slate-900"><span id="recap-new-balance">{{ number_format($tontine->account->balance + $suggestedAmount, 0, ',', ' ') }}</span> XOF</span>
                     </div>
                 </div>
             </div>
 
             <!-- Boutons d'action -->
-            <div class="flex space-x-4">
-                <button type="submit" class="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold">
-                    <i class="fas fa-check mr-2"></i>Enregistrer la Cotisation
-                </button>
-                <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold">
-                    <i class="fas fa-times mr-2"></i>Annuler
+            <div class="flex items-center justify-end gap-4 pt-4 border-t border-slate-100">
+                <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="btn-bank btn-bank-outline px-8">
+                    Annuler
                 </a>
+                <button type="submit" class="btn-bank btn-bank-primary px-8 py-3 w-full md:w-auto shadow-lg shadow-purple-500/20">
+                    <i class="fas fa-check-circle mr-2 text-xs"></i>
+                    Valider le Protocole
+                </button>
             </div>
         </form>
     </div>
@@ -290,50 +294,16 @@
 
 @push('scripts')
 <script>
-    // Gestion de la sélection de méthode de paiement
+    // Gestion de la sélection mobile money
     document.querySelectorAll('.payment-method-radio').forEach(radio => {
         radio.addEventListener('change', function() {
-            // Réinitialiser tous les styles
-            document.querySelectorAll('.payment-method-radio').forEach(r => {
-                const label = r.closest('label');
-                label.classList.remove('border-purple-500', 'bg-purple-50');
-                label.classList.add('border-gray-300');
-                label.querySelector('.check-icon').classList.add('hidden');
-            });
-
-            // Appliquer le style au sélectionné
-            if (this.checked) {
-                const label = this.closest('label');
-                label.classList.remove('border-gray-300');
-                label.classList.add('border-purple-500', 'bg-purple-50');
-                label.querySelector('.check-icon').classList.remove('hidden');
-            }
-
-            // Afficher/masquer le champ opérateur
             const operatorField = document.getElementById('mobile-money-operator-field');
             if (this.value === 'mobile_money') {
                 operatorField.classList.remove('hidden');
+                // Réinitialiser les opérateurs
+                document.querySelectorAll('.operator-radio').forEach(r => r.checked = false);
             } else {
                 operatorField.classList.add('hidden');
-            }
-        });
-    });
-
-    // Gestion de la sélection d'opérateur
-    document.querySelectorAll('.operator-radio').forEach(radio => {
-        radio.addEventListener('change', function() {
-            document.querySelectorAll('.operator-radio').forEach(r => {
-                const label = r.closest('label');
-                label.classList.remove('border-purple-500', 'bg-purple-50');
-                label.classList.add('border-gray-300');
-                label.querySelector('.operator-check-icon').classList.add('hidden');
-            });
-
-            if (this.checked) {
-                const label = this.closest('label');
-                label.classList.remove('border-gray-300');
-                label.classList.add('border-purple-500', 'bg-purple-50');
-                label.querySelector('.operator-check-icon').classList.remove('hidden');
             }
         });
     });
@@ -346,8 +316,8 @@
         const amount = parseFloat(this.value) || 0;
         const newBalance = currentBalance + amount;
 
-        document.getElementById('recap-amount').textContent = amount.toLocaleString('fr-FR') + ' FCFA';
-        document.getElementById('recap-new-balance').textContent = newBalance.toLocaleString('fr-FR') + ' FCFA';
+        document.getElementById('recap-amount').textContent = amount.toLocaleString('fr-FR').replace(/\s/g, ' ');
+        document.getElementById('recap-new-balance').textContent = newBalance.toLocaleString('fr-FR').replace(/\s/g, ' ');
     });
 
     // Initialiser l'état au chargement
@@ -355,11 +325,6 @@
         const checkedPaymentMethod = document.querySelector('.payment-method-radio:checked');
         if (checkedPaymentMethod) {
             checkedPaymentMethod.dispatchEvent(new Event('change'));
-        }
-
-        const checkedOperator = document.querySelector('.operator-radio:checked');
-        if (checkedOperator) {
-            checkedOperator.dispatchEvent(new Event('change'));
         }
     });
 </script>

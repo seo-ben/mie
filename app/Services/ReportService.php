@@ -202,10 +202,18 @@ class ReportService
 
     private function exportToPDF($reportType, $data)
     {
-        // Utiliser une librairie comme DomPDF
-        $pdf = app('dompdf.wrapper');
-        $pdf->loadView('reports.' . $reportType, compact('data'));
+        // Utiliser dompdf (doit être installé via barryvdh/laravel-dompdf)
+        if (class_exists('Barryvdh\DomPDF\Facade\Pdf')) {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.' . $reportType, compact('data'));
+            return $pdf->download($reportType . '_' . date('Y-m-d') . '.pdf');
+        }
         
-        return $pdf->stream($reportType . '_' . date('Y-m-d') . '.pdf');
+        return back()->with('error', 'Le module PDF n\'est pas configuré.');
+    }
+
+    private function exportToExcel($reportType, $data)
+    {
+        // L'implémentation réelle se fera via une classe Export Laravel Excel
+        return back()->with('info', 'L\'export Excel pour ' . $reportType . ' est en cours de configuration.');
     }
 }

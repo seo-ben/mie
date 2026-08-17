@@ -29,7 +29,7 @@ return new class extends Migration
 
         // Add agency_id to users table
         Schema::table('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('agency_id')->nullable()->after('mfa_secret');
+            $table->unsignedBigInteger('agency_id')->nullable();
             $table->foreign('agency_id')->references('id')->on('agencies')->onDelete('set null');
             $table->index('agency_id');
         });

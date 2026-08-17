@@ -1,251 +1,186 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Gestion des Tontines')
+@section('title', 'Registre des Tontines')
+@section('page-title', 'Supervision / Cycles d\'Épargne Mutuelle')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- En-tête -->
-    <div class="flex justify-between items-center mb-6">
+<div class="space-y-8">
+    <!-- En-tête Institutionnel -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900 mb-2">Gestion des Tontines</h1>
-            <p class="text-gray-600">Suivi et gestion des comptes tontine</p>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Registre de Gestion des Tontines</h2>
+            <p class="text-slate-500 text-sm font-medium">Surveillance des cycles d'épargne mutuelle et dynamique des pools de liquidité</p>
         </div>
-        <a href="{{ route('admin.tontines.report') }}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-            <i class="fas fa-chart-bar mr-2"></i>Rapport Global
-        </a>
-    </div>
-
-    <!-- Statistiques -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div class="bg-white border-l-4 border-purple-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-gray-600 text-sm mb-1">Total Tontines</p>
-                        <h4 class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_tontines']) }}</h4>
-                    </div>
-                    <div class="text-purple-500">
-                        <i class="fas fa-users text-3xl"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white border-l-4 border-green-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-gray-600 text-sm mb-1">Cycles Actifs</p>
-                        <h4 class="text-2xl font-bold text-gray-900">{{ number_format($stats['active_cycles']) }}</h4>
-                    </div>
-                    <div class="text-green-500">
-                        <i class="fas fa-sync text-3xl"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white border-l-4 border-blue-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-gray-600 text-sm mb-1">Montant Collecté</p>
-                        <h4 class="text-xl font-bold text-gray-900">{{ number_format($stats['total_collected'], 0, ',', ' ') }} FCFA</h4>
-                    </div>
-                    <div class="text-blue-500">
-                        <i class="fas fa-coins text-3xl"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white border-l-4 border-cyan-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-gray-600 text-sm mb-1">Débloqué</p>
-                        <h4 class="text-xl font-bold text-gray-900">{{ number_format($stats['total_paid_out'], 0, ',', ' ') }} FCFA</h4>
-                    </div>
-                    <div class="text-cyan-500">
-                        <i class="fas fa-hand-holding-usd text-3xl"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white border-l-4 border-yellow-500 rounded-lg shadow-sm">
-            <div class="p-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-gray-600 text-sm mb-1">En Attente</p>
-                        <h4 class="text-2xl font-bold text-gray-900">{{ number_format($stats['pending_collections']) }}</h4>
-                    </div>
-                    <div class="text-yellow-500">
-                        <i class="fas fa-hourglass-half text-3xl"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.tontines.visual-audit') }}" class="btn-bank btn-bank-outline">
+                <i class="fas fa-magnifying-glass mr-2 text-[10px]"></i> Audit Visuel
+            </a>
+            <a href="{{ route('admin.tontines.report') }}" class="btn-bank btn-bank-outline">
+                <i class="fas fa-chart-line mr-2 text-[10px]"></i> Analytique
+            </a>
+            <a href="#" class="btn-bank btn-bank-primary">
+                <i class="fas fa-plus mr-2 text-[10px]"></i> Nouveau
+            </a>
         </div>
     </div>
 
-    <!-- Filtres et recherche -->
-    <div class="bg-white rounded-lg shadow-sm mb-6">
-        <div class="p-6">
-            <form method="GET" action="{{ route('admin.tontines.index') }}">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <div class="md:col-span-5">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
-                        <input type="text" name="search"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                               placeholder="Numéro compte, nom client..."
-                               value="{{ request('search') }}">
-                    </div>
-
-                    <div class="md:col-span-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Fréquence</label>
-                        <select name="payment_frequency" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                            <option value="">Toutes</option>
-                            <option value="daily" {{ request('payment_frequency') === 'daily' ? 'selected' : '' }}>
-                                Journalière
-                            </option>
-                            <option value="weekly" {{ request('payment_frequency') === 'weekly' ? 'selected' : '' }}>
-                                Hebdomadaire
-                            </option>
-                            <option value="monthly" {{ request('payment_frequency') === 'monthly' ? 'selected' : '' }}>
-                                Mensuelle
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-4 flex items-end gap-2">
-                        <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                            <i class="fas fa-search mr-2"></i>Rechercher
-                        </button>
-                        <a href="{{ route('admin.tontines.index') }}" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                            <i class="fas fa-redo mr-2"></i>Réinitialiser
-                        </a>
-                    </div>
-                </div>
-            </form>
+    <!-- Matrice d'Épargne -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bank-card p-5 border-trust">
+            <span class="kpi-label">Adhérents Actifs</span>
+            <div class="kpi-value !text-xl mt-1">{{ number_format($stats['total_tontines']) }}</div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Membres Uniques Vérifiés</p>
+        </div>
+        <div class="bank-card p-5">
+            <span class="kpi-label">Cycles en Cours</span>
+            <div class="kpi-value !text-xl mt-1 text-emerald-600">{{ number_format($stats['active_cycles']) }}</div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Pools Opérationnels Parallèles</p>
+        </div>
+        <div class="bank-card p-5">
+            <span class="kpi-label">Collecte Brute</span>
+            <div class="kpi-value !text-xl mt-1 text-blue-600">{{ number_format($stats['total_collected'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Liquidité Cumulée des Pools</p>
+        </div>
+        <div class="bank-card p-5">
+            <span class="kpi-label">Sorties Totales</span>
+            <div class="kpi-value !text-xl mt-1 text-purple-600">{{ number_format($stats['total_paid_out'], 0, ',', ' ') }} <small class="text-xs">XOF</small></div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">Volume des Règlements</p>
+        </div>
+        <div class="bank-card p-5">
+            <span class="kpi-label">En Attente de Revue</span>
+            <div class="kpi-value !text-xl mt-1 text-amber-600">{{ number_format($stats['pending_collections']) }}</div>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-2">En Attente de Vérification</p>
         </div>
     </div>
 
-    <!-- Liste des tontines -->
-    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold text-gray-900">Comptes Tontine ({{ $tontines->total() }})</h5>
-        </div>
+    <!-- Contrôles d'Audit -->
+    <div class="bank-card p-6">
+        <form method="GET" action="{{ route('admin.tontines.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-5 relative">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Recherche par ID Membre, Nom ou N° Nœud..." class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none transition uppercase">
+                <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            </div>
+
+            <div class="md:col-span-3">
+                <select name="payment_frequency" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase">
+                    <option value="">Fréquence de Collecte</option>
+                    <option value="daily" {{ request('payment_frequency') === 'daily' ? 'selected' : '' }}>Cadence Journalière</option>
+                    <option value="weekly" {{ request('payment_frequency') === 'weekly' ? 'selected' : '' }}>Fenêtre Hebdomadaire</option>
+                    <option value="monthly" {{ request('payment_frequency') === 'monthly' ? 'selected' : '' }}>Règlement Mensuel</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-4 flex gap-2">
+                <button type="submit" class="btn-bank btn-bank-primary flex-1">
+                    <i class="fas fa-search text-[10px]"></i> Auditer
+                </button>
+                <a href="{{ route('admin.tontines.index') }}" class="btn-bank btn-bank-outline px-4">
+                    <i class="fas fa-rotate"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Volet du Registre d'Épargne -->
+    <div class="bank-card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="bank-table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client / Compte</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant / Fréquence</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cycle Actuel</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progression</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solde</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th>Identité Membre</th>
+                        <th>Configuration de Cycle</th>
+                        <th>Dynamique Interne</th>
+                        <th>Progression Fiscale</th>
+                        <th>Actif Total</th>
+                        <th class="text-right">Action</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-slate-100">
                     @forelse($tontines as $tontine)
                     @php
                         $activeCycle = $tontine->cycles->where('status', 'active')->first();
                         $progressPercent = $activeCycle && $activeCycle->target_amount > 0
-                            ? round(($activeCycle->collected_amount / $activeCycle->target_amount) * 100, 2)
+                            ? round(($activeCycle->collected_amount / $activeCycle->target_amount) * 100, 1)
                             : 0;
+                        
+                        $freqLabels = [
+                            'daily' => 'Journalière',
+                            'weekly' => 'Hebdomadaire',
+                            'monthly' => 'Mensuelle'
+                        ];
                     @endphp
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="font-semibold text-gray-900">
-                                {{ $tontine->account->client->first_name }} {{ $tontine->account->client->last_name }}
-                            </div>
-                            <a href="{{ route('admin.accounts.show', $tontine->account_id) }}"
-                               class="text-sm text-blue-600 hover:text-blue-800">
-                                {{ $tontine->account->account_number }}
-                            </a>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="font-bold text-purple-700">
-                                {{ number_format($tontine->tontine_amount, 0, ',', ' ') }} FCFA
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                @switch($tontine->payment_frequency)
-                                    @case('daily')
-                                        <i class="fas fa-calendar-day mr-1"></i>Journalier
-                                        @break
-                                    @case('weekly')
-                                        <i class="fas fa-calendar-week mr-1"></i>Hebdomadaire
-                                        @break
-                                    @case('monthly')
-                                        <i class="fas fa-calendar mr-1"></i>Mensuel
-                                        @break
-                                @endswitch
-                                • {{ $tontine->cycle_duration_months }} mois
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200">
+                                    <i class="fas fa-rotate text-[10px]"></i>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800 leading-tight">{{ $tontine->account->client->full_name }}</p>
+                                    <a href="{{ route('admin.accounts.show', $tontine->account_id) }}" class="text-[9px] font-mono font-bold text-blue-600 uppercase tracking-tighter mt-0.5 hover:underline">
+                                        {{ $tontine->account->account_number }}
+                                    </a>
+                                </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
+                        <td>
+                            <div class="flex flex-col">
+                                <p class="text-[11px] font-extrabold text-slate-800 font-numeric">{{ number_format($tontine->tontine_amount, 0, ',', ' ') }} <small class="text-[9px] text-slate-400">XOF</small></p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Cadence {{ $freqLabels[$tontine->payment_frequency] ?? ucfirst($tontine->payment_frequency) }}</p>
+                            </div>
+                        </td>
+                        <td>
                             @if($activeCycle)
-                                {{-- <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mb-1">
-                                    Cycle #{{ $activeCycle->cycle_number }}
-                                </span> --}}
-                                <div class="text-xs text-gray-500">
-                                    {{ $activeCycle->start_date->format('d/m/Y') }} → {{ $activeCycle->end_date->format('d/m/Y') }}
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-bold text-emerald-600 uppercase">Cycle #{{ $activeCycle->cycle_number }} Actif</span>
+                                    <span class="text-[9px] text-slate-400 font-medium">{{ $activeCycle->start_date->format('d M') }} → {{ $activeCycle->end_date->format('d M') }}</span>
                                 </div>
                             @else
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                                    Aucun cycle actif
-                                </span>
+                                <span class="bank-badge badge-secondary !text-[8px]">Inerte</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="min-w-[150px]">
                             @if($activeCycle)
-                                <div class="space-y-1">
-                                    <div class="flex justify-between text-sm">
-                                        <span class="font-medium text-gray-700">{{ number_format($activeCycle->collected_amount, 0, ',', ' ') }} FCFA</span>
-                                        <span class="text-gray-500">/ {{ number_format($activeCycle->target_amount, 0, ',', ' ') }}</span>
+                                <div class="space-y-1.5 p-1">
+                                    <div class="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter">
+                                        <span class="text-slate-500">{{ number_format($activeCycle->collected_amount, 0, ',', ' ') }}</span>
+                                        <span class="text-slate-400">Cible : {{ number_format($activeCycle->target_amount, 0, ',', ' ') }}</span>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="bg-purple-600 h-2 rounded-full" style="width: {{ min($progressPercent, 100) }}%"></div>
+                                    <div class="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                                        <div class="bg-purple-600 h-1 rounded-full transition-all duration-500" style="width: {{ min($progressPercent, 100) }}%"></div>
                                     </div>
-                                    <div class="text-xs text-gray-500">{{ $progressPercent }}% complété</div>
+                                    <p class="text-[8px] font-extrabold text-purple-600 text-right">{{ $progressPercent }}% Complet</p>
                                 </div>
                             @else
-                                <span class="text-sm text-gray-500">-</span>
+                                <span class="text-[10px] text-slate-300 font-medium italic">Protocole en attente</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
-                            {{ number_format($tontine->account->balance, 0, ',', ' ') }} FCFA
+                        <td>
+                            <p class="text-[11px] font-extrabold text-slate-800 font-numeric">
+                                {{ number_format($tontine->account->balance, 0, ',', ' ') }} <small class="text-[9px] text-slate-400">XOF</small>
+                            </p>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('admin.tontines.show', $tontine->id) }}"
-                                   class="px-3 py-1 border border-blue-600 text-blue-600 rounded hover:bg-blue-50"
-                                   title="Détails">
-                                    <i class="fas fa-eye"></i>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="p-2 text-slate-400 hover:text-blue-600 transition" title="Auditer le Dossier">
+                                    <i class="fas fa-folder-tree text-xs"></i>
                                 </a>
-
                                 @if($activeCycle)
-                                    <a href="{{ route('admin.tontines.contribute-form', $tontine->id) }}"
-                                       class="px-3 py-1 border border-purple-600 text-purple-600 rounded hover:bg-purple-50"
-                                       title="Cotiser">
-                                        <i class="fas fa-plus"></i>
+                                    <a href="{{ route('admin.tontines.contribute-form', $tontine->id) }}" class="p-2 text-slate-400 hover:text-purple-600 transition" title="Injecter des Fonds">
+                                        <i class="fas fa-hand-holding-dollar text-xs"></i>
                                     </a>
                                 @endif
-
-                                <a href="{{ route('admin.tontines.contributions', $tontine->id) }}"
-                                   class="px-3 py-1 border border-cyan-600 text-cyan-600 rounded hover:bg-cyan-50"
-                                   title="Historique">
-                                    <i class="fas fa-list"></i>
+                                <a href="{{ route('admin.tontines.contributions', $tontine->id) }}" class="p-2 text-slate-400 hover:text-emerald-600 transition" title="Historique du Grand Livre">
+                                    <i class="fas fa-clock-rotate-left text-xs"></i>
                                 </a>
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center">
-                            <i class="fas fa-inbox text-5xl text-gray-400 mb-3"></i>
-                            <p class="text-gray-500">Aucune tontine trouvée</p>
+                        <td colspan="6" class="py-20 text-center">
+                            <i class="fas fa-circle-nodes text-3xl text-slate-200 mb-4 block"></i>
+                            <p class="text-xs font-bold text-slate-400 uppercase">Le registre universel des tontines est actuellement vide</p>
                         </td>
                     </tr>
                     @endforelse
@@ -254,7 +189,7 @@
         </div>
 
         @if($tontines->hasPages())
-        <div class="px-6 py-4 border-t border-gray-200">
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
             {{ $tontines->links() }}
         </div>
         @endif

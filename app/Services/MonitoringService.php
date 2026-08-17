@@ -5,6 +5,7 @@ use App\Models\AuditLog;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Log;
 
 class MonitoringService
 {
@@ -151,7 +152,7 @@ class MonitoringService
             })->toArray();
 
         } catch (\Exception $e) {
-            \Log::error('Erreur getFraudAlerts: ' . $e->getMessage());
+            Log::error('Erreur getFraudAlerts: ' . $e->getMessage());
             return [];
         }
     }
@@ -192,7 +193,7 @@ class MonitoringService
             })->toArray();
 
         } catch (\Exception $e) {
-            \Log::error('❌ Erreur dans getSuspiciousLogins : ' . $e->getMessage());
+            Log::error('❌ Erreur dans getSuspiciousLogins : ' . $e->getMessage());
             return [];
         }
     }
@@ -202,7 +203,7 @@ class MonitoringService
         $fraudAlerts = $this->getFraudAlerts();
         $loginAlerts = $this->getSuspiciousLogins();
 
-        return $this->countHighPriorityAlerts($securityAlerts, $fraudAlerts, $loginAlerts);
+        return count($securityAlerts) + count($fraudAlerts) + count($loginAlerts);
     }
     public function getActiveUsersStats()
     {
@@ -238,7 +239,7 @@ class MonitoringService
             ];
 
         } catch (\Exception $e) {
-            \Log::error('❌ Erreur dans getActiveUsersStats : ' . $e->getMessage());
+            Log::error('❌ Erreur dans getActiveUsersStats : ' . $e->getMessage());
             return [
                 'total_users' => 0,
                 'active_users' => 0,
@@ -299,7 +300,7 @@ class MonitoringService
             ];
 
         } catch (\Exception $e) {
-            \Log::error('❌ Erreur dans getAPIUsageStats : ' . $e->getMessage());
+            Log::error('❌ Erreur dans getAPIUsageStats : ' . $e->getMessage());
             return [
                 'total_requests' => 0,
                 'failed_requests' => 0,
@@ -315,18 +316,25 @@ class MonitoringService
         try {
             // CPU : si sys_getloadavg indisponible, on met null
             $cpuLoad = function_exists('sys_getloadavg') ? sys_getloadavg() : null;
-            $cpu = is_array($cpuLoad) ? round($cpuLoad[0], 2) : null;
+            $cpu = is_array($cpuLoad) ? round($cpuLoad[0], 2) : 0;
 
             // Mémoire
             $memoryUsage = memory_get_usage(true);
-            $memoryLimitRaw = ini_get('memory_limit') ?: '0';
+            $memoryLimitRaw = ini_get('memory_limit') ?: '512M';
             $memoryLimit = $this->convertToBytes($memoryLimitRaw);
-            $memoryPercent = $memoryLimit > 0 ? round(($memoryUsage / $memoryLimit) * 100, 2) : null;
+            $memoryPercent = $memoryLimit > 0 ? round(($memoryUsage / $memoryLimit) * 100, 2) : 0;
+
+            // Stockage (Disk Usage)
+            $totalDisk = disk_total_space("/");
+            $freeDisk = disk_free_space("/");
+            $usedDisk = $totalDisk - $freeDisk;
+            $diskPercent = round(($usedDisk / $totalDisk) * 100, 2);
+            $storageWritable = is_writable(storage_path());
 
             // Base de données : vérifier si PDO fonctionne
             $dbStatus = false;
             try {
-                $dbStatus = \DB::connection()->getPdo() ? true : false;
+                $dbStatus = DB::connection()->getPdo() ? true : false;
             } catch (\Exception $e) {
                 $dbStatus = false;
             }
@@ -340,32 +348,106 @@ class MonitoringService
                 $issues[] = 'Base de données injoignable';
             }
 
-            if ($cpu !== null && $cpu > 80) {
+            if ($cpu > 80) {
                 $status = $status !== 'critical' ? 'warning' : $status;
                 $issues[] = "CPU élevé ({$cpu}%)";
             }
 
-            if ($memoryPercent !== null && $memoryPercent > 80) {
+            if ($memoryPercent > 80) {
                 $status = $status !== 'critical' ? 'warning' : $status;
                 $issues[] = "Mémoire saturée ({$memoryPercent}%)";
+            }
+            
+            if ($diskPercent > 90) {
+                $status = $status !== 'critical' ? 'warning' : $status;
+                $issues[] = "Espace disque critique ({$diskPercent}%)";
+            }
+
+            if (!$storageWritable) {
+                $status = 'critical';
+                $issues[] = 'Répertoire de stockage (/storage) non scriptible';
             }
 
             return [
                 'status' => $status,
-                'cpu_usage' => $cpu ?? 0,
-                'memory_usage' => $memoryPercent ?? 0,
-                'database' => $dbStatus ? 'connecté' : 'hors ligne',
+                'cpu_usage' => [
+                    'status' => $cpu > 80 ? 'warning' : 'healthy',
+                    'message' => $cpu . '%',
+                    'percent' => $cpu
+                ],
+                'memory_usage' => [
+                    'status' => $memoryPercent > 80 ? 'warning' : 'healthy',
+                    'message' => $memoryPercent . '%',
+                    'percent' => $memoryPercent
+                ],
+                'storage' => [
+                    'status' => (!$storageWritable) ? 'critical' : ($diskPercent > 90 ? 'warning' : 'healthy'),
+                    'message' => $diskPercent . '% ' . ($storageWritable ? '(OK)' : '(Lecture seule)'),
+                    'percent' => $diskPercent
+                ],
+                'database' => [
+                    'status' => $dbStatus ? 'healthy' : 'critical',
+                    'message' => $dbStatus ? 'Connecté' : 'Hors ligne'
+                ],
+                'environment' => [
+                    'status' => 'healthy',
+                    'message' => app()->environment()
+                ],
+                'php_version' => [
+                    'status' => 'healthy',
+                    'message' => PHP_VERSION
+                ],
+                'laravel_version' => [
+                    'status' => 'healthy',
+                    'message' => app()->version()
+                ],
+                'debug_mode' => [
+                    'status' => config('app.debug') ? 'warning' : 'healthy',
+                    'message' => config('app.debug') ? 'Activé (⚠️)' : 'Désactivé'
+                ],
                 'issues' => $issues,
                 'timestamp' => now()->toDateTimeString(),
             ];
 
         } catch (\Throwable $e) {
-            \Log::error('Erreur getSystemHealth: ' . $e->getMessage());
+            Log::error('Erreur getSystemHealth: ' . $e->getMessage());
             return [
                 'status' => 'error',
-                'cpu_usage' => 0,
-                'memory_usage' => 0,
-                'database' => 'inconnu',
+                'cpu_usage' => [
+                    'status' => 'error',
+                    'message' => 'N/A',
+                    'percent' => 0
+                ],
+                'memory_usage' => [
+                    'status' => 'error',
+                    'message' => 'N/A',
+                    'percent' => 0
+                ],
+                'storage' => [
+                    'status' => 'error',
+                    'message' => 'N/A',
+                    'percent' => 0
+                ],
+                'database' => [
+                    'status' => 'error',
+                    'message' => 'Inconnu'
+                ],
+                'environment' => [
+                    'status' => 'error',
+                    'message' => 'Inconnu'
+                ],
+                'php_version' => [
+                    'status' => 'error',
+                    'message' => 'Inconnu'
+                ],
+                'laravel_version' => [
+                    'status' => 'error',
+                    'message' => 'Inconnu'
+                ],
+                'debug_mode' => [
+                    'status' => 'error',
+                    'message' => 'Inconnu'
+                ],
                 'issues' => [$e->getMessage()],
                 'timestamp' => now()->toDateTimeString(),
             ];
@@ -375,8 +457,17 @@ class MonitoringService
     public function getDatabaseStats(): array
     {
         try {
-            $connections = DB::select('SHOW STATUS LIKE "Threads_connected"')[0]->Value ?? 0;
-            $uptime = DB::select('SHOW STATUS LIKE "Uptime"')[0]->Value ?? 0;
+            // Utiliser DB::select pour obtenir les threads connectés et l'uptime pour MySQL
+            $connections = 0;
+            $uptime = 0;
+            
+            if (config('database.default') === 'mysql') {
+                $connectionsStatus = DB::select('SHOW STATUS LIKE "Threads_connected"');
+                $connections = !empty($connectionsStatus) ? $connectionsStatus[0]->Value : 0;
+                
+                $uptimeStatus = DB::select('SHOW STATUS LIKE "Uptime"');
+                $uptime = !empty($uptimeStatus) ? $uptimeStatus[0]->Value : 0;
+            }
 
             return [
                 'connections' => (int) $connections,
@@ -384,7 +475,7 @@ class MonitoringService
                 'status' => $connections >= 0 ? 'healthy' : 'unhealthy',
             ];
         } catch (\Exception $e) {
-            \Log::error('Erreur getDatabaseStats: ' . $e->getMessage());
+            Log::error('Erreur getDatabaseStats: ' . $e->getMessage());
             return [
                 'connections' => 0,
                 'uptime_seconds' => 0,
@@ -416,7 +507,7 @@ class MonitoringService
             return $stats;
 
         } catch (\Exception $e) {
-            \Log::error('Erreur getCacheStats: ' . $e->getMessage());
+            Log::error('Erreur getCacheStats: ' . $e->getMessage());
             return [
                 'total_keys' => 0,
                 'memory_usage' => 'N/A',
@@ -502,7 +593,7 @@ class MonitoringService
             }
             return $stats;
         } catch (\Exception $e) {
-            \Log::error('Erreur getQueueStats: ' . $e->getMessage());
+            Log::error('Erreur getQueueStats: ' . $e->getMessage());
             return [];
         }
     }

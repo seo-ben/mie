@@ -14,9 +14,9 @@ return new class extends Migration
         // Vérifier si les colonnes n'existent pas déjà avant de les ajouter
         if (!Schema::hasColumn('accounts', 'suspension_reason')) {
             Schema::table('accounts', function (Blueprint $table) {
-                $table->text('suspension_reason')->nullable()->after('status');
-                $table->timestamp('suspended_at')->nullable()->after('suspension_reason');
-                $table->unsignedBigInteger('suspended_by')->nullable()->after('suspended_at');
+                $table->text('suspension_reason')->nullable();
+                $table->timestamp('suspended_at')->nullable();
+                $table->unsignedBigInteger('suspended_by')->nullable();
 
                 $table->foreign('suspended_by')->references('id')->on('users')->onDelete('set null');
             });

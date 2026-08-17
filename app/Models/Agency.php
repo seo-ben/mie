@@ -15,12 +15,14 @@ class Agency extends Model
         'phone',
         'manager_id',
         'cash_limit',
+        'vault_balance',
         'is_active'
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'cash_limit' => 'decimal:2'
+        'cash_limit' => 'decimal:2',
+        'vault_balance' => 'decimal:2'
     ];
 
     // public function manager()
