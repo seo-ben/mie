@@ -20,6 +20,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ./mie/
+          protocol: ftps
+          security: loose
           exclude: |
             **/.git*
             **/.git*/**
