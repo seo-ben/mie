@@ -31,18 +31,22 @@ trait HasAuditTrail
      */
     protected static function logChange(Model $model, string $action)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        AuditLog::create([
-            'user_id' => $user?->id,
-            'action' => $action,
-            'table_name' => $model->getTable(),
-            'record_id' => $model->id,
-            'old_values' => $action === 'UPDATED' ? $model->getOriginal() : null,
-            'new_values' => $action === 'DELETED' ? null : $model->getAttributes(),
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent()
-        ]);
+            AuditLog::create([
+                'user_id' => $user?->id,
+                'action' => $action,
+                'table_name' => $model->getTable(),
+                'record_id' => $model->id,
+                'old_values' => $action === 'UPDATED' ? $model->getOriginal() : null,
+                'new_values' => $action === 'DELETED' ? null : $model->getAttributes(),
+                'ip_address' => request()?->ip(),
+                'user_agent' => request()?->userAgent()
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("AuditLog creation failed: " . $e->getMessage());
+        }
     }
 
     /**

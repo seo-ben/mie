@@ -1,28 +1,37 @@
-name: Deploy API to server
+name: Deploy Laravel via FTP
 
 on:
   push:
     branches:
       - main
       - master
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  web-deploy:
+    name: Sync files to LWS Server (FTP)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: 🚚 Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Optimise le transfert en ne synchronisant que les fichiers modifiés
 
-      - name: Deploy via FTP
+      - name: 📂 Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./mie/
+          server-dir: ${{ secrets.FTP_SERVER_DIR || '/htdocs/mie/' }}
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
-            **/vendor/**
-            .github/**
+            **/tests/**
+            .env.example
+            DEPLOYMENT.md
+            README.md
+            *.bat
+            *.jpeg
+            *.xml

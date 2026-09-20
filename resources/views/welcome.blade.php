@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" class="scroll-smooth">
+<html lang="fr" class="scroll-smooth overflow-x-hidden">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -58,17 +58,19 @@
 .delay-400 { transition-delay: 400ms; }
 </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-brand-gold selection:text-brand-navy">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-brand-gold selection:text-brand-navy overflow-x-hidden w-full">
 
 <!-- ============================================================ -->
 <!-- EN-TÊTE / NAVBAR STYLE YAS TOGO -->
 <!-- ============================================================ -->
-<header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm w-full">
   <!-- Sub-header sombre Yas -->
-  <div class="bg-brand-navy text-slate-300 text-[11px] font-mono py-1.5 border-b border-white/10">
-    <div class="max-w-6xl mx-auto px-4 flex flex-wrap justify-between items-center gap-2">
-      <div class="truncate">Rattachée à la <strong class="text-brand-gold font-semibold">M.I.E</strong> — Mission Internationale d'Évangélisation</div>
-      <div class="flex items-center gap-3">
+  <div class="bg-brand-navy text-slate-300 text-[10px] sm:text-[11px] font-mono py-1.5 border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-3 sm:px-4 flex flex-col xs:flex-row justify-between items-center gap-1 sm:gap-2 text-center xs:text-left">
+      <div class="truncate max-w-full">
+        Rattachée à la <strong class="text-brand-gold font-semibold">M.I.E</strong> <span class="hidden sm:inline">— Mission Internationale d'Évangélisation</span>
+      </div>
+      <div class="flex items-center justify-center gap-2 sm:gap-3 text-slate-300 shrink-0">
         <a href="tel:+22892814161" class="hover:text-white transition-colors">92 81 41 61</a>
         <span>·</span>
         <a href="tel:+22898072417" class="hover:text-white transition-colors">98 07 24 17</a>
@@ -77,24 +79,24 @@
   </div>
 
   <!-- Barre Nav principale -->
-  <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
+  <div class="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
     <!-- Logo Style Yas -->
-    <a href="/" class="flex items-center gap-3 group shrink-0">
-      <div class="w-11 h-11 rounded-2xl bg-brand-gold p-2 text-brand-navy shadow-md flex items-center justify-center font-extrabold text-xl group-hover:scale-105 transition-transform">
+    <a href="/" class="flex items-center gap-2 sm:gap-3 group shrink min-w-0">
+      <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-brand-gold p-1.5 sm:p-2 text-brand-navy shadow-md flex items-center justify-center font-extrabold text-lg sm:text-xl group-hover:scale-105 transition-transform shrink-0">
         F
       </div>
-      <div>
-        <div class="font-extrabold text-xl sm:text-2xl text-brand-navy tracking-tight leading-none">
+      <div class="min-w-0">
+        <div class="font-extrabold text-base sm:text-2xl text-brand-navy tracking-tight leading-none truncate">
           FSD-<span class="text-brand-terracotta">YAYRA</span>
         </div>
-        <div class="font-mono text-[8px] sm:text-[9.5px] uppercase tracking-widest text-slate-500 font-bold mt-0.5">
+        <div class="font-mono text-[7px] sm:text-[9.5px] uppercase tracking-wider text-slate-500 font-bold mt-0.5 truncate">
           Mutuelle d'Épargne &amp; Crédit
         </div>
       </div>
     </a>
 
     <!-- Navigation Liens Desktop -->
-    <nav class="hidden md:flex items-center gap-8 text-sm font-bold text-slate-700">
+    <nav class="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-bold text-slate-700">
       <a href="#accueil" class="hover:text-brand-navy transition-colors">Accueil</a>
       <a href="#services" class="hover:text-brand-navy transition-colors">Services</a>
       <a href="#paliers" class="hover:text-brand-navy transition-colors">Paliers</a>
@@ -104,24 +106,33 @@
     </nav>
 
     <!-- Actions Nav Pill Button Yas Style -->
-    <div class="flex items-center gap-2 sm:gap-3">
-      <a href="#simulateur" class="bg-brand-navy text-white text-[11px] sm:text-xs font-extrabold tracking-wider uppercase px-5 sm:px-7 py-3 rounded-full border-2 border-brand-gold shadow-[0_4px_0_#FFD100] hover:-translate-y-0.5 hover:shadow-[0_6px_0_#FFD100] transition-all whitespace-nowrap">
+    <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+      <a href="#simulateur" class="hidden sm:inline-flex bg-brand-navy text-white text-[11px] sm:text-xs font-extrabold tracking-wider uppercase px-4 sm:px-7 py-2.5 sm:py-3 rounded-full border-2 border-brand-gold shadow-[0_3px_0_#FFD100] sm:shadow-[0_4px_0_#FFD100] hover:-translate-y-0.5 transition-all whitespace-nowrap">
         SIMULER MON PRÊT
       </a>
-      <button type="button" onclick="toggleMobileMenu()" class="md:hidden p-2 text-brand-navy focus:outline-none" aria-label="Menu Mobile">
+      <a href="#simulateur" class="sm:hidden bg-brand-navy text-white text-[10px] font-extrabold uppercase px-3 py-2 rounded-full border border-brand-gold shadow-sm whitespace-nowrap">
+        SIMULER
+      </a>
+      <button type="button" onclick="toggleMobileMenu()" class="md:hidden p-2 text-brand-navy focus:outline-none rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors" aria-label="Menu Mobile">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
     </div>
   </div>
 
   <!-- Menu Déroulant Mobile -->
-  <div id="mobileMenu" class="hidden md:hidden bg-brand-navy text-white px-5 py-5 border-t border-slate-800 space-y-3.5">
-    <a href="#accueil" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold">Accueil</a>
-    <a href="#services" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold">Services</a>
-    <a href="#paliers" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold">Paliers &amp; Crédit</a>
-    <a href="#temoignages" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold">Témoignages</a>
-    <a href="#adhesion" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold">Comment Ça Marche</a>
-    <a href="#simulateur" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold">Simulateur de Crédit</a>
+  <div id="mobileMenu" class="hidden md:hidden bg-brand-navy text-white px-5 py-5 border-t border-slate-800 space-y-4 shadow-xl">
+    <a href="#accueil" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold transition-colors py-1">Accueil</a>
+    <a href="#services" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold transition-colors py-1">Services</a>
+    <a href="#paliers" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold transition-colors py-1">Paliers &amp; Crédit</a>
+    <a href="#temoignages" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold transition-colors py-1">Témoignages</a>
+    <a href="#adhesion" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold transition-colors py-1">Comment Ça Marche</a>
+    <a href="#simulateur" onclick="toggleMobileMenu()" class="block text-sm font-bold hover:text-brand-gold transition-colors py-1">Simulateur de Crédit</a>
+    
+    <div class="pt-2 border-t border-white/10">
+      <a href="#simulateur" onclick="toggleMobileMenu()" class="w-full bg-brand-gold text-brand-navy text-center font-extrabold text-xs tracking-wider uppercase py-3 rounded-xl block shadow-md hover:bg-white transition-all">
+        ⚡ SIMULER MON PRÊT
+      </a>
+    </div>
   </div>
 </header>
 
