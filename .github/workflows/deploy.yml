@@ -23,7 +23,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR || '/htdocs/mie/' }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR || '/mie/' }}
           exclude: |
             **/.git*
             **/.git*/**
