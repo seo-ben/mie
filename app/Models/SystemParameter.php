@@ -17,7 +17,6 @@ class SystemParameter extends Model
 
     protected $casts = [
         'is_editable' => 'boolean',
-        'parameter_value' => 'json'
     ];
 
     public function createdBy()

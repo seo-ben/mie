@@ -22,7 +22,16 @@ class ConfigurationService
         foreach ($parameters as $id => $value) {
             $param = SystemParameter::find($id);
             if ($param) {
-                $param->parameter_value = $value;
+                // Éviter les valeurs NULL pour MySQL
+                if ($value === null) {
+                    $value = match ($param->parameter_type) {
+                        'number' => '0',
+                        'boolean' => '0',
+                        'json' => '{}',
+                        default => '',
+                    };
+                }
+                $param->parameter_value = (string) $value;
                 $param->save();
                 $updated[$param->parameter_key] = $value;
                 \Log::info('Updated parameter', ['key' => $param->parameter_key, 'value' => $value]);
