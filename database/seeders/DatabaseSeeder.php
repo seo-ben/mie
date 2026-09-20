@@ -19,10 +19,10 @@ class DatabaseSeeder extends Seeder
         $this->command->info('🚀 [YAYRA SEEDER] Démarrage de l\'initialisation fondamentale...');
 
         // ---------------------------------------------------------------------
-        // 1. CRÉATION DES AGENCES FONDAMENTALES
+        // 1. CRÉATION DES AGENCES FONDAMENTALES (avec IDs explicites)
         // ---------------------------------------------------------------------
-        $agenceAgoe = Agency::updateOrCreate(
-            ['code' => 'AGO'],
+        DB::table('agencies')->updateOrInsert(
+            ['id' => 1],
             [
                 'name' => 'Agence Agoè (Siège)',
                 'code' => 'AGO',
@@ -33,11 +33,13 @@ class DatabaseSeeder extends Seeder
                 'cash_limit' => 50000000.00,
                 'vault_balance' => 0.00,
                 'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         );
 
-        $agenceDjagble = Agency::updateOrCreate(
-            ['code' => 'DJG'],
+        DB::table('agencies')->updateOrInsert(
+            ['id' => 2],
             [
                 'name' => 'Agence Djagblé',
                 'code' => 'DJG',
@@ -48,17 +50,20 @@ class DatabaseSeeder extends Seeder
                 'cash_limit' => 20000000.00,
                 'vault_balance' => 0.00,
                 'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         );
 
-        $this->command->info('✅ Agences configurées : Agoè (Siège) & Djagblé');
+        $this->command->info('✅ Agences configurées : Agoè (Siège - ID 1) & Djagblé (ID 2)');
 
         // ---------------------------------------------------------------------
-        // 2. CRÉATION DU SUPER ADMINISTRATEUR SYSTÈME
+        // 2. CRÉATION DU SUPER ADMINISTRATEUR SYSTÈME (avec ID explicite)
         // ---------------------------------------------------------------------
-        $admin = User::updateOrCreate(
+        DB::table('users')->updateOrInsert(
             ['email' => 'Mieadmin360@gmail.com'],
             [
+                'id' => 1,
                 'username' => 'mieadmin360',
                 'first_name' => 'Super',
                 'last_name' => 'Administrateur',
@@ -66,9 +71,11 @@ class DatabaseSeeder extends Seeder
                 'phone' => '+22890000000',
                 'password' => Hash::make('Mie@2026360@'),
                 'role' => 'administrateur_systeme',
-                'agency_id' => $agenceAgoe->id,
+                'agency_id' => 1,
                 'is_active' => true,
                 'mfa_enabled' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         );
 
@@ -257,7 +264,7 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ ' . count($parameters) . ' paramètres système (frais, taux, tontine) initialisés.');
-        $this->command->info('🎉 [YAYRA SEEDER TERMINÉ] Plateforme prête à 100% !');
+        $this->command->info('✅ Paramètres système initialisés avec succès.');
+        $this->command->info('🎉 [YAYRA SEEDER TERMINÉ] Plateforme prête !');
     }
 }
