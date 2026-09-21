@@ -191,7 +191,9 @@ class AgentAccountController extends Controller
     {
         try {
             $user = auth()->user();
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+            $clientIds = $user->role === 'caissier'
+                ? Client::where('agency_id', $user->agency_id)->pluck('id')
+                : Client::where('registered_by', $user->id)->pluck('id');
 
             $account = Account::with([
                 'client',
@@ -507,11 +509,12 @@ class AgentAccountController extends Controller
     {
         try {
             $user = auth()->user();
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+            $clientIds = $user->role === 'caissier'
+                ? Client::where('agency_id', $user->agency_id)->pluck('id')
+                : Client::where('registered_by', $user->id)->pluck('id');
 
             $account = Account::with('client')
                 ->whereIn('client_id', $clientIds)
-                ->where('account_type', 'tontine')
                 ->findOrFail($accountId);
 
             $query = Transaction::where('account_id', $accountId)
