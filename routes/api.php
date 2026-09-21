@@ -181,7 +181,7 @@ Route::prefix('v1')->group(function () {
         // ESPACE AGENT
         // ======================
 
-        Route::middleware(['role:agent_terrain,agent_agence'])->prefix('agent')->group(function () {
+        Route::middleware(['role:agent_terrain,agent_agence,caissier'])->prefix('agent')->group(function () {
 
             // Dashboard
             Route::get('dashboard', [AgentDashboardController::class, 'index']);

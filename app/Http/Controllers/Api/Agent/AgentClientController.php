@@ -27,9 +27,8 @@ class AgentClientController extends Controller
     {
         $user = auth()->user();
 
-        $query = Client::query()
-            ->with(['accounts', 'agency'])
-            ->where('registered_by', $user->id);
+        $query = $this->clientsVisibleTo($user)
+            ->with(['accounts', 'agency']);
 
         // Recherche
         if ($request->filled('search')) {
@@ -56,12 +55,13 @@ class AgentClientController extends Controller
 
         // Statistiques rapides
         $stats = [
-            'total' => Client::where('registered_by', $user->id)->count(),
-            'today' => Client::where('registered_by', $user->id)->whereDate('created_at', today())->count(),
-            'this_week' => Client::where('registered_by', $user->id)->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'total' => (clone $this->clientsVisibleTo($user))->count(),
+            'today' => (clone $this->clientsVisibleTo($user))->whereDate('created_at', today())->count(),
+            'this_week' => (clone $this->clientsVisibleTo($user))->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
         ];
 
         return response()->json([
+            'success' => true,
             'data' => $clients->items(),
             'meta' => [
                 'current_page' => $clients->currentPage(),
@@ -71,6 +71,17 @@ class AgentClientController extends Controller
                 'stats' => $stats
             ]
         ]);
+    }
+
+    private function clientsVisibleTo($user)
+    {
+        return Client::query()->where(function ($query) use ($user) {
+            if ($user->role === 'caissier') {
+                $query->where('agency_id', $user->agency_id);
+            } else {
+                $query->where('registered_by', $user->id);
+            }
+        });
     }
 
     /**
@@ -109,8 +120,9 @@ class AgentClientController extends Controller
 
             $client = Client::create($clientData);
 
-            $tontineAmount = (float) $request->input('initial_tontine_amount', 1000);
-            $tontineAccount = Account::create([
+            if ($request->boolean('create_tontine')) {
+                $tontineAmount = (float) $request->input('initial_tontine_amount', 1000);
+                $tontineAccount = Account::create([
                 'account_number' => $this->generateAccountNumber('tontine'),
                 'client_id' => $client->id,
                 'account_type' => 'tontine',
@@ -120,9 +132,9 @@ class AgentClientController extends Controller
                 'activated_at' => now(),
                 'activated_by' => $user->id,
                 'created_by' => $user->id,
-            ]);
+                ]);
 
-            TontineAccount::create([
+                TontineAccount::create([
                 'account_id' => $tontineAccount->id,
                 'tontine_amount' => $tontineAmount,
                 'cycle_duration_months' => 12,
@@ -131,7 +143,8 @@ class AgentClientController extends Controller
                 'total_expected' => $tontineAmount * 12 * 31,
                 'cycle_start_date' => now()->startOfMonth(),
                 'cycle_end_date' => now()->addMonths(12)->endOfMonth(),
-            ]);
+                ]);
+            }
 
             $savingsAccount = Account::create([
                 'account_number' => $this->generateAccountNumber('savings'),
@@ -155,6 +168,7 @@ class AgentClientController extends Controller
             DB::commit();
 
             return response()->json([
+                'success' => true,
                 'message' => "Client créé avec succès. Numéro client : {$client->client_number}",
                 'data' => $client->load(['accounts', 'agency'])
             ], 201);
