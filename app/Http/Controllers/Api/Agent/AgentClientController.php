@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Agent;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Account;
+use App\Models\SavingsAccount;
+use App\Models\TontineAccount;
 use App\Models\Transaction;
 use App\Http\Requests\CreateClientRequest;
 use App\Http\Requests\UpdateClientRequest;
@@ -89,7 +91,7 @@ class AgentClientController extends Controller
             $clientData['registered_by'] = $user->id;
             $clientData['agency_id'] = $user->agency_id;
             $clientData['registration_channel'] = 'agent_assisted';
-            $clientData['registration_status'] = 'pending';
+            $clientData['registration_status'] = 'approved';
             $clientData['kyc_status'] = 'pending';
 
             // Hash du mot de passe (par défaut 12@4 si non fourni)
@@ -106,6 +108,49 @@ class AgentClientController extends Controller
             }
 
             $client = Client::create($clientData);
+
+            $tontineAmount = (float) $request->input('initial_tontine_amount', 1000);
+            $tontineAccount = Account::create([
+                'account_number' => $this->generateAccountNumber('tontine'),
+                'client_id' => $client->id,
+                'account_type' => 'tontine',
+                'status' => 'active',
+                'balance' => 0,
+                'activation_fee_paid' => true,
+                'activated_at' => now(),
+                'activated_by' => $user->id,
+                'created_by' => $user->id,
+            ]);
+
+            TontineAccount::create([
+                'account_id' => $tontineAccount->id,
+                'tontine_amount' => $tontineAmount,
+                'cycle_duration_months' => 12,
+                'payment_frequency' => 'daily',
+                'expected_monthly_payment' => $tontineAmount,
+                'total_expected' => $tontineAmount * 12 * 31,
+                'cycle_start_date' => now()->startOfMonth(),
+                'cycle_end_date' => now()->addMonths(12)->endOfMonth(),
+            ]);
+
+            $savingsAccount = Account::create([
+                'account_number' => $this->generateAccountNumber('savings'),
+                'client_id' => $client->id,
+                'account_type' => 'savings',
+                'status' => 'active',
+                'balance' => 0,
+                'activation_fee_paid' => true,
+                'activated_at' => now(),
+                'activated_by' => $user->id,
+                'created_by' => $user->id,
+            ]);
+
+            SavingsAccount::create([
+                'account_id' => $savingsAccount->id,
+                'interest_rate' => 0,
+                'minimum_balance' => 0,
+                'monthly_fee' => 0,
+            ]);
 
             DB::commit();
 
@@ -555,6 +600,20 @@ class AgentClientController extends Controller
         }
     }
 
+    public function approveKyc(int $clientId): JsonResponse
+    {
+        $client = Client::where('registered_by', auth()->id())->findOrFail($clientId);
+
+        $client->update([
+            'kyc_status' => 'approved',
+        ]);
+
+        return response()->json([
+            'message' => 'KYC validé. Le client est éligible à l’étude de prêt.',
+            'data' => $client->fresh(),
+        ]);
+    }
+
     /**
      * Générer un numéro de client unique
      */
@@ -563,6 +622,16 @@ class AgentClientController extends Controller
         do {
             $number = 'CLT-' . strtoupper(Str::random(3)) . '-' . date('ym') . rand(100, 999);
         } while (Client::where('client_number', $number)->exists());
+
+        return $number;
+    }
+
+    private function generateAccountNumber(string $type): string
+    {
+        $prefix = $type === 'tontine' ? 'ACC' : 'SAV';
+        do {
+            $number = $prefix . '-' . date('ym') . '-' . strtoupper(Str::random(6));
+        } while (Account::where('account_number', $number)->exists());
 
         return $number;
     }

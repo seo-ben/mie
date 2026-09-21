@@ -199,6 +199,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('{client}/activate-accounts', [AgentClientController::class, 'activateAccounts']);
                 Route::get('/{clientId}/pending-accounts', [AgentClientController::class, 'pendingAccounts'])->name('pending-accounts');
                 Route::post('/{clientId}/activate-accounts', [AgentClientController::class, 'activateAccounts'])->name('activate-accounts');
+                Route::post('{client}/approve-kyc', [AgentClientController::class, 'approveKyc']);
 
             });
             // Synchronisation WatermelonDB (Offline-First)

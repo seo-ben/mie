@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Transaction;
 use App\Models\Loan;
 use App\Models\TontineAccount;
+use App\Models\CashierSession;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ class AgentDashboardController extends Controller
                 'overview'        => $this->getOverviewStats($agentId, $period),
                 'collections'     => $this->getCollectionStats($agentId, $period),
                 'clients'         => $this->getClientStats($agentId),
+                'session'         => $this->getCurrentSession($agentId),
                 'reminders'       => $this->getReminders($agentId),
                 'recentActivities'=> $this->getRecentActivities($agentId),
                 'chartData'       => $this->getChartData($agentId),
@@ -177,6 +179,31 @@ class AgentDashboardController extends Controller
             'total_loan_amount'  => Loan::whereIn('client_id', $clientIds)
                 ->whereIn('status', ['active', 'disbursed'])
                 ->sum('approved_amount'),
+        ];
+    }
+
+    private function getCurrentSession($userId)
+    {
+        $session = CashierSession::where('user_id', $userId)
+            ->where('status', 'open')
+            ->latest('opened_at')
+            ->first();
+
+        if (!$session) {
+            return [
+                'status' => 'closed',
+                'opening_balance' => 0,
+                'expected_closing_balance' => 0,
+            ];
+        }
+
+        return [
+            'status' => $session->status,
+            'opening_balance' => $session->opening_balance,
+            'expected_closing_balance' => $session->opening_balance
+                + $session->total_deposits
+                - $session->total_withdrawals,
+            'opened_at' => $session->opened_at,
         ];
     }
 
