@@ -189,20 +189,40 @@ class AgentDashboardController extends Controller
             ->latest('opened_at')
             ->first();
 
+        $today = Carbon::today();
+        $todayDeposits = (float) Transaction::where('processed_by', $userId)
+            ->where('status', 'completed')
+            ->whereDate('created_at', $today)
+            ->where('transaction_type', 'like', '%deposit%')
+            ->sum('amount');
+
+        $todayWithdrawals = (float) Transaction::where('processed_by', $userId)
+            ->where('status', 'completed')
+            ->whereDate('created_at', $today)
+            ->where('transaction_type', 'withdrawal')
+            ->sum('amount');
+
         if (!$session) {
             return [
                 'status' => 'closed',
                 'opening_balance' => 0,
-                'expected_closing_balance' => 0,
+                'total_deposits' => $todayDeposits,
+                'total_withdrawals' => $todayWithdrawals,
+                'expected_closing_balance' => $todayDeposits - $todayWithdrawals,
             ];
         }
 
+        $opening = (float) $session->opening_balance;
+        $deposits = $session->total_deposits > 0 ? (float) $session->total_deposits : $todayDeposits;
+        $withdrawals = $session->total_withdrawals > 0 ? (float) $session->total_withdrawals : $todayWithdrawals;
+
         return [
+            'id' => $session->id,
             'status' => $session->status,
-            'opening_balance' => $session->opening_balance,
-            'expected_closing_balance' => $session->opening_balance
-                + $session->total_deposits
-                - $session->total_withdrawals,
+            'opening_balance' => $opening,
+            'total_deposits' => $deposits,
+            'total_withdrawals' => $withdrawals,
+            'expected_closing_balance' => $opening + $deposits - $withdrawals,
             'opened_at' => $session->opened_at,
         ];
     }

@@ -688,7 +688,7 @@ class AgentAccountController extends Controller
             }
 
             DB::commit();
-            return response()->json(['success' => true, 'data' => $transaction->load('account.client')], 201);
+            return response()->json(['success' => true, 'data' => $transaction->load(['account.client', 'processedBy'])], 201);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Compte non trouvé ou accès non autorisé.'], 404);
