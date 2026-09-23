@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\TontineAccount;
 use App\Models\TontineCycle;
 use App\Models\Transaction;
+use App\Models\CashierSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -647,6 +648,20 @@ class AgentAccountController extends Controller
 
         try {
             $user = auth()->user();
+
+            // SÉCURITÉ COMPTABLE : Vérifier que le caissier a une session de caisse OUVERTE
+            $activeSession = CashierSession::where('user_id', $user->id)
+                ->where('status', 'open')
+                ->latest('opened_at')
+                ->first();
+
+            if (!$activeSession) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Opération refusée : Votre caisse est actuellement fermée. Vous devez ouvrir votre session de caisse journalière avant d\'effectuer des encaissements ou décaissements.',
+                ], 403);
+            }
+
             $clientIds = $user->role === 'caissier'
                 ? Client::where('agency_id', $user->agency_id)->pluck('id')
                 : Client::where('registered_by', $user->id)->pluck('id');
@@ -668,6 +683,7 @@ class AgentAccountController extends Controller
             $transaction = Transaction::create([
                 'transaction_reference' => $this->generateTransactionReference(),
                 'account_id' => $account->id,
+                'cashier_session_id' => $activeSession->id,
                 'transaction_type' => $type,
                 'amount' => $amount,
                 'payment_method' => $validated['payment_method'] ?? 'cash',
@@ -685,6 +701,13 @@ class AgentAccountController extends Controller
             $account->update(['balance' => $after, 'last_transaction_at' => now()]);
             if ($account->account_type === 'tontine' && $account->tontineAccount) {
                 $account->tontineAccount->increment('total_paid', $type === 'deposit' ? $amount : -$amount);
+            }
+
+            // Mettre à jour les compteurs de la session active
+            if ($type === 'deposit') {
+                $activeSession->increment('total_deposits', $amount);
+            } else {
+                $activeSession->increment('total_withdrawals', $amount);
             }
 
             DB::commit();

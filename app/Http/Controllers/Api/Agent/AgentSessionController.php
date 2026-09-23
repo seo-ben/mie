@@ -79,6 +79,7 @@ class AgentSessionController extends Controller
                 'status' => 'open',
                 'session' => [
                     'id' => $session->id,
+                    'status' => 'open',
                     'opened_at' => $session->opened_at,
                     'opening_balance' => $opening,
                     'total_deposits' => $deposits,
@@ -110,14 +111,25 @@ class AgentSessionController extends Controller
         // Vérifier si une session est déjà ouverte
         $existing = CashierSession::where('user_id', $user->id)
             ->where('status', 'open')
+            ->latest('opened_at')
             ->first();
 
         if ($existing) {
             return response()->json([
-                'success' => false,
+                'success' => true,
                 'message' => 'Une session de caisse est déjà active pour votre compte.',
-                'data' => $existing,
-            ], 422);
+                'data' => [
+                    'id' => $existing->id,
+                    'status' => 'open',
+                    'has_open_session' => true,
+                    'opening_balance' => (float) $existing->opening_balance,
+                    'expected_closing_balance' => (float) $existing->expected_closing_balance,
+                    'total_deposits' => (float) $existing->total_deposits,
+                    'total_withdrawals' => (float) $existing->total_withdrawals,
+                    'opened_at' => $existing->opened_at,
+                    'notes' => $existing->notes,
+                ],
+            ], 200);
         }
 
         try {

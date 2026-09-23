@@ -87,27 +87,92 @@ class AgentLoanController extends Controller
     {
         $client = Client::with(['accounts', 'loans'])->findOrFail($clientId);
 
-        $savingsBalance = (float) $client->accounts()->where('account_type', 'savings')->where('status', 'active')->sum('balance');
-        $tontineBalance = (float) $client->accounts()->where('account_type', 'tontine')->where('status', 'active')->sum('balance');
-        $totalAssets = $savingsBalance + $tontineBalance;
+        // 1. Récupération exhaustive de tous les comptes actifs
+        $accounts = $client->accounts()->where('status', 'active')->get();
 
+        $savingsBalance = (float) $accounts->filter(function ($a) {
+            $t = strtolower($a->account_type ?? '');
+            return in_array($t, ['savings', 'epargne', 'courant', 'current']);
+        })->sum('balance');
+
+        $tontineBalance = (float) $accounts->filter(function ($a) {
+            $t = strtolower($a->account_type ?? '');
+            return in_array($t, ['tontine']);
+        })->sum('balance');
+
+        $totalAssets = (float) $accounts->sum('balance');
+
+        // 2. Analyse des flux de transactions récents (sur 90 jours)
+        $accountIds = $accounts->pluck('id');
+        $recentDeposits = Transaction::whereIn('account_id', $accountIds)
+            ->where('status', 'completed')
+            ->where('transaction_type', 'like', '%deposit%')
+            ->where('created_at', '>=', now()->subDays(90))
+            ->get();
+
+        $depositCount = $recentDeposits->count();
+        $totalDeposited = (float) $recentDeposits->sum('amount');
+
+        // 3. Antécédents de prêts
         $hasActiveLoan = $client->loans()->whereIn('status', ['disbursed', 'active'])->exists();
         $pastLoans = $client->loans()->where('status', 'completed')->get();
-        $defaultedLoans = $client->loans()->where('status', 'defaulted')->count();
+        $defaultedLoans = $client->loans()->where(function($q) {
+            $q->where('status', 'defaulted')->orWhere('days_overdue', '>', 0);
+        })->count();
 
-        // Calcul du score d'éligibilité (sur 100)
-        $score = 50; // base
-        if ($client->kyc_status === 'approved') $score += 20;
-        if ($totalAssets >= 50000) $score += 15;
-        if ($pastLoans->count() > 0 && $defaultedLoans === 0) $score += 15;
-        if ($defaultedLoans > 0) $score -= 40;
-        if ($hasActiveLoan) $score -= 30;
+        // 4. Calcul du score d'éligibilité dynamique (sur 100 points)
+        $score = 0;
 
-        $score = max(0, min(100, $score));
+        // A. KYC & Profil (Jusqu'à 25 pts)
+        $isKycApproved = ($client->kyc_status === 'approved' || $client->is_active == 1);
+        if ($isKycApproved) {
+            $score += 20;
+        } else {
+            $score += 5;
+        }
+        if (!empty($client->phone) && !empty($client->address)) {
+            $score += 5;
+        }
 
-        // Plafond maximum conseillé : jusqu'à 3x l'épargne ou 500 000 FCFA minimum
-        $maxCapacity = max(100000, $totalAssets * 3);
-        $isEligible = $score >= 60 && !$hasActiveLoan && $defaultedLoans === 0;
+        // B. Épargne & Trésorerie Déposée (Jusqu'à 35 pts)
+        if ($totalAssets > 0) {
+            $score += 10;
+            if ($totalAssets >= 10000) $score += 5;
+            if ($totalAssets >= 25000) $score += 5;
+            if ($totalAssets >= 50000) $score += 5;
+            if ($totalAssets >= 100000) $score += 5;
+            if ($totalAssets >= 250000) $score += 5;
+        }
+
+        // C. Régularité des flux & versements (Jusqu'à 20 pts)
+        if ($depositCount >= 1) $score += 5;
+        if ($depositCount >= 3) $score += 5;
+        if ($depositCount >= 8) $score += 5;
+        if ($totalDeposited >= 50000) $score += 5;
+
+        // D. Historique d'emprunt & discipline (Jusqu'à 20 pts)
+        if ($pastLoans->count() > 0 && $defaultedLoans === 0) {
+            $score += 20; // Excellent historique
+        } elseif ($pastLoans->count() === 0 && $defaultedLoans === 0) {
+            $score += 10; // Premier emprunt (bonus de confiance)
+        }
+
+        // Pénalités de risque
+        if ($hasActiveLoan) {
+            $score -= 25; // Prêt non encore soldé
+        }
+        if ($defaultedLoans > 0) {
+            $score -= 40; // Défaut de paiement constaté
+        }
+
+        $score = max(5, min(100, $score));
+
+        // Plafond d'emprunt conseillé : 3x l'épargne + 50% du volume de flux trimestriel
+        $maxCapacity = max(50000, round(($totalAssets * 3) + ($totalDeposited * 0.5)));
+        // Arrondi à la tranche de 5 000 FCFA
+        $maxCapacity = ceil($maxCapacity / 5000) * 5000;
+
+        $isEligible = ($score >= 50) && !$hasActiveLoan && ($defaultedLoans === 0);
 
         return response()->json([
             'success' => true,
@@ -120,7 +185,7 @@ class AgentLoanController extends Controller
                 ],
                 'is_eligible' => $isEligible,
                 'eligibility_score' => $score,
-                'risk_level' => $score >= 80 ? 'low' : ($score >= 60 ? 'medium' : 'high'),
+                'risk_level' => $score >= 75 ? 'low' : ($score >= 50 ? 'medium' : 'high'),
                 'max_borrowing_capacity' => $maxCapacity,
                 'savings_balance' => $savingsBalance,
                 'tontine_balance' => $tontineBalance,
@@ -128,10 +193,13 @@ class AgentLoanController extends Controller
                 'active_loan_exists' => $hasActiveLoan,
                 'completed_loans_count' => $pastLoans->count(),
                 'defaulted_loans_count' => $defaultedLoans,
+                'recent_deposit_count' => $depositCount,
+                'recent_deposit_volume' => $totalDeposited,
                 'criteria' => [
-                    ['label' => 'Statut KYC Validé', 'passed' => $client->kyc_status === 'approved'],
+                    ['label' => 'Statut KYC & Identité', 'passed' => $isKycApproved],
                     ['label' => 'Aucun crédit en cours', 'passed' => !$hasActiveLoan],
-                    ['label' => 'Garantie épargne / tontine active', 'passed' => $totalAssets > 0],
+                    ['label' => 'Épargne ou Tontine active', 'passed' => $totalAssets > 0],
+                    ['label' => 'Flux de transactions réguliers', 'passed' => $depositCount >= 1],
                     ['label' => 'Aucun incident de paiement', 'passed' => $defaultedLoans === 0],
                 ],
             ],
@@ -382,6 +450,14 @@ class AgentLoanController extends Controller
                 ->latest('opened_at')
                 ->first();
 
+            if (!$activeSession) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Opération refusée : Votre caisse est fermée. Veuillez d\'abord ouvrir votre session journalière avant de décaisser des fonds.',
+                ], 403);
+            }
+
             // Créer la transaction de sortie de caisse
             $txRef = 'DEC-' . strtoupper(date('ymd')) . '-' . rand(1000, 9999);
             $clientAccount = Account::where('client_id', $loan->client_id)->first();
@@ -389,7 +465,7 @@ class AgentLoanController extends Controller
             $transaction = Transaction::create([
                 'transaction_reference' => $txRef,
                 'account_id' => $clientAccount->id ?? 1,
-                'cashier_session_id' => $activeSession->id ?? null,
+                'cashier_session_id' => $activeSession->id,
                 'transaction_type' => 'withdrawal',
                 'amount' => $disburseAmount,
                 'payment_method' => $validated['payment_method'] ?? 'cash',
@@ -413,9 +489,7 @@ class AgentLoanController extends Controller
                 'disbursement_reference' => $txRef,
             ]);
 
-            if ($activeSession) {
-                $activeSession->increment('total_withdrawals', $disburseAmount);
-            }
+            $activeSession->increment('total_withdrawals', $disburseAmount);
 
             DB::commit();
 
@@ -467,13 +541,21 @@ class AgentLoanController extends Controller
                 ->latest('opened_at')
                 ->first();
 
+            if (!$activeSession) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Opération refusée : Votre caisse est fermée. Veuillez ouvrir votre session journalière avant d\'encaisser des remboursements.',
+                ], 403);
+            }
+
             $clientAccount = Account::where('client_id', $loan->client_id)->first();
             $txRef = 'REM-' . strtoupper(date('ymd')) . '-' . rand(1000, 9999);
 
             $transaction = Transaction::create([
                 'transaction_reference' => $txRef,
                 'account_id' => $clientAccount->id ?? 1,
-                'cashier_session_id' => $activeSession->id ?? null,
+                'cashier_session_id' => $activeSession->id,
                 'transaction_type' => 'loan_repayment',
                 'amount' => $repayAmount,
                 'payment_method' => $validated['payment_method'] ?? 'cash',
