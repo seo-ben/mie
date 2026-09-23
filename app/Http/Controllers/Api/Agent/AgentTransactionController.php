@@ -112,12 +112,19 @@ class AgentTransactionController extends Controller
         $transaction = Transaction::with(['account.client', 'processedBy'])
             ->findOrFail($id);
 
-        // Sécurité : vérifier que la transaction appartient à un client de l'agent
-        if (
-            ! $transaction->account ||
-            ! $transaction->account->client ||
-            $transaction->account->client->registered_by !== $user->id
-        ) {
+        // Sécurité : vérifier que la transaction appartient au périmètre de l'utilisateur (agence pour caissier, portefeuille pour agent)
+        $isAuthorized = false;
+        if ($transaction->processed_by === $user->id) {
+            $isAuthorized = true;
+        } elseif ($transaction->account && $transaction->account->client) {
+            if ($user->role === 'caissier') {
+                $isAuthorized = ($transaction->account->client->agency_id === $user->agency_id);
+            } else {
+                $isAuthorized = ($transaction->account->client->registered_by === $user->id);
+            }
+        }
+
+        if (! $isAuthorized) {
             return response()->json([
                 'success' => false,
                 'message' => "Vous n'êtes pas autorisé à voir cette transaction.",
@@ -141,11 +148,18 @@ class AgentTransactionController extends Controller
             ->findOrFail($id);
 
         // Sécurité
-        if (
-            ! $transaction->account ||
-            ! $transaction->account->client ||
-            $transaction->account->client->registered_by !== $user->id
-        ) {
+        $isAuthorized = false;
+        if ($transaction->processed_by === $user->id) {
+            $isAuthorized = true;
+        } elseif ($transaction->account && $transaction->account->client) {
+            if ($user->role === 'caissier') {
+                $isAuthorized = ($transaction->account->client->agency_id === $user->agency_id);
+            } else {
+                $isAuthorized = ($transaction->account->client->registered_by === $user->id);
+            }
+        }
+
+        if (! $isAuthorized) {
             return response()->json([
                 'success' => false,
                 'message' => 'Accès refusé.',

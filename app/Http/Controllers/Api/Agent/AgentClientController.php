@@ -616,7 +616,7 @@ class AgentClientController extends Controller
 
     public function approveKyc(int $clientId): JsonResponse
     {
-        $client = Client::where('registered_by', auth()->id())->findOrFail($clientId);
+        $client = $this->clientsVisibleTo(auth()->user())->findOrFail($clientId);
 
         $client->update([
             'kyc_status' => 'approved',

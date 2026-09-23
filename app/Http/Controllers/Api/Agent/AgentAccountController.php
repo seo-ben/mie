@@ -80,23 +80,67 @@ class AgentAccountController extends Controller
      */
     public function store(Request $request, int $clientId): JsonResponse
     {
-        $validated = $request->validate([
-            'target_amount' => 'required|numeric|min:200',
-            'cycle_duration_months' => 'required|integer|min:1|max:24',
-            'payment_frequency' => 'required|in:daily,weekly,monthly',
-        ]);
+        $accountType = $request->input('account_type', 'tontine');
+
+        if ($accountType === 'savings' || $accountType === 'epargne') {
+            $validated = $request->validate([
+                'account_type' => 'nullable|string|in:savings,epargne,tontine',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'account_type' => 'nullable|string|in:savings,epargne,tontine',
+                'target_amount' => 'required|numeric|min:200',
+                'cycle_duration_months' => 'required|integer|min:1|max:24',
+                'payment_frequency' => 'required|in:daily,weekly,monthly',
+            ]);
+        }
 
         try {
             DB::beginTransaction();
 
             $user = auth()->user();
 
-            // Vérifier que le client appartient à l'agent
-            $client = Client::where('id', $clientId)
-                ->where('registered_by', $user->id)
-                ->firstOrFail();
+            // Vérifier que le client appartient au périmètre de l'utilisateur (agence pour caissier, portefeuille pour agent)
+            $clientQuery = Client::where('id', $clientId);
+            if ($user->role === 'caissier') {
+                $clientQuery->where('agency_id', $user->agency_id);
+            } else {
+                $clientQuery->where('registered_by', $user->id);
+            }
+            $client = $clientQuery->firstOrFail();
 
-            // 1. Créer le compte de base - Directement actif
+            if ($accountType === 'savings' || $accountType === 'epargne') {
+                $account = Account::create([
+                    'client_id' => $clientId,
+                    'account_number' => $this->generateAccountNumber('savings'),
+                    'account_type' => 'savings',
+                    'status' => 'active',
+                    'activation_fee' => 0,
+                    'balance' => 0,
+                    'activation_fee_paid' => true,
+                    'created_by' => $user->id,
+                    'activated_by' => $user->id,
+                    'activated_at' => now(),
+                    'created_at' => now(),
+                ]);
+
+                \App\Models\SavingsAccount::create([
+                    'account_id' => $account->id,
+                    'interest_rate' => 0,
+                    'minimum_balance' => 0,
+                    'monthly_fee' => 0,
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Compte épargne créé avec succès.',
+                    'data' => $account->load(['client']),
+                ], 201);
+            }
+
+            // 1. Créer le compte tontine de base - Directement actif
             $account = Account::create([
                 'client_id' => $clientId,
                 'account_number' => $this->generateAccountNumber('tontine'),
@@ -104,6 +148,7 @@ class AgentAccountController extends Controller
                 'status' => 'active',
                 'activation_fee' => 0,
                 'balance' => 0,
+                'activation_fee_paid' => true,
                 'created_by' => $user->id,
                 'activated_by' => $user->id,
                 'activated_at' => now(),
@@ -118,12 +163,10 @@ class AgentAccountController extends Controller
 
             switch ($validated['payment_frequency']) {
                 case 'daily':
-                    // Règle des 31 jours par mois (372 jours pour 12 mois)
                     $totalPeriods = $durationMonths * 31;
                     $endDate = (clone $startDate)->addDays($totalPeriods);
                     break;
                 case 'weekly':
-                    // Règle des 52 semaines par an
                     $totalPeriods = floor(($durationMonths * 52) / 12);
                     $endDate = (clone $startDate)->addWeeks($totalPeriods);
                     break;
@@ -156,7 +199,8 @@ class AgentAccountController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Compte tontine créé avec succès et prêt pour les collectes.',
+                'success' => true,
+                'message' => 'Compte tontine créé avec succès et prêt pour les opérations.',
                 'data' => $account->load(['client', 'tontineAccount.activeCycle'])
             ], 201);
 
@@ -644,6 +688,68 @@ class AgentAccountController extends Controller
     }
 
     /**
+     * Recherche d'un compte pour transaction rapide (guichet)
+     */
+    public function searchForQuickTransaction(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'query' => 'required|string|min:2|max:100',
+        ]);
+
+        try {
+            $user = auth()->user();
+            $query = $validated['query'];
+
+            $clientIds = $user->role === 'caissier'
+                ? Client::where('agency_id', $user->agency_id)->pluck('id')
+                : Client::where('registered_by', $user->id)->pluck('id');
+
+            $account = Account::with(['client', 'tontineAccount'])
+                ->whereIn('client_id', $clientIds)
+                ->where('status', 'active')
+                ->where(function($q) use ($query) {
+                    $q->where('account_number', 'like', "%{$query}%")
+                        ->orWhereHas('client', function($q2) use ($query) {
+                            $q2->where('first_name', 'like', "%{$query}%")
+                                ->orWhere('last_name', 'like', "%{$query}%")
+                                ->orWhere('client_number', 'like', "%{$query}%")
+                                ->orWhere('phone', 'like', "%{$query}%");
+                        });
+                })
+                ->first();
+
+            if (!$account) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucun compte actif trouvé pour cette recherche.'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $account->id,
+                    'account_number' => $account->account_number,
+                    'account_type' => $account->account_type,
+                    'balance' => (float) $account->balance,
+                    'status' => $account->status,
+                    'client_id' => $account->client_id,
+                    'client_name' => $account->client ? $account->client->full_name : 'Client inconnu',
+                    'client_phone' => $account->client ? $account->client->phone : null,
+                    'daily_amount' => $account->tontineAccount ? (float) $account->tontineAccount->tontine_amount : null,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur recherche rapide compte', ['query' => $request->query('query'), 'error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la recherche du compte'
+            ], 500);
+        }
+    }
+
+    /**
      * Recherche de comptes tontine pour dépôt rapide
      */
     public function search(Request $request): JsonResponse
@@ -656,7 +762,9 @@ class AgentAccountController extends Controller
             $user = auth()->user();
             $query = $validated['query'];
 
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+            $clientIds = $user->role === 'caissier'
+                ? Client::where('agency_id', $user->agency_id)->pluck('id')
+                : Client::where('registered_by', $user->id)->pluck('id');
 
             $accounts = Account::with([
                 'client',
