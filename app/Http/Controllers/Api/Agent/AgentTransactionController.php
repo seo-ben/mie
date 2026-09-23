@@ -18,8 +18,10 @@ class AgentTransactionController extends Controller
     {
         $user = $request->user();
 
-        // Récupérer les IDs des clients enregistrés par l'agent
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        // Le caissier consulte les opérations de son agence ; l'agent terrain garde son périmètre.
+        $clientIds = $user->role === 'caissier'
+            ? Client::where('agency_id', $user->agency_id)->pluck('id')
+            : Client::where('registered_by', $user->id)->pluck('id');
 
         // Récupérer les IDs des comptes de ces clients
         $accountIds = Account::whereIn('client_id', $clientIds)->pluck('id');

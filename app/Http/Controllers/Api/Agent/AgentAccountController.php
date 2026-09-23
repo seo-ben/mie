@@ -570,6 +570,79 @@ class AgentAccountController extends Controller
         }
     }
 
+    public function quickDeposit(Request $request): JsonResponse
+    {
+        return $this->processQuickOperation($request, 'deposit');
+    }
+
+    public function quickWithdrawal(Request $request): JsonResponse
+    {
+        return $this->processQuickOperation($request, 'withdrawal');
+    }
+
+    private function processQuickOperation(Request $request, string $type): JsonResponse
+    {
+        $validated = $request->validate([
+            'account_id' => 'required|integer|exists:accounts,id',
+            'amount' => 'required|numeric|min:100',
+            'description' => 'nullable|string|max:500',
+            'payment_method' => 'nullable|in:cash,mobile_money,bank_transfer',
+        ]);
+
+        try {
+            $user = auth()->user();
+            $clientIds = $user->role === 'caissier'
+                ? Client::where('agency_id', $user->agency_id)->pluck('id')
+                : Client::where('registered_by', $user->id)->pluck('id');
+
+            DB::beginTransaction();
+            $account = Account::whereIn('client_id', $clientIds)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->findOrFail($validated['account_id']);
+
+            $amount = (float) $validated['amount'];
+            $before = (float) $account->balance;
+            if ($type === 'withdrawal' && $amount > $before) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Solde insuffisant pour ce retrait.'], 422);
+            }
+
+            $after = $type === 'deposit' ? $before + $amount : $before - $amount;
+            $transaction = Transaction::create([
+                'transaction_reference' => $this->generateTransactionReference(),
+                'account_id' => $account->id,
+                'transaction_type' => $type,
+                'amount' => $amount,
+                'payment_method' => $validated['payment_method'] ?? 'cash',
+                'fee_amount' => 0,
+                'description' => $validated['description'] ?? ($type === 'deposit' ? 'Dépôt au guichet' : 'Retrait au guichet'),
+                'status' => 'completed',
+                'balance_before' => $before,
+                'balance_after' => $after,
+                'processed_by' => $user->id,
+                'agency_id' => $user->agency_id,
+                'processed_at' => now(),
+                'transaction_date' => now(),
+            ]);
+
+            $account->update(['balance' => $after, 'last_transaction_at' => now()]);
+            if ($account->account_type === 'tontine' && $account->tontineAccount) {
+                $account->tontineAccount->increment('total_paid', $type === 'deposit' ? $amount : -$amount);
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'data' => $transaction->load('account.client')], 201);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Compte non trouvé ou accès non autorisé.'], 404);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur opération rapide caisse', ['type' => $type, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Impossible de traiter cette opération.'], 500);
+        }
+    }
+
     /**
      * Recherche de comptes tontine pour dépôt rapide
      */
