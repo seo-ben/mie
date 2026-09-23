@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\Agent\AgentDashboardController;
 use App\Http\Controllers\Api\Agent\AgentClientController;
 use App\Http\Controllers\Api\Agent\AgentAccountController;
 use App\Http\Controllers\Api\Agent\AgentTransactionController;
+use App\Http\Controllers\Api\Agent\AgentSessionController;
+use App\Http\Controllers\Api\Agent\AgentLoanController;
 use App\Http\Controllers\Api\Agent\AgentReportController;
 use App\Http\Controllers\Api\Manager\ManagerDashboardController;
 use App\Http\Controllers\Api\Manager\ManagerKYCController;
@@ -188,6 +190,26 @@ Route::prefix('v1')->group(function () {
             Route::get('dashboard/stats', [AgentDashboardController::class, 'stats']);
             Route::get('dashboard/daily-stats', [AgentDashboardController::class, 'dailyStats']);
             Route::get('dashboard/performance', [AgentDashboardController::class, 'performance']);
+
+            // Gestion des sessions de caisse (Ouverture / Clôture)
+            Route::prefix('session')->group(function () {
+                Route::get('current', [AgentSessionController::class, 'current']);
+                Route::post('open', [AgentSessionController::class, 'open']);
+                Route::post('close', [AgentSessionController::class, 'close']);
+                Route::get('history', [AgentSessionController::class, 'history']);
+            });
+
+            // Gestion & Décaissement des Prêts
+            Route::prefix('loans')->group(function () {
+                Route::get('/', [AgentLoanController::class, 'index']);
+                Route::get('client/{clientId}/eligibility', [AgentLoanController::class, 'checkEligibility']);
+                Route::post('simulate', [AgentLoanController::class, 'simulate']);
+                Route::post('apply', [AgentLoanController::class, 'apply']);
+                Route::post('{loanId}/approve', [AgentLoanController::class, 'approve']);
+                Route::post('{loanId}/disburse', [AgentLoanController::class, 'disburse']);
+                Route::post('{loanId}/repay', [AgentLoanController::class, 'repay']);
+                Route::get('{loanId}/schedule', [AgentLoanController::class, 'schedule']);
+            });
 
             // Gestion des clients
             Route::prefix('clients')->group(function () {
