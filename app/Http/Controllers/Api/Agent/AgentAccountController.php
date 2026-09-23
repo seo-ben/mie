@@ -89,7 +89,7 @@ class AgentAccountController extends Controller
         } else {
             $validated = $request->validate([
                 'account_type' => 'nullable|string|in:savings,epargne,tontine',
-                'target_amount' => 'required|numeric|min:200',
+                'target_amount' => 'required|numeric|min:50',
                 'cycle_duration_months' => 'required|integer|min:1|max:24',
                 'payment_frequency' => 'required|in:daily,weekly,monthly',
             ]);
@@ -110,6 +110,18 @@ class AgentAccountController extends Controller
             $client = $clientQuery->firstOrFail();
 
             if ($accountType === 'savings' || $accountType === 'epargne') {
+                // Règle d'unicité : un seul compte épargne par client
+                $existingSavings = Account::where('client_id', $clientId)
+                    ->whereIn('account_type', ['savings', 'epargne'])
+                    ->first();
+
+                if ($existingSavings) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ce client possède déjà un compte épargne actif (' . $existingSavings->account_number . '). Seuls des comptes tontine peuvent être ajoutés.',
+                    ], 422);
+                }
+
                 $account = Account::create([
                     'client_id' => $clientId,
                     'account_number' => $this->generateAccountNumber('savings'),
@@ -140,7 +152,7 @@ class AgentAccountController extends Controller
                 ], 201);
             }
 
-            // 1. Créer le compte tontine de base - Directement actif
+            // 1. Créer le compte tontine de base - Directement actif avec carnet validé
             $account = Account::create([
                 'client_id' => $clientId,
                 'account_number' => $this->generateAccountNumber('tontine'),
@@ -200,7 +212,7 @@ class AgentAccountController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Compte tontine créé avec succès et prêt pour les opérations.',
+                'message' => 'Compte tontine (' . number_format($targetAmount, 0, '', ' ') . ' FCFA) créé avec succès et prêt pour les opérations.',
                 'data' => $account->load(['client', 'tontineAccount.activeCycle'])
             ], 201);
 

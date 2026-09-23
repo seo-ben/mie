@@ -18,7 +18,7 @@ class UpdateClientRequest extends FormRequest
             'first_name'       => 'required|string|max:255',
             'last_name'        => 'required|string|max:255',
             'phone'            => 'required|string|max:20',
-            'address'          => 'required|string|max:255',
+            'address'          => 'nullable|string|max:255',
             'date_of_birth'    => 'nullable|date',
             'gender'           => 'nullable|in:M,F,Other',
             'profession'       => 'nullable|string|max:100',

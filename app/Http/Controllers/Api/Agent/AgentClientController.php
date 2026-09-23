@@ -28,7 +28,7 @@ class AgentClientController extends Controller
         $user = auth()->user();
 
         $query = $this->clientsVisibleTo($user)
-            ->with(['accounts', 'agency']);
+            ->with(['accounts.tontineAccount', 'agency']);
 
         // Recherche
         if ($request->filled('search')) {
@@ -199,18 +199,19 @@ class AgentClientController extends Controller
         try {
             $user = auth()->user();
 
-            $client = Client::with([
-                'accounts.transactions' => function($q) {
-                    $q->latest()->limit(5);
-                },
-                'loans',
-                'documents',
-                'agency',
-                'registeredBy',
-                'approvedBy'
-            ])
-            ->where('registered_by', $user->id)
-            ->findOrFail($clientId);
+            $client = $this->clientsVisibleTo($user)
+                ->with([
+                    'accounts.tontineAccount',
+                    'accounts.transactions' => function($q) {
+                        $q->latest()->limit(5);
+                    },
+                    'loans',
+                    'documents',
+                    'agency',
+                    'registeredBy',
+                    'approvedBy'
+                ])
+                ->findOrFail($clientId);
 
             // Calcul du résumé financier
             $totalSavings = $client->accounts->where('account_type', 'savings')->sum('balance');
@@ -273,15 +274,8 @@ class AgentClientController extends Controller
 
             $user = auth()->user();
 
-            $client = Client::where('registered_by', $user->id)
+            $client = $this->clientsVisibleTo($user)
                 ->findOrFail($clientId);
-
-            // Empêcher la modification si le KYC est déjà approuvé
-            if ($client->kyc_status === 'approved') {
-                return response()->json([
-                    'message' => 'Impossible de modifier un client dont le KYC est déjà approuvé'
-                ], 403);
-            }
 
             $updateData = $request->validated();
 

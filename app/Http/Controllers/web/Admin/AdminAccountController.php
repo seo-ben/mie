@@ -122,7 +122,7 @@ class AdminAccountController extends Controller
                 'minimum_balance' => 'nullable|numeric|min:0',
                 'monthly_fee' => 'nullable|numeric|min:0',
                 // Validation pour tontine - CORRIGÉ
-                'target_amount' => 'required_if:account_type,tontine|nullable|numeric|min:200',
+                'target_amount' => 'required_if:account_type,tontine|nullable|numeric|min:50',
                 'cycle_duration_months' => 'required_if:account_type,tontine|nullable|integer|min:1|max:24',
                 'payment_frequency' => 'required_if:account_type,tontine|nullable|in:daily,weekly,monthly',
             ]);
