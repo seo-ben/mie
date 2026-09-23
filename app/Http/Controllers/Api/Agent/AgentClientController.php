@@ -28,7 +28,7 @@ class AgentClientController extends Controller
         $user = auth()->user();
 
         $query = $this->clientsVisibleTo($user)
-            ->with(['accounts.tontineAccount', 'agency']);
+            ->with(['accounts.tontineAccount', 'agency', 'loans.payments']);
 
         // Recherche
         if ($request->filled('search')) {
@@ -98,12 +98,15 @@ class AgentClientController extends Controller
             // Génération du numéro client
             $clientData['client_number'] = $this->generateClientNumber();
 
-            // Informations d'enregistrement
+            // Informations d'enregistrement & Auto-approbation KYC au guichet caisse
             $clientData['registered_by'] = $user->id;
             $clientData['agency_id'] = $user->agency_id;
-            $clientData['registration_channel'] = 'agent_assisted';
+            $clientData['registration_channel'] = $user->role === 'caissier' ? 'cashier_desk' : 'agent_assisted';
             $clientData['registration_status'] = 'approved';
-            $clientData['kyc_status'] = 'pending';
+            $clientData['kyc_status'] = 'approved';
+            $clientData['kyc_approved_at'] = now();
+            $clientData['kyc_approved_by'] = $user->id;
+            $clientData['is_active'] = 1;
 
             // Hash du mot de passe (par défaut 12@4 si non fourni)
             if (!empty($clientData['password'])) {
@@ -123,26 +126,26 @@ class AgentClientController extends Controller
             if ($request->boolean('create_tontine')) {
                 $tontineAmount = (float) $request->input('initial_tontine_amount', 1000);
                 $tontineAccount = Account::create([
-                'account_number' => $this->generateAccountNumber('tontine'),
-                'client_id' => $client->id,
-                'account_type' => 'tontine',
-                'status' => 'active',
-                'balance' => 0,
-                'activation_fee_paid' => true,
-                'activated_at' => now(),
-                'activated_by' => $user->id,
-                'created_by' => $user->id,
+                    'account_number' => $this->generateAccountNumber('tontine'),
+                    'client_id' => $client->id,
+                    'account_type' => 'tontine',
+                    'status' => 'active',
+                    'balance' => 0,
+                    'activation_fee_paid' => true,
+                    'activated_at' => now(),
+                    'activated_by' => $user->id,
+                    'created_by' => $user->id,
                 ]);
 
                 TontineAccount::create([
-                'account_id' => $tontineAccount->id,
-                'tontine_amount' => $tontineAmount,
-                'cycle_duration_months' => 12,
-                'payment_frequency' => 'daily',
-                'expected_monthly_payment' => $tontineAmount,
-                'total_expected' => $tontineAmount * 12 * 31,
-                'cycle_start_date' => now()->startOfMonth(),
-                'cycle_end_date' => now()->addMonths(12)->endOfMonth(),
+                    'account_id' => $tontineAccount->id,
+                    'tontine_amount' => $tontineAmount,
+                    'cycle_duration_months' => 12,
+                    'payment_frequency' => 'daily',
+                    'expected_monthly_payment' => $tontineAmount,
+                    'total_expected' => $tontineAmount * 12 * 31,
+                    'cycle_start_date' => now()->startOfMonth(),
+                    'cycle_end_date' => now()->addMonths(12)->endOfMonth(),
                 ]);
             }
 
@@ -170,7 +173,7 @@ class AgentClientController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "Client créé avec succès. Numéro client : {$client->client_number}",
-                'data' => $client->load(['accounts', 'agency'])
+                'data' => $client->load(['accounts', 'agency', 'loans.payments'])
             ], 201);
 
         } catch (\Exception $e) {
@@ -205,7 +208,7 @@ class AgentClientController extends Controller
                     'accounts.transactions' => function($q) {
                         $q->latest()->limit(5);
                     },
-                    'loans',
+                    'loans.payments',
                     'documents',
                     'agency',
                     'registeredBy',
@@ -214,20 +217,26 @@ class AgentClientController extends Controller
                 ->findOrFail($clientId);
 
             // Calcul du résumé financier
-            $totalSavings = $client->accounts->where('account_type', 'savings')->sum('balance');
-            $totalTontine = $client->accounts->where('account_type', 'tontine')->sum('balance');
-            $activeLoansAmount = $client->loans->whereIn('status', ['active', 'disbursed'])->sum('approved_amount');
-            $totalAccounts = $client->accounts->count();
-            $activeAccounts = $client->accounts->where('status', 'active')->count();
-            $suspendedAccounts = $client->accounts->where('status', 'suspended')->count();
+            $totalSavings = (float) $client->accounts->where('account_type', 'savings')->sum('balance');
+            $totalTontine = (float) $client->accounts->where('account_type', 'tontine')->sum('balance');
+            $activeLoans = $client->loans->whereIn('status', ['active', 'disbursed']);
+            $activeLoansAmount = (float) $activeLoans->sum('approved_amount');
+            $totalBorrowed = (float) $client->loans->whereIn('status', ['disbursed', 'active', 'completed'])->sum('approved_amount');
+            $totalLoanRepaid = (float) $client->loans->whereIn('status', ['disbursed', 'active', 'completed'])->sum('total_paid');
+            $totalLoanRemaining = max(0, $totalBorrowed - $totalLoanRepaid);
 
             $summary = [
                 'total_savings' => $totalSavings,
                 'total_tontine' => $totalTontine,
                 'total_balance' => $totalSavings + $totalTontine,
                 'active_loans_amount' => $activeLoansAmount,
-                'total_accounts' => $totalAccounts,
-                'active_accounts' => $activeAccounts,
+                'total_borrowed' => $totalBorrowed,
+                'total_loan_repaid' => $totalLoanRepaid,
+                'total_loan_remaining' => $totalLoanRemaining,
+                'total_loans_count' => $client->loans->count(),
+                'active_loans_count' => $activeLoans->count(),
+                'total_accounts' => $client->accounts->count(),
+                'active_accounts' => $client->accounts->where('status', 'active')->count(),
             ];
 
             // Transactions récentes
@@ -239,9 +248,11 @@ class AgentClientController extends Controller
                 ->get();
 
             return response()->json([
+                'success' => true,
                 'data' => [
                     'client' => $client,
                     'summary' => $summary,
+                    'loans' => $client->loans,
                     'recent_transactions' => $recentTransactions
                 ]
             ]);
