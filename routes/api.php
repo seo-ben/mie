@@ -260,16 +260,18 @@ Route::prefix('v1')->group(function () {
                 // Activation
                 Route::post('/{accountId}/activate', [AgentAccountController::class, 'activate'])->name('activate');
 
-                // Dépôts
+                // Dépôts & Transferts
                 Route::post('/{accountId}/deposit', [AgentAccountController::class, 'deposit'])->name('deposit');
+                Route::post('/transfer', [AgentAccountController::class, 'transfer'])->name('transfer');
             });
 
 
 
-            // Dépôt rapide
+            // Dépôt rapide & Virement
             Route::prefix('quick')->group(function () {
                 Route::post('deposit', [AgentAccountController::class, 'quickDeposit']);
                 Route::post('withdrawal', [AgentAccountController::class, 'quickWithdrawal']);
+                Route::post('transfer', [AgentAccountController::class, 'transfer']);
                 Route::get('search-account', [AgentAccountController::class, 'searchForQuickTransaction']);
             });
 

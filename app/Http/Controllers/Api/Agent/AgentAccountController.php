@@ -723,6 +723,163 @@ class AgentAccountController extends Controller
     }
 
     /**
+     * Traiter le transfert / virement de fonds entre comptes d'un même client
+     * (Ex: Tontine -> Épargne)
+     */
+    public function transfer(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'source_account_id' => 'required|integer|exists:accounts,id',
+            'destination_account_id' => 'required|integer|exists:accounts,id|different:source_account_id',
+            'amount' => 'required|numeric|min:100',
+            'description' => 'nullable|string|max:500',
+            'transfer_fee' => 'nullable|numeric|min:0',
+        ]);
+
+        try {
+            $user = auth()->user();
+
+            // SÉCURITÉ SESSION DE CAISSE (pour les caissiers)
+            $activeSession = CashierSession::where('user_id', $user->id)
+                ->where('status', 'open')
+                ->latest('opened_at')
+                ->first();
+
+            if ($user->role === 'caissier' && !$activeSession) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Opération refusée : Votre session de caisse est actuellement fermée. Vous devez ouvrir votre caisse avant de traiter des virements.',
+                ], 403);
+            }
+
+            $clientIds = $user->role === 'caissier'
+                ? Client::where('agency_id', $user->agency_id)->pluck('id')
+                : Client::where('registered_by', $user->id)->pluck('id');
+
+            DB::beginTransaction();
+
+            $sourceAccount = Account::with(['client', 'tontineAccount'])
+                ->whereIn('client_id', $clientIds)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->findOrFail($validated['source_account_id']);
+
+            $destinationAccount = Account::with(['client', 'savingsAccount'])
+                ->whereIn('client_id', $clientIds)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->findOrFail($validated['destination_account_id']);
+
+            // Vérification que les deux comptes appartiennent au même client
+            if ($sourceAccount->client_id !== $destinationAccount->client_id) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le transfert ne peut être effectué qu\'entre les comptes d\'un même client.',
+                ], 422);
+            }
+
+            $amount = (float) $validated['amount'];
+            $transferFee = isset($validated['transfer_fee']) ? (float) $validated['transfer_fee'] : 0.0;
+            $totalDebit = $amount + $transferFee;
+
+            if ($sourceAccount->balance < $totalDebit) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solde insuffisant sur le compte source. Disponible : ' .
+                        number_format($sourceAccount->balance, 0, ',', ' ') . ' FCFA.',
+                ], 422);
+            }
+
+            $transferReference = 'TRF-' . date('YmdHis') . '-' . rand(1000, 9999);
+            $sourceBefore = (float) $sourceAccount->balance;
+            $sourceAfter = $sourceBefore - $totalDebit;
+            $destBefore = (float) $destinationAccount->balance;
+            $destAfter = $destBefore + $amount;
+
+            $userDescription = $validated['description'] ?? null;
+
+            // 1. Transaction Débit sur le compte source (Tontine)
+            $debitTransaction = Transaction::create([
+                'transaction_reference' => $this->generateTransactionReference(),
+                'account_id' => $sourceAccount->id,
+                'cashier_session_id' => $activeSession ? $activeSession->id : null,
+                'transaction_type' => 'transfer_out',
+                'amount' => $amount,
+                'fee_amount' => $transferFee,
+                'balance_before' => $sourceBefore,
+                'balance_after' => $sourceAfter,
+                'payment_method' => 'system',
+                'payment_reference' => $transferReference,
+                'description' => $userDescription ?? "Virement vers compte Épargne ({$destinationAccount->account_number})",
+                'related_account_id' => $destinationAccount->id,
+                'status' => 'completed',
+                'processed_by' => $user->id,
+                'agency_id' => $user->agency_id,
+                'processed_at' => now(),
+                'transaction_date' => now(),
+            ]);
+
+            $sourceAccount->update([
+                'balance' => $sourceAfter,
+                'last_transaction_at' => now(),
+            ]);
+
+            if ($sourceAccount->account_type === 'tontine' && $sourceAccount->tontineAccount) {
+                $sourceAccount->tontineAccount->decrement('total_paid', $amount);
+            }
+
+            // 2. Transaction Crédit sur le compte destination (Épargne)
+            $creditTransaction = Transaction::create([
+                'transaction_reference' => $this->generateTransactionReference(),
+                'account_id' => $destinationAccount->id,
+                'cashier_session_id' => $activeSession ? $activeSession->id : null,
+                'transaction_type' => 'transfer_in',
+                'amount' => $amount,
+                'fee_amount' => 0,
+                'balance_before' => $destBefore,
+                'balance_after' => $destAfter,
+                'payment_method' => 'system',
+                'payment_reference' => $transferReference,
+                'description' => $userDescription ?? "Virement reçu du compte Tontine ({$sourceAccount->account_number})",
+                'related_account_id' => $sourceAccount->id,
+                'status' => 'completed',
+                'processed_by' => $user->id,
+                'agency_id' => $user->agency_id,
+                'processed_at' => now(),
+                'transaction_date' => now(),
+            ]);
+
+            $destinationAccount->update([
+                'balance' => $destAfter,
+                'last_transaction_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Virement de ' . number_format($amount, 0, ',', ' ') . ' FCFA effectué avec succès du compte Tontine vers le compte Épargne.',
+                'data' => [
+                    'transaction' => $debitTransaction->load(['account.client', 'processedBy']),
+                    'credit_transaction' => $creditTransaction,
+                    'source_account' => $sourceAccount->fresh(),
+                    'destination_account' => $destinationAccount->fresh(),
+                ],
+            ], 201);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Compte source ou destinataire introuvable ou accès non autorisé.'], 404);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur virement inter-comptes', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Impossible d\'effectuer le virement : ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Recherche d'un compte pour transaction rapide (guichet)
      */
     public function searchForQuickTransaction(Request $request): JsonResponse
