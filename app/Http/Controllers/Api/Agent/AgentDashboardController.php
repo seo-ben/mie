@@ -27,10 +27,10 @@ class AgentDashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'overview'        => $this->getOverviewStats($agentId, $period),
-                'collections'     => $this->getCollectionStats($agentId, $period),
+                'overview'        => $this->getOverviewStats($agentId, $period, $request),
+                'collections'     => $this->getCollectionStats($agentId, $period, $request),
                 'clients'         => $this->getClientStats($agentId),
-                'session'         => $this->getCurrentSession($agentId),
+                'session'         => $this->getCurrentSession($agentId, $request),
                 'reminders'       => $this->getReminders($agentId),
                 'recentActivities'=> $this->getRecentActivities($agentId),
                 'chartData'       => $this->getChartData($agentId),
@@ -53,7 +53,7 @@ class AgentDashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->getOverviewStats($user->id, $period),
+            'data'    => $this->getOverviewStats($user->id, $period, $request),
         ]);
     }
 
@@ -67,7 +67,7 @@ class AgentDashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->getCollectionStats($user->id, $period),
+            'data'    => $this->getCollectionStats($user->id, $period, $request),
         ]);
     }
 
@@ -144,9 +144,9 @@ class AgentDashboardController extends Controller
      * Méthodes privées (logique métier) – identiques à la version Web
      * ----------------------------------------------------------------- */
 
-    private function getOverviewStats($agentId, $period)
+    private function getOverviewStats($agentId, $period, $request = null)
     {
-        $dateRange = $this->getDateRange($period);
+        $dateRange = $this->getDateRange($period, $request);
         $clientIds = Client::where('registered_by', $agentId)
             ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
@@ -182,8 +182,51 @@ class AgentDashboardController extends Controller
         ];
     }
 
-    private function getCurrentSession($userId)
+    private function getCurrentSession($userId, $request = null)
     {
+        // 1. Si une session spécifique est demandée par ID
+        if ($request && $request->filled('session_id')) {
+            $target = CashierSession::where('user_id', $userId)
+                ->where('id', $request->session_id)
+                ->first();
+            if ($target) {
+                return [
+                    'id' => $target->id,
+                    'status' => $target->status,
+                    'opening_balance' => (float) $target->opening_balance,
+                    'closing_balance' => (float) $target->closing_balance,
+                    'total_deposits' => (float) $target->total_deposits,
+                    'total_withdrawals' => (float) $target->total_withdrawals,
+                    'expected_closing_balance' => (float) ($target->expected_closing_balance ?? $target->closing_balance),
+                    'cash_balance' => (float) ($target->closing_balance ?? $target->expected_closing_balance),
+                    'opened_at' => $target->opened_at,
+                    'closed_at' => $target->closed_at,
+                ];
+            }
+        }
+
+        // 2. Si une date passée est demandée
+        if ($request && $request->filled('date') && $request->date !== Carbon::today()->toDateString()) {
+            $pastSession = CashierSession::where('user_id', $userId)
+                ->whereDate('opened_at', $request->date)
+                ->latest('opened_at')
+                ->first();
+            if ($pastSession) {
+                return [
+                    'id' => $pastSession->id,
+                    'status' => $pastSession->status,
+                    'opening_balance' => (float) $pastSession->opening_balance,
+                    'closing_balance' => (float) $pastSession->closing_balance,
+                    'total_deposits' => (float) $pastSession->total_deposits,
+                    'total_withdrawals' => (float) $pastSession->total_withdrawals,
+                    'expected_closing_balance' => (float) ($pastSession->expected_closing_balance ?? $pastSession->closing_balance),
+                    'cash_balance' => (float) ($pastSession->closing_balance ?? $pastSession->expected_closing_balance),
+                    'opened_at' => $pastSession->opened_at,
+                    'closed_at' => $pastSession->closed_at,
+                ];
+            }
+        }
+
         $session = CashierSession::where('user_id', $userId)
             ->where('status', 'open')
             ->latest('opened_at')
@@ -203,12 +246,25 @@ class AgentDashboardController extends Controller
             ->sum('amount');
 
         if (!$session) {
+            $lastClosed = CashierSession::where('user_id', $userId)
+                ->where('status', 'closed')
+                ->latest('closed_at')
+                ->first();
+
+            $opening = $lastClosed ? (float) $lastClosed->opening_balance : 0.0;
+            $closing = $lastClosed ? (float) $lastClosed->closing_balance : 0.0;
+            $deposits = $lastClosed ? (float) $lastClosed->total_deposits : $todayDeposits;
+            $withdrawals = $lastClosed ? (float) $lastClosed->total_withdrawals : $todayWithdrawals;
+            $expected = $lastClosed ? (float) $lastClosed->expected_closing_balance : $closing;
+
             return [
                 'status' => 'closed',
-                'opening_balance' => 0,
-                'total_deposits' => $todayDeposits,
-                'total_withdrawals' => $todayWithdrawals,
-                'expected_closing_balance' => $todayDeposits - $todayWithdrawals,
+                'opening_balance' => $opening,
+                'closing_balance' => $closing,
+                'total_deposits' => $deposits,
+                'total_withdrawals' => $withdrawals,
+                'expected_closing_balance' => $expected,
+                'cash_balance' => $closing,
             ];
         }
 
@@ -227,9 +283,9 @@ class AgentDashboardController extends Controller
         ];
     }
 
-    private function getCollectionStats($agentId, $period)
+    private function getCollectionStats($agentId, $period, $request = null)
     {
-        $dateRange = $this->getDateRange($period);
+        $dateRange = $this->getDateRange($period, $request);
 
         // On se base sur ce que l'agent a RÉELLEMENT traité (processed_by)
         $transactions = Transaction::where('processed_by', $agentId)
@@ -543,8 +599,23 @@ class AgentDashboardController extends Controller
     /**
      * Retourne la plage de dates en fonction de la période demandée.
      */
-    private function getDateRange($period)
+    private function getDateRange($period, $request = null)
     {
+        if ($request && $request->filled('date')) {
+            $d = Carbon::parse($request->date);
+            return [$d->copy()->startOfDay(), $d->copy()->endOfDay()];
+        }
+
+        if ($request && $request->filled('date_start') && $request->filled('date_end')) {
+            return [Carbon::parse($request->date_start)->startOfDay(), Carbon::parse($request->date_end)->endOfDay()];
+        }
+
+        // Si le period lui-même ressemble à une date YYYY-MM-DD
+        if (is_string($period) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $period)) {
+            $d = Carbon::parse($period);
+            return [$d->copy()->startOfDay(), $d->copy()->endOfDay()];
+        }
+
         switch ($period) {
             case 'today':
                 return [Carbon::today()->startOfDay(), Carbon::today()->endOfDay()];
@@ -554,6 +625,8 @@ class AgentDashboardController extends Controller
                 return [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()];
             case 'year':
                 return [Carbon::now()->startOfYear(), Carbon::now()->endOfYear()];
+            case 'all':
+                return [Carbon::create(2020, 1, 1)->startOfDay(), Carbon::now()->endOfDay()];
             default:
                 return [Carbon::today()->startOfDay(), Carbon::today()->endOfDay()];
         }

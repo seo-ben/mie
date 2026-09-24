@@ -51,16 +51,24 @@ class AgentSessionController extends Controller
                 ->latest('closed_at')
                 ->first();
 
+            $opening = $lastClosed ? (float) $lastClosed->opening_balance : 0.0;
+            $closing = $lastClosed ? (float) $lastClosed->closing_balance : 0.0;
+            $deposits = $lastClosed ? (float) $lastClosed->total_deposits : $todayDeposits;
+            $withdrawals = $lastClosed ? (float) $lastClosed->total_withdrawals : $todayWithdrawals;
+            $expected = $lastClosed ? (float) $lastClosed->expected_closing_balance : $closing;
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'has_open_session' => false,
                     'status' => 'closed',
                     'session' => null,
-                    'opening_balance' => 0.0,
-                    'total_deposits' => $todayDeposits,
-                    'total_withdrawals' => $todayWithdrawals,
-                    'expected_closing_balance' => $todayDeposits - $todayWithdrawals,
+                    'opening_balance' => $opening,
+                    'closing_balance' => $closing,
+                    'total_deposits' => $deposits,
+                    'total_withdrawals' => $withdrawals,
+                    'expected_closing_balance' => $expected,
+                    'cash_balance' => $closing,
                     'transactions_count' => $txCount,
                     'last_closed_session' => $lastClosed,
                 ],
@@ -265,18 +273,145 @@ class AgentSessionController extends Controller
     }
 
     /**
-     * Historique des sessions passées.
+     * Approvisionnement & Décharge de Caisse (Transfert Coffre-fort / Banque <-> Guichet)
+     */
+    public function vaultTransfer(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => 'required|in:supply,discharge',
+            'amount' => 'required|numeric|min:100',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $user = $request->user();
+        $amount = (float) $validated['amount'];
+        $type = $validated['type'];
+        $notes = $validated['notes'] ?? '';
+
+        $session = CashierSession::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->latest('opened_at')
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Opération refusée : Aucune session de caisse ouverte. Veuillez d\'abord ouvrir votre caisse.',
+            ], 422);
+        }
+
+        $currentBalance = (float) $session->opening_balance + (float) $session->total_deposits - (float) $session->total_withdrawals;
+
+        if ($type === 'discharge' && $amount > $currentBalance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fonds insuffisants en caisse. Solde physique disponible : ' . number_format($currentBalance, 0, ',', ' ') . ' FCFA.',
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $isSupply = ($type === 'supply');
+            $typeLabel = $isSupply ? 'Approvisionnement depuis le Coffre-fort' : 'Décharge vers le Coffre-fort';
+
+            if ($isSupply) {
+                $session->total_deposits = (float) $session->total_deposits + $amount;
+            } else {
+                $session->total_withdrawals = (float) $session->total_withdrawals + $amount;
+            }
+            $session->expected_closing_balance = (float) $session->opening_balance + (float) $session->total_deposits - (float) $session->total_withdrawals;
+
+            $logEntry = '[' . now()->format('H:i') . '] ' . ($isSupply ? '+' : '-') . number_format($amount, 0, ',', ' ') . ' FCFA (' . $typeLabel . ($notes ? ' - ' . $notes : '') . ')';
+            $session->notes = $session->notes ? ($session->notes . "\n" . $logEntry) : $logEntry;
+            $session->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $typeLabel . ' de ' . number_format($amount, 0, ',', ' ') . ' FCFA effectué avec succès.',
+                'data' => [
+                    'type' => $type,
+                    'amount' => $amount,
+                    'new_cash_balance' => (float) $session->expected_closing_balance,
+                    'session' => $session,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur lors du transfert coffre/caisse', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur technique : ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Historique des sessions de caisse (Archives & Journal des clôtures).
      */
     public function history(Request $request): JsonResponse
     {
         $user = $request->user();
-        $sessions = CashierSession::where('user_id', $user->id)
-            ->latest('opened_at')
-            ->paginate(15);
+        $query = CashierSession::where('user_id', $user->id)
+            ->latest('opened_at');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('opened_at', $request->date);
+        }
+
+        $sessions = $query->paginate($request->get('per_page', 30));
+
+        $transformed = collect($sessions->items())->map(function ($s) {
+            $opened = $s->opened_at ? Carbon::parse($s->opened_at) : null;
+            $closed = $s->closed_at ? Carbon::parse($s->closed_at) : null;
+
+            $txCount = Transaction::where('cashier_session_id', $s->id)->count();
+            if ($txCount === 0 && $opened) {
+                $txCount = Transaction::where('processed_by', $s->user_id)
+                    ->whereDate('created_at', $opened->toDateString())
+                    ->count();
+            }
+
+            $opening = (float) $s->opening_balance;
+            $closing = (float) ($s->closing_balance ?? $s->expected_closing_balance ?? 0);
+            $expected = (float) ($s->expected_closing_balance ?? ($opening + (float)$s->total_deposits - (float)$s->total_withdrawals));
+            $difference = $s->status === 'closed' ? ($closing - $expected) : 0;
+
+            return [
+                'id' => $s->id,
+                'status' => $s->status,
+                'opened_at' => $s->opened_at,
+                'closed_at' => $s->closed_at,
+                'date_formatted' => $opened ? $opened->locale('fr')->isoFormat('LL') : 'Date inconnue',
+                'opened_time' => $opened ? $opened->format('H:i') : '--:--',
+                'closed_time' => $closed ? $closed->format('H:i') : ($s->status === 'open' ? 'En cours' : '--:--'),
+                'opening_balance' => $opening,
+                'closing_balance' => $closing,
+                'expected_closing_balance' => $expected,
+                'total_deposits' => (float) $s->total_deposits,
+                'total_withdrawals' => (float) $s->total_withdrawals,
+                'difference' => $difference,
+                'difference_type' => $difference == 0 ? 'exact' : ($difference > 0 ? 'surplus' : 'deficit'),
+                'notes' => $s->notes,
+                'transactions_count' => $txCount,
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'data' => $sessions,
+            'data' => $transformed,
+            'meta' => [
+                'current_page' => $sessions->currentPage(),
+                'last_page' => $sessions->lastPage(),
+                'total' => $sessions->total(),
+            ],
         ]);
     }
 }
+
+

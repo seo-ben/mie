@@ -191,11 +191,12 @@ Route::prefix('v1')->group(function () {
             Route::get('dashboard/daily-stats', [AgentDashboardController::class, 'dailyStats']);
             Route::get('dashboard/performance', [AgentDashboardController::class, 'performance']);
 
-            // Gestion des sessions de caisse (Ouverture / Clôture)
+            // Gestion des sessions de caisse (Ouverture / Clôture / Approvisionnement / Décharge)
             Route::prefix('session')->group(function () {
                 Route::get('current', [AgentSessionController::class, 'current']);
                 Route::post('open', [AgentSessionController::class, 'open']);
                 Route::post('close', [AgentSessionController::class, 'close']);
+                Route::post('vault-transfer', [AgentSessionController::class, 'vaultTransfer']);
                 Route::get('history', [AgentSessionController::class, 'history']);
             });
 
@@ -279,8 +280,10 @@ Route::prefix('v1')->group(function () {
             Route::prefix('transactions')->group(function () {
                 Route::get('/', [AgentTransactionController::class, 'index']);
                 Route::post('/', [AgentTransactionController::class, 'store']);
+                Route::post('sync', [App\Http\Controllers\Api\Agent\AgentSyncController::class, 'syncTransactions']);
                 Route::get('{transaction}', [AgentTransactionController::class, 'show']);
                 Route::get('{transaction}/receipt', [AgentTransactionController::class, 'receipt']);
+                Route::post('{transaction}/reversal', [AgentTransactionController::class, 'reversal']);
             });
 
 

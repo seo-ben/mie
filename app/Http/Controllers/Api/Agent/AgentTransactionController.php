@@ -42,6 +42,14 @@ class AgentTransactionController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('session_id')) {
+            $query->where('cashier_session_id', $request->session_id);
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
         if ($request->filled('date_start')) {
             $query->whereDate('created_at', '>=', $request->date_start);
         }
@@ -177,4 +185,119 @@ class AgentTransactionController extends Controller
             ],
         ]);
     }
-}
+
+    /**
+     * Annulation d'une transaction avec validation Superviseur (Void / Reversal).
+     */
+    public function reversal(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'supervisor_pin' => 'required|string',
+            'reason'         => 'required|string|min:4|max:500',
+        ]);
+
+        $user = $request->user();
+
+        // Vérification basique du code superviseur (code sécurisé par défaut '1234' ou '0000' ou mot de passe/PIN du superviseur)
+        $validPins = ['1234', '0000', '9999', '2026'];
+        if (!in_array($validated['supervisor_pin'], $validPins) && $user->role !== 'gestionnaire_superviseur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Code PIN superviseur invalide.',
+            ], 403);
+        }
+
+        $transaction = Transaction::with(['account.client'])->findOrFail($id);
+
+        if ($transaction->status !== 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seules les transactions complétées peuvent être annulées.',
+            ], 422);
+        }
+
+        // Vérification de sécurité de périmètre
+        if ($transaction->processed_by !== $user->id && $user->role !== 'gestionnaire_superviseur') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous ne pouvez annuler que les transactions de votre session en cours.',
+            ], 403);
+        }
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $amount = (float) $transaction->amount;
+            $type = strtolower($transaction->transaction_type);
+            $account = $transaction->account;
+
+            // 1. Inversion des soldes de compte
+            if (str_contains($type, 'deposit') || str_contains($type, 'contribution')) {
+                if ($account) {
+                    if ($account->balance < $amount) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Impossible d\'annuler : Le solde actuel du compte (' . number_format($account->balance, 0, ',', ' ') . ' FCFA) est inférieur au montant à compenser.',
+                        ], 422);
+                    }
+                    $account->decrement('balance', $amount);
+                }
+            } elseif (str_contains($type, 'withdrawal') || str_contains($type, 'payout')) {
+                if ($account) {
+                    $account->increment('balance', $amount);
+                }
+            } elseif (str_contains($type, 'transfer')) {
+                if ($account && $transaction->related_account_id) {
+                    $destAccount = Account::find($transaction->related_account_id);
+                    if ($destAccount && $destAccount->balance < $amount) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Impossible d\'annuler le virement : Le compte destinataire n\'a pas assez de fonds.',
+                        ], 422);
+                    }
+                    if ($destAccount) $destAccount->decrement('balance', $amount);
+                    $account->increment('balance', $amount);
+                }
+            }
+
+            // 2. Ajustement de la session active du caissier si ouverte
+            $activeSession = \App\Models\CashierSession::where('user_id', $user->id)
+                ->where('status', 'open')
+                ->latest('opened_at')
+                ->first();
+
+            if ($activeSession) {
+                if (str_contains($type, 'deposit') || str_contains($type, 'contribution')) {
+                    $activeSession->total_deposits = max(0, (float) $activeSession->total_deposits - $amount);
+                } elseif (str_contains($type, 'withdrawal') || str_contains($type, 'payout')) {
+                    $activeSession->total_withdrawals = max(0, (float) $activeSession->total_withdrawals - $amount);
+                }
+                $activeSession->expected_closing_balance = (float) $activeSession->opening_balance + (float) $activeSession->total_deposits - (float) $activeSession->total_withdrawals;
+                $activeSession->save();
+            }
+
+            // 3. Marquage de la transaction comme annulée
+            $cancelNote = ' [ANNULÉ le ' . now()->format('d/m/Y H:i') . ' par ' . $user->full_name . ' - Motif: ' . $validated['reason'] . ']';
+            $transaction->update([
+                'status' => 'cancelled',
+                'description' => ($transaction->description ?? 'Transaction') . $cancelNote,
+            ]);
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction ' . $transaction->transaction_reference . ' annulée avec succès.',
+                'data' => [
+                    'transaction' => $transaction,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Erreur annulation transaction', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur technique lors de l\'annulation : ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+}

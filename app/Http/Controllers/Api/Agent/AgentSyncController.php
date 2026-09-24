@@ -16,6 +16,9 @@ use App\Models\Account;
 use App\Models\TontineAccount;
 use App\Models\TontineCycle;
 use App\Models\Transaction;
+use App\Models\Loan;
+use App\Models\LoanPayment;
+use App\Models\CashierSession;
 
 class AgentSyncController extends Controller
 {
@@ -405,4 +408,227 @@ class AgentSyncController extends Controller
     {
         return 'CLT-' . strtoupper(Str::random(3)) . '-' . date('ym') . rand(1000, 9999);
     }
+
+    /**
+     * Synchronisation en lot des opérations de caisse hors-ligne
+     * POST /api/v1/agent/transactions/sync
+     */
+    public function syncTransactions(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Utilisateur non authentifié.'], 401);
+        }
+
+        $transactions = $request->input('transactions', []);
+        if (empty($transactions)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucune transaction à synchroniser.',
+                'synced_count' => 0,
+                'synced_ids' => [],
+                'errors' => [],
+            ]);
+        }
+
+        $activeSession = CashierSession::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->latest('opened_at')
+            ->first();
+
+        $syncedIds = [];
+        $errors = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($transactions as $item) {
+                $offlineId = $item['offline_id'] ?? $item['id'] ?? null;
+                if (!$offlineId) {
+                    continue;
+                }
+
+                // 1. Clé d'idempotence : vérification anti-doublon absolue
+                $alreadyExists = Transaction::where('payment_reference', $offlineId)
+                    ->orWhere('transaction_reference', 'like', "%{$offlineId}%")
+                    ->first();
+
+                if ($alreadyExists) {
+                    $syncedIds[] = $offlineId;
+                    continue; // Déjà enregistré, on confirme le succès sans ré-appliquer les soldes
+                }
+
+                $type = $item['transaction_type'] ?? 'deposit';
+                $amount = (float) ($item['amount'] ?? 0);
+                $offlineCreatedAt = !empty($item['offline_created_at']) 
+                    ? Carbon::parse($item['offline_created_at']) 
+                    : now();
+
+                if ($amount <= 0) {
+                    $errors[] = ['offline_id' => $offlineId, 'error' => 'Montant invalide.'];
+                    continue;
+                }
+
+                // A. REMBOURSEMENT DE PRÊT
+                if ($type === 'loan_repayment' && !empty($item['loan_id'])) {
+                    $loan = Loan::with('client')->find($item['loan_id']);
+                    if (!$loan) {
+                        $errors[] = ['offline_id' => $offlineId, 'error' => 'Prêt introuvable.'];
+                        continue;
+                    }
+
+                    $clientAccount = Account::where('client_id', $loan->client_id)->first();
+                    $txRef = 'SYNC-REM-' . strtoupper(Str::random(5)) . '-' . date('ymd');
+
+                    $tx = Transaction::create([
+                        'transaction_reference' => $txRef,
+                        'account_id' => $clientAccount->id ?? 1,
+                        'cashier_session_id' => $activeSession?->id,
+                        'transaction_type' => 'loan_repayment',
+                        'amount' => $amount,
+                        'payment_method' => $item['payment_method'] ?? 'cash',
+                        'payment_reference' => $offlineId,
+                        'fee_amount' => 0,
+                        'description' => $item['description'] ?? ('Remboursement hors-ligne Prêt N° ' . $loan->loan_number),
+                        'status' => 'completed',
+                        'balance_before' => 0,
+                        'balance_after' => 0,
+                        'processed_by' => $user->id,
+                        'agency_id' => $user->agency_id ?? 1,
+                        'processed_at' => now(),
+                        'transaction_date' => $offlineCreatedAt,
+                        'created_at' => $offlineCreatedAt,
+                    ]);
+
+                    // Répartir sur l'échéancier
+                    $remainingPayment = $amount;
+                    $pendingPayments = LoanPayment::where('loan_id', $loan->id)
+                        ->whereIn('status', ['pending', 'overdue', 'partial'])
+                        ->orderBy('payment_number')
+                        ->get();
+
+                    foreach ($pendingPayments as $p) {
+                        if ($remainingPayment <= 0) break;
+                        $expected = (float) $p->expected_amount;
+                        $currentPaid = (float) $p->paid_amount;
+                        $due = max(0, $expected - $currentPaid);
+                        if ($due <= 0) continue;
+
+                        if ($remainingPayment >= ($due - 1.0)) {
+                            $p->update([
+                                'paid_amount' => $expected,
+                                'status' => 'paid',
+                                'paid_date' => $offlineCreatedAt,
+                                'processed_by' => $user->id,
+                                'processed_at' => now(),
+                            ]);
+                            $remainingPayment = max(0, $remainingPayment - $due);
+                        } else {
+                            $newPaid = $currentPaid + $remainingPayment;
+                            $p->update([
+                                'paid_amount' => round($newPaid, 2),
+                                'status' => $newPaid >= ($expected - 1.0) ? 'paid' : 'partial',
+                                'paid_date' => $offlineCreatedAt,
+                                'processed_by' => $user->id,
+                                'processed_at' => now(),
+                            ]);
+                            $remainingPayment = 0;
+                        }
+                    }
+
+                    $totalPaid = LoanPayment::where('loan_id', $loan->id)->sum('paid_amount');
+                    $totalExpected = (float) $loan->total_amount;
+                    $isFullyPaid = $totalPaid >= ($totalExpected - 1.0);
+                    $loan->update([
+                        'paid_amount' => round($totalPaid, 2),
+                        'remaining_amount' => max(0, round($totalExpected - $totalPaid, 2)),
+                        'status' => $isFullyPaid ? 'paid' : $loan->status,
+                    ]);
+
+                    if ($activeSession) {
+                        $activeSession->increment('total_deposits', $amount);
+                    }
+                    $syncedIds[] = $offlineId;
+                    continue;
+                }
+
+                // B. DÉPÔTS / RETRAITS / TONTIINE
+                $accountId = $item['account_id'] ?? null;
+                $account = Account::with('tontineAccount.activeCycle')->find($accountId);
+
+                if (!$account) {
+                    $errors[] = ['offline_id' => $offlineId, 'error' => "Compte #$accountId introuvable."];
+                    continue;
+                }
+
+                $before = (float) $account->balance;
+                $after = ($type === 'withdrawal') ? max(0, $before - $amount) : ($before + $amount);
+
+                if ($type === 'deposit' && $account->account_type === 'tontine' && $account->tontineAccount) {
+                    $tontine = $account->tontineAccount;
+                    $cycle = $tontine->activeCycle ?? $this->createTontineCycle($tontine);
+                    if ($cycle) {
+                        $this->distributeTontineAmount($tontine, $cycle, $amount);
+                    }
+                    $tontine->increment('total_paid', $amount);
+                }
+
+                $txPrefix = ($type === 'withdrawal') ? 'SYNC-RET-' : 'SYNC-DEP-';
+                $txRef = $txPrefix . strtoupper(Str::random(5)) . '-' . date('ymd');
+
+                Transaction::create([
+                    'transaction_reference' => $txRef,
+                    'account_id' => $account->id,
+                    'cashier_session_id' => $activeSession?->id,
+                    'transaction_type' => $type,
+                    'amount' => $amount,
+                    'payment_method' => $item['payment_method'] ?? 'cash',
+                    'payment_reference' => $offlineId,
+                    'fee_amount' => 0,
+                    'description' => $item['description'] ?? ($type === 'withdrawal' ? 'Retrait guichet hors-ligne' : 'Dépôt guichet hors-ligne'),
+                    'status' => 'completed',
+                    'balance_before' => $before,
+                    'balance_after' => $after,
+                    'processed_by' => $user->id,
+                    'agency_id' => $user->agency_id ?? 1,
+                    'processed_at' => now(),
+                    'transaction_date' => $offlineCreatedAt,
+                    'created_at' => $offlineCreatedAt,
+                ]);
+
+                $account->update(['balance' => $after, 'last_transaction_at' => now()]);
+
+                if ($activeSession) {
+                    if ($type === 'withdrawal') {
+                        $activeSession->increment('total_withdrawals', $amount);
+                    } else {
+                        $activeSession->increment('total_deposits', $amount);
+                    }
+                }
+
+                $syncedIds[] = $offlineId;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => count($syncedIds) . ' transaction(s) synchronisée(s) avec succès.',
+                'synced_count' => count($syncedIds),
+                'synced_ids' => $syncedIds,
+                'errors' => $errors,
+                'active_session_open' => $activeSession !== null,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur Batch Sync Transactions', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Échec lors de la synchronisation : ' . $e->getMessage(),
+                'synced_ids' => $syncedIds,
+                'errors' => $errors,
+            ], 500);
+        }
+    }
 }
+

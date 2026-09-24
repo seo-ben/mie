@@ -362,52 +362,66 @@ class AgentLoanController extends Controller
             $rate = (float) $loan->interest_rate;
             $monthlyRate = ($rate / 100) / 12;
 
-            $monthlyPayment = $monthlyRate > 0
+            $rawMonthly = $monthlyRate > 0
                 ? $approvedAmount * ($monthlyRate * pow(1 + $monthlyRate, $duration)) / (pow(1 + $monthlyRate, $duration) - 1)
                 : $approvedAmount / $duration;
-            $totalDue = $monthlyPayment * $duration;
-            $totalInterest = $totalDue - $approvedAmount;
+            $monthlyPayment = round($rawMonthly);
 
-            $loan->update([
-                'approved_amount' => $approvedAmount,
-                'monthly_payment' => round($monthlyPayment, 2),
-                'total_amount_due' => round($totalDue, 2),
-                'outstanding_principal' => $approvedAmount,
-                'outstanding_interest' => round($totalInterest, 2),
-                'status' => 'approved',
-                'approved_by' => $user->id,
-                'approved_at' => now(),
-                'first_payment_date' => Carbon::now()->addMonth()->startOfMonth(),
-                'maturity_date' => Carbon::now()->addMonths($duration),
-            ]);
-
-            // Générer l'échéancier réel dans loan_payments
+            // Générer l'échéancier réel équilibré dans loan_payments
             LoanPayment::where('loan_id', $loan->id)->delete();
             $remaining = $approvedAmount;
             $firstDate = Carbon::now()->addMonth()->startOfMonth();
+            $totalDueSum = 0;
+            $totalInterestSum = 0;
 
             for ($i = 1; $i <= $duration; $i++) {
-                $interestPart = $remaining * $monthlyRate;
-                $principalPart = $monthlyPayment - $interestPart;
+                $interestPart = round($remaining * $monthlyRate);
+                if ($i === $duration) {
+                    // La dernière échéance absorbe tout résidu de principal
+                    $principalPart = $remaining;
+                    $expectedPayment = $principalPart + $interestPart;
+                } else {
+                    $principalPart = max(0, $monthlyPayment - $interestPart);
+                    if ($principalPart > $remaining) {
+                        $principalPart = $remaining;
+                    }
+                    $expectedPayment = $principalPart + $interestPart;
+                }
                 $remaining = max(0, $remaining - $principalPart);
+                $totalInterestSum += $interestPart;
+                $totalDueSum += $expectedPayment;
 
                 LoanPayment::create([
                     'loan_id' => $loan->id,
                     'payment_number' => $i,
                     'due_date' => (clone $firstDate)->addMonths($i - 1)->format('Y-m-d'),
-                    'expected_amount' => round($monthlyPayment, 2),
-                    'principal_amount' => round($principalPart, 2),
-                    'interest_amount' => round($interestPart, 2),
+                    'expected_amount' => $expectedPayment,
+                    'principal_amount' => $principalPart,
+                    'interest_amount' => $interestPart,
+                    'paid_amount' => 0,
                     'status' => 'pending',
                 ]);
             }
+
+            $loan->update([
+                'approved_amount' => $approvedAmount,
+                'monthly_payment' => $monthlyPayment,
+                'total_amount_due' => $totalDueSum,
+                'outstanding_principal' => $approvedAmount,
+                'outstanding_interest' => $totalInterestSum,
+                'status' => 'approved',
+                'approved_by' => $user->id,
+                'approved_at' => now(),
+                'first_payment_date' => $firstDate,
+                'maturity_date' => Carbon::now()->addMonths($duration),
+            ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Dossier de prêt approuvé avec succès. Prêt pour décaissement.',
-                'data' => $loan->fresh(['client', 'approvedBy']),
+                'message' => 'Dossier de prêt approuvé avec succès. Échéancier généré et prêt pour décaissement.',
+                'data' => $loan->fresh(['client', 'approvedBy', 'payments']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -570,46 +584,73 @@ class AgentLoanController extends Controller
                 'transaction_date' => now(),
             ]);
 
-            // Répartir le montant sur les échéances en attente
+            // Répartir le montant sur les échéances en attente, en retard ou partielles
             $remainingPayment = $repayAmount;
             $pendingPayments = LoanPayment::where('loan_id', $loan->id)
                 ->whereIn('status', ['pending', 'overdue', 'partial'])
-                ->orderBy('due_date')
+                ->orderBy('payment_number')
                 ->get();
 
             foreach ($pendingPayments as $p) {
                 if ($remainingPayment <= 0) break;
 
-                $due = (float) $p->expected_amount - (float) $p->paid_amount;
-                if ($remainingPayment >= $due) {
+                $expected = (float) $p->expected_amount;
+                $currentPaid = (float) $p->paid_amount;
+                $due = max(0, $expected - $currentPaid);
+
+                if ($due <= 0) {
+                    $p->update(['status' => 'paid']);
+                    continue;
+                }
+
+                // Tolérance de 1 FCFA (évite le décalage causé par les centimes résiduels)
+                if ($remainingPayment >= ($due - 1.0)) {
                     $p->update([
-                        'paid_amount' => $p->expected_amount,
+                        'paid_amount' => $expected,
                         'status' => 'paid',
                         'paid_date' => now(),
                         'processed_by' => $user->id,
                         'processed_at' => now(),
                     ]);
-                    $remainingPayment -= $due;
+                    $remainingPayment = max(0, $remainingPayment - $due);
                 } else {
-                    $p->update([
-                        'paid_amount' => (float) $p->paid_amount + $remainingPayment,
-                        'status' => 'partial',
-                        'paid_date' => now(),
-                        'processed_by' => $user->id,
-                        'processed_at' => now(),
-                    ]);
+                    // Paiement partiel réel
+                    $newPaid = $currentPaid + $remainingPayment;
+                    if ($newPaid >= ($expected - 1.0)) {
+                        $p->update([
+                            'paid_amount' => $expected,
+                            'status' => 'paid',
+                            'paid_date' => now(),
+                            'processed_by' => $user->id,
+                            'processed_at' => now(),
+                        ]);
+                    } else {
+                        $p->update([
+                            'paid_amount' => round($newPaid, 2),
+                            'status' => 'partial',
+                            'paid_date' => now(),
+                            'processed_by' => $user->id,
+                            'processed_at' => now(),
+                        ]);
+                    }
                     $remainingPayment = 0;
                 }
             }
 
-            // Mettre à jour le prêt
-            $newTotalPaid = (float) $loan->total_paid + $repayAmount;
-            $newOutstanding = max(0, (float) $loan->total_amount_due - $newTotalPaid);
-            $isFullyPaid = $newOutstanding <= 0.01;
+            // Recalculer les totaux réels à partir des paiements
+            $allPayments = LoanPayment::where('loan_id', $loan->id)->get();
+            $actualTotalPaid = (float) $allPayments->sum('paid_amount');
+            $hasUnpaidPayments = $allPayments->where('status', '!=', 'paid')->count() > 0;
+            $newOutstanding = max(0, (float) $loan->total_amount_due - $actualTotalPaid);
+            $isFullyPaid = (!$hasUnpaidPayments) || ($newOutstanding <= 1.0);
+
+            if ($isFullyPaid) {
+                $newOutstanding = 0;
+            }
 
             $loan->update([
-                'total_paid' => $newTotalPaid,
-                'outstanding_principal' => max(0, (float) $loan->approved_amount - $newTotalPaid),
+                'total_paid' => $actualTotalPaid,
+                'outstanding_principal' => max(0, (float) $loan->approved_amount - (float) $allPayments->where('status', 'paid')->sum('principal_amount')),
                 'status' => $isFullyPaid ? 'completed' : 'active',
             ]);
 
@@ -646,10 +687,20 @@ class AgentLoanController extends Controller
     {
         $loan = Loan::with(['client', 'payments'])->findOrFail($loanId);
 
+        // Auto-guérison des échéances ayant des résidus de centimes <= 1 FCFA
+        foreach ($loan->payments as $p) {
+            if ($p->status !== 'paid' && (float)$p->paid_amount > 0 && (((float)$p->expected_amount - (float)$p->paid_amount) <= 1.0)) {
+                $p->update([
+                    'paid_amount' => $p->expected_amount,
+                    'status' => 'paid',
+                ]);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
-                'loan' => $loan,
+                'loan' => $loan->fresh(['client']),
                 'payments' => $loan->payments()->orderBy('payment_number')->get(),
             ],
         ]);
