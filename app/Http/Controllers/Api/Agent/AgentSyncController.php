@@ -425,8 +425,8 @@ class AgentSyncController extends Controller
             return response()->json(['success' => false, 'message' => 'Utilisateur non authentifié.'], 401);
         }
 
-        $transactions = $request->input('transactions', []);
-        if (empty($transactions)) {
+        $rawTransactions = $request->input('transactions', []);
+        if (empty($rawTransactions)) {
             return response()->json([
                 'success' => true,
                 'message' => 'Aucune transaction à synchroniser.',
@@ -436,415 +436,304 @@ class AgentSyncController extends Controller
             ]);
         }
 
-        // Trouver ou associer la session de caisse
+        // Trouver ou associer la session de caisse ouverte
         $activeSession = CashierSession::where('user_id', $user->id)
             ->where('status', 'open')
             ->latest('opened_at')
             ->first();
 
-        // Si aucune session n'est ouverte sur le serveur, chercher la dernière session du jour ou fermée récemment
+        // Si aucune session n'est ouverte sur le serveur, chercher la dernière session
         if (!$activeSession) {
             $activeSession = CashierSession::where('user_id', $user->id)
                 ->latest('opened_at')
                 ->first();
         }
 
+        // Si toujours aucune session et que l'utilisateur est caissier/agent, en ouvrir une automatiquement
+        if (!$activeSession) {
+            try {
+                $activeSession = CashierSession::create([
+                    'session_code'      => 'SESS-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
+                    'user_id'           => $user->id,
+                    'agency_id'         => $user->agency_id ?? 1,
+                    'opening_balance'   => 0,
+                    'expected_balance'  => 0,
+                    'actual_balance'    => 0,
+                    'total_deposits'    => 0,
+                    'total_withdrawals' => 0,
+                    'status'            => 'open',
+                    'opened_at'         => now(),
+                    'notes'             => 'Session automatique synchronisation hors-ligne',
+                ]);
+            } catch (\Exception $se) {
+                Log::warning('Impossible de créer une session automatique pour sync: ' . $se->getMessage());
+            }
+        }
+
+        // Tri par ordre de dépendance : 1) Clients, 2) Comptes, 3) Prêts, 4) Dépôts / Retraits / Remboursements
+        $sortedTransactions = $rawTransactions;
+        usort($sortedTransactions, function ($a, $b) {
+            $getWeight = function ($item) {
+                $act = $item['action'] ?? $item['transaction_type'] ?? '';
+                $offId = (string)($item['offline_id'] ?? $item['id'] ?? '');
+                if ($act === 'create_client' || str_starts_with($offId, 'CLIENT-')) return 1;
+                if ($act === 'create_account' || str_starts_with($offId, 'ACC-')) return 2;
+                if ($act === 'apply_loan' || str_starts_with($offId, 'OFF-LOAN-')) return 3;
+                return 4;
+            };
+            return $getWeight($a) <=> $getWeight($b);
+        });
+
         $syncedIds = [];
         $errors = [];
 
-        DB::beginTransaction();
-        try {
-            foreach ($transactions as $item) {
-                $offlineId = $item['offline_id'] ?? $item['id'] ?? null;
-                if (!$offlineId) {
-                    continue;
-                }
+        foreach ($sortedTransactions as $item) {
+            $offlineId = $item['offline_id'] ?? $item['id'] ?? null;
+            if (!$offlineId) {
+                continue;
+            }
 
-                // 1. Clé d'idempotence : vérification anti-doublon absolue pour transactions
-                $alreadyExists = Transaction::where('payment_reference', $offlineId)
-                    ->orWhere('transaction_reference', 'like', "%{$offlineId}%")
-                    ->first();
+            $offlineIdStr = (string) $offlineId;
 
-                if ($alreadyExists) {
-                    $syncedIds[] = (string)$offlineId;
-                    continue;
-                }
+            // 1. Clé d'idempotence : vérification anti-doublon absolue
+            $alreadyExists = Transaction::where('payment_reference', $offlineIdStr)
+                ->orWhere('transaction_reference', 'like', "%{$offlineIdStr}%")
+                ->first();
 
-                $action = $item['action'] ?? $item['transaction_type'] ?? 'deposit';
-                $offlineCreatedAt = !empty($item['offline_created_at']) 
-                    ? Carbon::parse($item['offline_created_at']) 
-                    : now();
+            if ($alreadyExists) {
+                $syncedIds[] = $offlineIdStr;
+                continue;
+            }
 
-                // -------------------------------------------------------------
-                // CAS 1 : CRÉATION DE CLIENT HORS-LIGNE
-                // -------------------------------------------------------------
-                if ($action === 'create_client' || str_starts_with((string)$offlineId, 'CLIENT-')) {
-                    try {
-                        $phone = $item['phone'] ?? null;
-                        $client = $phone ? Client::where('phone', $phone)->first() : null;
+            $action = $item['action'] ?? $item['transaction_type'] ?? 'deposit';
+            $offlineCreatedAt = !empty($item['offline_created_at']) 
+                ? Carbon::parse($item['offline_created_at']) 
+                : now();
 
-                        if (!$client) {
-                            $client = Client::create([
-                                'client_number'       => $this->generateClientNumber(),
-                                'first_name'          => $item['first_name'] ?? 'Client',
-                                'last_name'           => $item['last_name'] ?? 'Hors-Ligne',
-                                'phone'               => $phone ?? ('+2289' . rand(1000000, 9999999)),
-                                'email'               => $item['email'] ?? null,
-                                'address'             => $item['address'] ?? null,
-                                'gender'              => $item['gender'] ?? 'M',
-                                'id_type'             => $item['id_type'] ?? 'cni',
-                                'id_number'           => $item['id_number'] ?? null,
-                                'password'            => Hash::make('1234'),
-                                'registered_by'       => $user->id,
-                                'agency_id'           => $user->agency_id ?? 1,
-                                'registration_status' => 'completed',
-                                'kyc_status'          => 'pending',
-                            ]);
-                        }
+            // -------------------------------------------------------------
+            // CAS 1 : CRÉATION DE CLIENT HORS-LIGNE
+            // -------------------------------------------------------------
+            if ($action === 'create_client' || str_starts_with($offlineIdStr, 'CLIENT-')) {
+                DB::beginTransaction();
+                try {
+                    $phone = $item['phone'] ?? null;
+                    $client = $phone ? Client::where('phone', $phone)->first() : null;
 
-                        // Création automatique compte épargne et compte tontine
-                        $savAcc = Account::firstOrCreate([
-                            'client_id'    => $client->id,
-                            'account_type' => 'savings',
-                        ], [
-                            'account_number' => 'SAV-' . strtoupper(Str::random(8)),
+                    if (!$client) {
+                        $client = Client::create([
+                            'client_number'       => $this->generateClientNumber(),
+                            'first_name'          => $item['first_name'] ?? 'Client',
+                            'last_name'           => $item['last_name'] ?? 'Hors-Ligne',
+                            'phone'               => $phone ?? ('+2289' . rand(1000000, 9999999)),
+                            'email'               => $item['email'] ?? null,
+                            'address'             => $item['address'] ?? null,
+                            'gender'              => $item['gender'] ?? 'M',
+                            'id_type'             => $item['id_type'] ?? 'cni',
+                            'id_number'           => $item['id_number'] ?? null,
+                            'password'            => Hash::make('1234'),
+                            'registered_by'       => $user->id,
+                            'agency_id'           => $user->agency_id ?? 1,
+                            'registration_status' => 'completed',
+                            'kyc_status'          => 'pending',
+                        ]);
+                    }
+
+                    // Création automatique compte épargne et compte tontine
+                    $savAcc = Account::firstOrCreate([
+                        'client_id'    => $client->id,
+                        'account_type' => 'savings',
+                    ], [
+                        'account_number' => 'SAV-' . strtoupper(Str::random(8)),
+                        'balance'        => 0,
+                        'status'         => 'active',
+                        'created_by'     => $user->id,
+                        'activated_at'   => now(),
+                    ]);
+
+                    $tonAcc = Account::where('client_id', $client->id)->where('account_type', 'tontine')->first();
+                    if (!$tonAcc) {
+                        $tonAcc = Account::create([
+                            'client_id'      => $client->id,
+                            'account_number' => 'TON-' . strtoupper(Str::random(8)),
+                            'account_type'   => 'tontine',
                             'balance'        => 0,
                             'status'         => 'active',
                             'created_by'     => $user->id,
                             'activated_at'   => now(),
                         ]);
+                        $this->createTontineAccount($tonAcc, ['target_amount' => $item['initial_tontine_amount'] ?? 1000]);
+                    }
 
-                        $tonAcc = Account::where('client_id', $client->id)->where('account_type', 'tontine')->first();
-                        if (!$tonAcc) {
-                            $tonAcc = Account::create([
-                                'client_id'      => $client->id,
-                                'account_number' => 'TON-' . strtoupper(Str::random(8)),
-                                'account_type'   => 'tontine',
+                    // Mapping étendu de tous les identifiants possibles
+                    $this->idMapping['clients'][$offlineIdStr] = $client->id;
+                    $this->idMapping['accounts'][$offlineIdStr] = $savAcc->id;
+                    if (!empty($item['id'])) {
+                        $this->idMapping['clients'][(string)$item['id']] = $client->id;
+                    }
+                    if (!empty($item['temp_client_id'])) {
+                        $this->idMapping['clients'][(string)$item['temp_client_id']] = $client->id;
+                    }
+                    preg_match_all('!\d+!', $offlineIdStr, $matches);
+                    if (!empty($matches[0])) {
+                        foreach ($matches[0] as $numStr) {
+                            $this->idMapping['clients'][$numStr] = $client->id;
+                            $this->idMapping['clients']['-' . $numStr] = $client->id;
+                        }
+                    }
+
+                    DB::commit();
+                    $syncedIds[] = $offlineIdStr;
+                } catch (\Exception $ce) {
+                    DB::rollBack();
+                    $errors[] = ['id' => $offlineIdStr, 'error' => 'Client: ' . $ce->getMessage()];
+                }
+                continue;
+            }
+
+            // -------------------------------------------------------------
+            // CAS 2 : CRÉATION DE COMPTE HORS-LIGNE
+            // -------------------------------------------------------------
+            if ($action === 'create_account' || str_starts_with($offlineIdStr, 'ACC-')) {
+                DB::beginTransaction();
+                try {
+                    $rawClientId = $item['client_id'] ?? null;
+                    $clientId = $this->idMapping['clients'][$rawClientId] 
+                        ?? $this->idMapping['clients'][(string)$rawClientId]
+                        ?? (is_numeric($rawClientId) && $rawClientId > 0 ? (int)$rawClientId : null);
+
+                    if (!$clientId && !empty($this->idMapping['clients'])) {
+                        $clientId = end($this->idMapping['clients']);
+                    }
+
+                    if ($clientId) {
+                        $accNum = $item['account_number'] ?? ('ACC-' . strtoupper(Str::random(8)));
+                        $account = Account::where('account_number', $accNum)->first();
+
+                        if (!$account) {
+                            $account = Account::create([
+                                'client_id'      => $clientId,
+                                'account_number' => $accNum,
+                                'account_type'   => $item['account_type'] ?? 'tontine',
                                 'balance'        => 0,
                                 'status'         => 'active',
                                 'created_by'     => $user->id,
                                 'activated_at'   => now(),
                             ]);
-                            $this->createTontineAccount($tonAcc, ['target_amount' => $item['initial_tontine_amount'] ?? 1000]);
+
+                            if ($account->account_type === 'tontine') {
+                                $this->createTontineAccount($account, $item);
+                            }
                         }
 
-                        $this->idMapping['clients'][$offlineId] = $client->id;
-                        $this->idMapping['clients'][(string)$offlineId] = $client->id;
+                        $tempAccId = $item['temp_account_id'] ?? $item['account_id'] ?? $offlineIdStr;
+                        $this->idMapping['accounts'][(string)$tempAccId] = $account->id;
+                        $this->idMapping['accounts'][$offlineIdStr] = $account->id;
                         if (!empty($item['id'])) {
-                            $this->idMapping['clients'][$item['id']] = $client->id;
-                            $this->idMapping['clients'][(string)$item['id']] = $client->id;
-                        }
-                        if (!empty($item['temp_client_id'])) {
-                            $this->idMapping['clients'][$item['temp_client_id']] = $client->id;
-                            $this->idMapping['clients'][(string)$item['temp_client_id']] = $client->id;
-                        }
-                        preg_match_all('!\d+!', (string)$offlineId, $matches);
-                        if (!empty($matches[0])) {
-                            foreach ($matches[0] as $numStr) {
-                                $this->idMapping['clients'][$numStr] = $client->id;
-                                $this->idMapping['clients']['-' . $numStr] = $client->id;
-                            }
+                            $this->idMapping['accounts'][(string)$item['id']] = $account->id;
                         }
 
-                        $syncedIds[] = (string)$offlineId;
-                    } catch (\Exception $ce) {
-                        $errors[] = ['id' => $offlineId, 'error' => 'Client: ' . $ce->getMessage()];
+                        DB::commit();
+                        $syncedIds[] = $offlineIdStr;
+                    } else {
+                        DB::rollBack();
+                        $errors[] = ['id' => $offlineIdStr, 'error' => 'Client introuvable pour création compte'];
                     }
-                    continue;
+                } catch (\Exception $ae) {
+                    DB::rollBack();
+                    $errors[] = ['id' => $offlineIdStr, 'error' => 'Compte: ' . $ae->getMessage()];
                 }
+                continue;
+            }
 
-                // -------------------------------------------------------------
-                // CAS 2 : CRÉATION DE COMPTE HORS-LIGNE
-                // -------------------------------------------------------------
-                if ($action === 'create_account' || str_starts_with((string)$offlineId, 'ACC-')) {
-                    try {
-                        $rawClientId = $item['client_id'] ?? null;
-                        $clientId = $this->idMapping['clients'][$rawClientId] 
-                            ?? (is_numeric($rawClientId) ? (int)$rawClientId : null);
-
-                        if ($clientId) {
-                            $accNum = $item['account_number'] ?? ('ACC-' . strtoupper(Str::random(8)));
-                            $account = Account::where('account_number', $accNum)->first();
-
-                            if (!$account) {
-                                $account = Account::create([
-                                    'client_id'      => $clientId,
-                                    'account_number' => $accNum,
-                                    'account_type'   => $item['account_type'] ?? 'tontine',
-                                    'balance'        => 0,
-                                    'status'         => 'active',
-                                    'created_by'     => $user->id,
-                                    'activated_at'   => now(),
-                                ]);
-
-                                if ($account->account_type === 'tontine') {
-                                    $this->createTontineAccount($account, $item);
-                                }
-                            }
-
-                            $tempAccId = $item['temp_account_id'] ?? $item['account_id'] ?? $offlineId;
-                            $this->idMapping['accounts'][$tempAccId] = $account->id;
-                            $this->idMapping['accounts'][$offlineId] = $account->id;
-                            if (!empty($item['id'])) {
-                                $this->idMapping['accounts'][$item['id']] = $account->id;
-                            }
-                            $syncedIds[] = (string)$offlineId;
-                        } else {
-                            $errors[] = ['id' => $offlineId, 'error' => 'Client introuvable pour création compte'];
-                        }
-                    } catch (\Exception $ae) {
-                        $errors[] = ['id' => $offlineId, 'error' => 'Compte: ' . $ae->getMessage()];
-                    }
-                    continue;
-                }
-
-                // -------------------------------------------------------------
-                // CAS 3 : DEMANDE DE PRÊT HORS-LIGNE
-                // -------------------------------------------------------------
-                if ($action === 'apply_loan' || str_starts_with((string)$offlineId, 'OFF-LOAN-')) {
-                    try {
-                        $rawClientId = $item['client_id'] ?? null;
-                        $clientId = $this->idMapping['clients'][$rawClientId] 
-                            ?? (is_numeric($rawClientId) ? (int)$rawClientId : null);
-
-                        if ($clientId) {
-                            $reqAmount = (float)($item['requested_amount'] ?? 0);
-                            $duration = (int)($item['duration_months'] ?? 6);
-                            $rate = (float)($item['interest_rate'] ?? 10.0);
-                            $totalDue = $reqAmount + ($reqAmount * ($rate / 100));
-
-                            Loan::create([
-                                'loan_number'            => 'PRT-' . strtoupper(Str::random(6)) . '-' . date('ymd'),
-                                'client_id'              => $clientId,
-                                'requested_amount'       => $reqAmount,
-                                'approved_amount'        => 0,
-                                'interest_rate'          => $rate,
-                                'duration_months'        => $duration,
-                                'total_amount'           => $totalDue,
-                                'remaining_amount'       => $totalDue,
-                                'paid_amount'            => 0,
-                                'purpose'                => $item['purpose'] ?? null,
-                                'collateral_description' => $item['collateral_description'] ?? null,
-                                'status'                 => 'pending',
-                                'registered_by'          => $user->id,
-                                'agency_id'              => $user->agency_id ?? 1,
-                                'application_date'       => $offlineCreatedAt,
-                            ]);
-                            $syncedIds[] = (string)$offlineId;
-                        } else {
-                            $errors[] = ['id' => $offlineId, 'error' => 'Client introuvable pour demande de prêt'];
-                        }
-                    } catch (\Exception $le) {
-                        $errors[] = ['id' => $offlineId, 'error' => 'Prêt: ' . $le->getMessage()];
-                    }
-                    continue;
-                }
-
-                // -------------------------------------------------------------
-                // CAS 4 : REMBOURSEMENT DE PRÊT
-                // -------------------------------------------------------------
-                $type = $item['transaction_type'] ?? 'deposit';
-                $amount = (float) ($item['amount'] ?? 0);
-
-                if ($amount <= 0) {
-                    $syncedIds[] = (string)$offlineId;
-                    continue;
-                }
-
-                if ($type === 'loan_repayment' && !empty($item['loan_id'])) {
-                    try {
-                        $loan = Loan::with('client')->find($item['loan_id']);
-                        if (!$loan) {
-                            $errors[] = ['id' => $offlineId, 'error' => 'Prêt #' . $item['loan_id'] . ' non trouvé'];
-                            continue;
-                        }
-
-                        $clientAccount = Account::where('client_id', $loan->client_id)->first();
-                        $txRef = 'SYNC-REM-' . strtoupper(Str::random(5)) . '-' . date('ymd');
-
-                        Transaction::create([
-                            'transaction_reference' => $txRef,
-                            'account_id'            => $clientAccount->id ?? 1,
-                            'cashier_session_id'    => $activeSession?->id,
-                            'transaction_type'      => 'loan_repayment',
-                            'amount'                => $amount,
-                            'payment_method'        => $item['payment_method'] ?? 'cash',
-                            'payment_reference'     => $offlineId,
-                            'fee_amount'            => 0,
-                            'description'           => $item['description'] ?? ('Remboursement hors-ligne Prêt N° ' . $loan->loan_number),
-                            'status'                => 'completed',
-                            'balance_before'        => 0,
-                            'balance_after'         => 0,
-                            'processed_by'          => $user->id,
-                            'agency_id'             => $user->agency_id ?? 1,
-                            'processed_at'          => now(),
-                            'transaction_date'      => $offlineCreatedAt,
-                            'created_at'            => $offlineCreatedAt,
-                        ]);
-
-                        // Répartir sur l'échéancier
-                        $remainingPayment = $amount;
-                        $pendingPayments = LoanPayment::where('loan_id', $loan->id)
-                            ->whereIn('status', ['pending', 'overdue', 'partial'])
-                            ->orderBy('payment_number')
-                            ->get();
-
-                        foreach ($pendingPayments as $p) {
-                            if ($remainingPayment <= 0) break;
-                            $expected = (float) $p->expected_amount;
-                            $currentPaid = (float) $p->paid_amount;
-                            $due = max(0, $expected - $currentPaid);
-                            if ($due <= 0) continue;
-
-                            if ($remainingPayment >= ($due - 1.0)) {
-                                $p->update([
-                                    'paid_amount' => $expected,
-                                    'status' => 'paid',
-                                    'paid_date' => $offlineCreatedAt,
-                                    'processed_by' => $user->id,
-                                    'processed_at' => now(),
-                                ]);
-                                $remainingPayment = max(0, $remainingPayment - $due);
-                            } else {
-                                $newPaid = $currentPaid + $remainingPayment;
-                                $p->update([
-                                    'paid_amount' => round($newPaid, 2),
-                                    'status' => $newPaid >= ($expected - 1.0) ? 'paid' : 'partial',
-                                    'paid_date' => $offlineCreatedAt,
-                                    'processed_by' => $user->id,
-                                    'processed_at' => now(),
-                                ]);
-                                $remainingPayment = 0;
-                            }
-                        }
-
-                        $totalPaid = LoanPayment::where('loan_id', $loan->id)->sum('paid_amount');
-                        $totalExpected = (float) $loan->total_amount;
-                        $isFullyPaid = $totalPaid >= ($totalExpected - 1.0);
-                        $loan->update([
-                            'paid_amount' => round($totalPaid, 2),
-                            'remaining_amount' => max(0, round($totalExpected - $totalPaid, 2)),
-                            'status' => $isFullyPaid ? 'paid' : $loan->status,
-                        ]);
-
-                        if ($activeSession) {
-                            $activeSession->increment('total_deposits', $amount);
-                        }
-                        $syncedIds[] = (string)$offlineId;
-                    } catch (\Exception $rpe) {
-                        $errors[] = ['id' => $offlineId, 'error' => 'Remboursement: ' . $rpe->getMessage()];
-                    }
-                    continue;
-                }
-
-                // -------------------------------------------------------------
-                // CAS 5 : DÉPÔTS / RETRAITS / COTISATIONS TONTINE
-                // -------------------------------------------------------------
+            // -------------------------------------------------------------
+            // CAS 3 : DEMANDE DE PRÊT HORS-LIGNE
+            // -------------------------------------------------------------
+            if ($action === 'apply_loan' || str_starts_with($offlineIdStr, 'OFF-LOAN-')) {
+                DB::beginTransaction();
                 try {
-                    $rawAccountId = $item['account_id'] ?? null;
-                    $realAccountId = $this->idMapping['accounts'][$rawAccountId] 
-                        ?? $this->idMapping['accounts'][(string)$rawAccountId]
-                        ?? (is_numeric($rawAccountId) && $rawAccountId > 0 ? (int)$rawAccountId : null);
+                    $rawClientId = $item['client_id'] ?? null;
+                    $clientId = $this->idMapping['clients'][$rawClientId] 
+                        ?? $this->idMapping['clients'][(string)$rawClientId]
+                        ?? (is_numeric($rawClientId) && $rawClientId > 0 ? (int)$rawClientId : null);
 
-                    $account = null;
-                    if ($realAccountId) {
-                        $account = Account::with('tontineAccount.activeCycle')->find($realAccountId);
+                    if (!$clientId && !empty($this->idMapping['clients'])) {
+                        $clientId = end($this->idMapping['clients']);
                     }
 
-                    if (!$account && !empty($item['account_number'])) {
-                        $account = Account::with('tontineAccount.activeCycle')
-                            ->where('account_number', $item['account_number'])
-                            ->first();
+                    if ($clientId) {
+                        $reqAmount = (float)($item['requested_amount'] ?? 0);
+                        $duration = (int)($item['duration_months'] ?? 6);
+                        $rate = (float)($item['interest_rate'] ?? 10.0);
+                        $totalDue = $reqAmount + ($reqAmount * ($rate / 100));
+
+                        Loan::create([
+                            'loan_number'            => 'PRT-' . strtoupper(Str::random(6)) . '-' . date('ymd'),
+                            'client_id'              => $clientId,
+                            'requested_amount'       => $reqAmount,
+                            'approved_amount'        => 0,
+                            'interest_rate'          => $rate,
+                            'duration_months'        => $duration,
+                            'total_amount'           => $totalDue,
+                            'remaining_amount'       => $totalDue,
+                            'paid_amount'            => 0,
+                            'purpose'                => $item['purpose'] ?? null,
+                            'collateral_description' => $item['collateral_description'] ?? null,
+                            'status'                 => 'pending',
+                            'registered_by'          => $user->id,
+                            'agency_id'              => $user->agency_id ?? 1,
+                            'application_date'       => $offlineCreatedAt,
+                        ]);
+
+                        DB::commit();
+                        $syncedIds[] = $offlineIdStr;
+                    } else {
+                        DB::rollBack();
+                        $errors[] = ['id' => $offlineIdStr, 'error' => 'Client introuvable pour demande de prêt'];
                     }
+                } catch (\Exception $le) {
+                    DB::rollBack();
+                    $errors[] = ['id' => $offlineIdStr, 'error' => 'Prêt: ' . $le->getMessage()];
+                }
+                continue;
+            }
 
-                    // Recherche avancée et liaison de compte hors-ligne (ex: OFF-TON-..., compte d'un nouveau client)
-                    if (!$account) {
-                        $clientId = null;
-                        $rawCliId = $item['client_id'] ?? $item['temp_client_id'] ?? null;
-                        if ($rawCliId && isset($this->idMapping['clients'][$rawCliId])) {
-                            $clientId = $this->idMapping['clients'][$rawCliId];
-                        }
-                        if (!$clientId && $rawAccountId && isset($this->idMapping['clients'][$rawAccountId])) {
-                            $clientId = $this->idMapping['clients'][$rawAccountId];
-                        }
+            // -------------------------------------------------------------
+            // CAS 4 : REMBOURSEMENT DE PRÊT
+            // -------------------------------------------------------------
+            $type = $item['transaction_type'] ?? 'deposit';
+            $amount = (float) ($item['amount'] ?? 0);
 
-                        // Chercher par le numéro de téléphone si présent
-                        if (!$clientId && !empty($item['phone'])) {
-                            $cl = Client::where('phone', $item['phone'])->first();
-                            if ($cl) $clientId = $cl->id;
-                        }
+            if ($amount <= 0) {
+                $syncedIds[] = $offlineIdStr;
+                continue;
+            }
 
-                        // Si aucun clientId mais un client créé dans le même lot de synchro
-                        if (!$clientId && !empty($this->idMapping['clients'])) {
-                            $clientId = end($this->idMapping['clients']);
-                        }
-
-                        if ($clientId) {
-                            $isTontine = str_contains((string)($item['account_number'] ?? ''), 'TON') 
-                                || ($item['account_type'] ?? '') === 'tontine'
-                                || ($item['transaction_type'] ?? '') === 'tontine';
-
-                            $account = Account::with('tontineAccount.activeCycle')
-                                ->where('client_id', $clientId)
-                                ->where('account_type', $isTontine ? 'tontine' : 'savings')
-                                ->first();
-
-                            if (!$account) {
-                                $account = Account::with('tontineAccount.activeCycle')
-                                    ->where('client_id', $clientId)
-                                    ->first();
-                            }
-
-                            if (!$account) {
-                                $account = Account::create([
-                                    'client_id'      => $clientId,
-                                    'account_number' => ($isTontine ? 'TON-' : 'SAV-') . strtoupper(Str::random(8)),
-                                    'account_type'   => $isTontine ? 'tontine' : 'savings',
-                                    'balance'        => 0,
-                                    'status'         => 'active',
-                                    'created_by'     => $user->id,
-                                    'activated_at'   => now(),
-                                ]);
-                                if ($isTontine) {
-                                    $this->createTontineAccount($account, ['target_amount' => 1000]);
-                                }
-                            }
-                        }
-                    }
-
-                    if (!$account) {
-                        $errors[] = ['id' => $offlineId, 'error' => "Compte introuvable (ID: {$rawAccountId}, N°: " . ($item['account_number'] ?? 'N/A') . ")"];
+            if ($type === 'loan_repayment' && !empty($item['loan_id'])) {
+                DB::beginTransaction();
+                try {
+                    $loan = Loan::with('client')->find($item['loan_id']);
+                    if (!$loan) {
+                        DB::rollBack();
+                        $errors[] = ['id' => $offlineIdStr, 'error' => 'Prêt #' . $item['loan_id'] . ' non trouvé'];
                         continue;
                     }
 
-                    $before = (float) $account->balance;
-                    $after = ($type === 'withdrawal') ? max(0, $before - $amount) : ($before + $amount);
-
-                    if ($type === 'deposit' && $account->account_type === 'tontine' && $account->tontineAccount) {
-                        $tontine = $account->tontineAccount;
-                        $cycle = $tontine->activeCycle ?? $this->createTontineCycle($tontine);
-                        if ($cycle) {
-                            $this->distributeTontineAmount($tontine, $cycle, $amount);
-                        }
-                        $tontine->increment('total_paid', $amount);
-                    }
-
-                    $txPrefix = ($type === 'withdrawal') ? 'SYNC-RET-' : 'SYNC-DEP-';
-                    $txRef = $txPrefix . strtoupper(Str::random(5)) . '-' . date('ymd');
+                    $clientAccount = Account::where('client_id', $loan->client_id)->first();
+                    $txRef = 'SYNC-REM-' . strtoupper(Str::random(5)) . '-' . date('ymd');
 
                     Transaction::create([
                         'transaction_reference' => $txRef,
-                        'account_id'            => $account->id,
+                        'account_id'            => $clientAccount->id ?? 1,
                         'cashier_session_id'    => $activeSession?->id,
-                        'transaction_type'      => $type,
+                        'transaction_type'      => 'loan_repayment',
                         'amount'                => $amount,
                         'payment_method'        => $item['payment_method'] ?? 'cash',
-                        'payment_reference'     => $offlineId,
+                        'payment_reference'     => $offlineIdStr,
                         'fee_amount'            => 0,
-                        'description'           => $item['description'] ?? ($type === 'withdrawal' ? 'Retrait guichet hors-ligne' : 'Dépôt guichet hors-ligne'),
+                        'description'           => $item['description'] ?? ('Remboursement hors-ligne Prêt N° ' . $loan->loan_number),
                         'status'                => 'completed',
-                        'balance_before'        => $before,
-                        'balance_after'         => $after,
+                        'balance_before'        => 0,
+                        'balance_after'         => 0,
                         'processed_by'          => $user->id,
                         'agency_id'             => $user->agency_id ?? 1,
                         'processed_at'          => now(),
@@ -852,43 +741,207 @@ class AgentSyncController extends Controller
                         'created_at'            => $offlineCreatedAt,
                     ]);
 
-                    $account->update(['balance' => $after, 'last_transaction_at' => now()]);
+                    // Répartir sur l'échéancier
+                    $remainingPayment = $amount;
+                    $pendingPayments = LoanPayment::where('loan_id', $loan->id)
+                        ->whereIn('status', ['pending', 'overdue', 'partial'])
+                        ->orderBy('payment_number')
+                        ->get();
 
-                    if ($activeSession) {
-                        if ($type === 'withdrawal') {
-                            $activeSession->increment('total_withdrawals', $amount);
+                    foreach ($pendingPayments as $p) {
+                        if ($remainingPayment <= 0) break;
+                        $expected = (float) $p->expected_amount;
+                        $currentPaid = (float) $p->paid_amount;
+                        $due = max(0, $expected - $currentPaid);
+                        if ($due <= 0) continue;
+
+                        if ($remainingPayment >= ($due - 1.0)) {
+                            $p->update([
+                                'paid_amount' => $expected,
+                                'status' => 'paid',
+                                'paid_date' => $offlineCreatedAt,
+                                'processed_by' => $user->id,
+                                'processed_at' => now(),
+                            ]);
+                            $remainingPayment = max(0, $remainingPayment - $due);
                         } else {
-                            $activeSession->increment('total_deposits', $amount);
+                            $newPaid = $currentPaid + $remainingPayment;
+                            $p->update([
+                                'paid_amount' => round($newPaid, 2),
+                                'status' => $newPaid >= ($expected - 1.0) ? 'paid' : 'partial',
+                                'paid_date' => $offlineCreatedAt,
+                                'processed_by' => $user->id,
+                                'processed_at' => now(),
+                            ]);
+                            $remainingPayment = 0;
                         }
                     }
 
-                    $syncedIds[] = (string)$offlineId;
-                } catch (\Exception $txe) {
-                    $errors[] = ['id' => $offlineId, 'error' => 'Transaction: ' . $txe->getMessage()];
+                    $totalPaid = LoanPayment::where('loan_id', $loan->id)->sum('paid_amount');
+                    $totalExpected = (float) $loan->total_amount;
+                    $isFullyPaid = $totalPaid >= ($totalExpected - 1.0);
+                    $loan->update([
+                        'paid_amount' => round($totalPaid, 2),
+                        'remaining_amount' => max(0, round($totalExpected - $totalPaid, 2)),
+                        'status' => $isFullyPaid ? 'paid' : $loan->status,
+                    ]);
+
+                    if ($activeSession) {
+                        $activeSession->increment('total_deposits', $amount);
+                    }
+
+                    DB::commit();
+                    $syncedIds[] = $offlineIdStr;
+                } catch (\Exception $rpe) {
+                    DB::rollBack();
+                    $errors[] = ['id' => $offlineIdStr, 'error' => 'Remboursement: ' . $rpe->getMessage()];
                 }
+                continue;
             }
 
-            DB::commit();
+            // -------------------------------------------------------------
+            // CAS 5 : DÉPÔTS / RETRAITS / COTISATIONS TONTINE
+            // -------------------------------------------------------------
+            DB::beginTransaction();
+            try {
+                $rawAccountId = $item['account_id'] ?? null;
+                $realAccountId = $this->idMapping['accounts'][$rawAccountId] 
+                    ?? $this->idMapping['accounts'][(string)$rawAccountId]
+                    ?? (is_numeric($rawAccountId) && $rawAccountId > 0 ? (int)$rawAccountId : null);
 
-            return response()->json([
-                'success'             => true,
-                'message'             => count($syncedIds) . ' opération(s) synchronisée(s) avec succès.',
-                'synced_count'        => count($syncedIds),
-                'synced_ids'          => $syncedIds,
-                'errors'              => $errors,
-                'active_session_open' => $activeSession !== null,
-            ]);
+                $account = null;
+                if ($realAccountId) {
+                    $account = Account::with('tontineAccount.activeCycle')->find($realAccountId);
+                }
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur Batch Sync Transactions', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Échec lors de la synchronisation : ' . $e->getMessage(),
-                'synced_ids' => $syncedIds,
-                'errors' => $errors,
-            ], 500);
+                if (!$account && !empty($item['account_number'])) {
+                    $account = Account::with('tontineAccount.activeCycle')
+                        ->where('account_number', $item['account_number'])
+                        ->first();
+                }
+
+                // Recherche avancée et liaison de compte hors-ligne (ex: OFF-TON-..., compte d'un nouveau client)
+                if (!$account) {
+                    $clientId = null;
+                    $rawCliId = $item['client_id'] ?? $item['temp_client_id'] ?? null;
+                    if ($rawCliId && isset($this->idMapping['clients'][$rawCliId])) {
+                        $clientId = $this->idMapping['clients'][$rawCliId];
+                    }
+                    if (!$clientId && $rawAccountId && isset($this->idMapping['clients'][$rawAccountId])) {
+                        $clientId = $this->idMapping['clients'][$rawAccountId];
+                    }
+
+                    // Chercher par le numéro de téléphone si présent
+                    if (!$clientId && !empty($item['phone'])) {
+                        $cl = Client::where('phone', $item['phone'])->first();
+                        if ($cl) $clientId = $cl->id;
+                    }
+
+                    // Si aucun clientId mais un client créé dans le même lot de synchro
+                    if (!$clientId && !empty($this->idMapping['clients'])) {
+                        $clientId = end($this->idMapping['clients']);
+                    }
+
+                    if ($clientId) {
+                        $isTontine = str_contains((string)($item['account_number'] ?? ''), 'TON') 
+                            || ($item['account_type'] ?? '') === 'tontine'
+                            || ($item['transaction_type'] ?? '') === 'tontine';
+
+                        $account = Account::with('tontineAccount.activeCycle')
+                            ->where('client_id', $clientId)
+                            ->where('account_type', $isTontine ? 'tontine' : 'savings')
+                            ->first();
+
+                        if (!$account) {
+                            $account = Account::with('tontineAccount.activeCycle')
+                                ->where('client_id', $clientId)
+                                ->first();
+                        }
+
+                        if (!$account) {
+                            $account = Account::create([
+                                'client_id'      => $clientId,
+                                'account_number' => ($isTontine ? 'TON-' : 'SAV-') . strtoupper(Str::random(8)),
+                                'account_type'   => $isTontine ? 'tontine' : 'savings',
+                                'balance'        => 0,
+                                'status'         => 'active',
+                                'created_by'     => $user->id,
+                                'activated_at'   => now(),
+                            ]);
+                            if ($isTontine) {
+                                $this->createTontineAccount($account, ['target_amount' => 1000]);
+                            }
+                        }
+                    }
+                }
+
+                if (!$account) {
+                    DB::rollBack();
+                    $errors[] = ['id' => $offlineIdStr, 'error' => "Compte introuvable (ID: {$rawAccountId}, N°: " . ($item['account_number'] ?? 'N/A') . ")"];
+                    continue;
+                }
+
+                $before = (float) $account->balance;
+                $after = ($type === 'withdrawal') ? max(0, $before - $amount) : ($before + $amount);
+
+                if ($type === 'deposit' && $account->account_type === 'tontine' && $account->tontineAccount) {
+                    $tontine = $account->tontineAccount;
+                    $cycle = $tontine->activeCycle ?? $this->createTontineCycle($tontine);
+                    if ($cycle) {
+                        $this->distributeTontineAmount($tontine, $cycle, $amount);
+                    }
+                    $tontine->increment('total_paid', $amount);
+                }
+
+                $txPrefix = ($type === 'withdrawal') ? 'SYNC-RET-' : 'SYNC-DEP-';
+                $txRef = $txPrefix . strtoupper(Str::random(5)) . '-' . date('ymd');
+
+                Transaction::create([
+                    'transaction_reference' => $txRef,
+                    'account_id'            => $account->id,
+                    'cashier_session_id'    => $activeSession?->id,
+                    'transaction_type'      => $type,
+                    'amount'                => $amount,
+                    'payment_method'        => $item['payment_method'] ?? 'cash',
+                    'payment_reference'     => $offlineIdStr,
+                    'fee_amount'            => 0,
+                    'description'           => $item['description'] ?? ($type === 'withdrawal' ? 'Retrait guichet hors-ligne' : 'Dépôt guichet hors-ligne'),
+                    'status'                => 'completed',
+                    'balance_before'        => $before,
+                    'balance_after'         => $after,
+                    'processed_by'          => $user->id,
+                    'agency_id'             => $user->agency_id ?? 1,
+                    'processed_at'          => now(),
+                    'transaction_date'      => $offlineCreatedAt,
+                    'created_at'            => $offlineCreatedAt,
+                ]);
+
+                $account->update(['balance' => $after, 'last_transaction_at' => now()]);
+
+                if ($activeSession) {
+                    if ($type === 'withdrawal') {
+                        $activeSession->increment('total_withdrawals', $amount);
+                    } else {
+                        $activeSession->increment('total_deposits', $amount);
+                    }
+                }
+
+                DB::commit();
+                $syncedIds[] = $offlineIdStr;
+            } catch (\Exception $txe) {
+                DB::rollBack();
+                $errors[] = ['id' => $offlineIdStr, 'error' => 'Transaction: ' . $txe->getMessage()];
+            }
         }
+
+        return response()->json([
+            'success'             => true,
+            'message'             => count($syncedIds) . ' opération(s) synchronisée(s) avec succès' . (!empty($errors) ? ', ' . count($errors) . ' erreur(s).' : '.'),
+            'synced_count'        => count($syncedIds),
+            'synced_ids'          => $syncedIds,
+            'errors'              => $errors,
+            'active_session_open' => $activeSession !== null,
+        ]);
     }
 }
 
