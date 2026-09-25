@@ -146,10 +146,16 @@ class AgentDashboardController extends Controller
 
     private function getOverviewStats($agentId, $period, $request = null)
     {
+        $user = auth()->user();
         $dateRange = $this->getDateRange($period, $request);
-        $clientIds = Client::where('registered_by', $agentId)
-            ->whereIn('registration_status', ['approved', 'pending'])
-            ->pluck('id');
+        
+        $clientQuery = Client::query()->whereIn('registration_status', ['approved', 'pending']);
+        if ($user && $user->role === 'caissier') {
+            $clientQuery->where('agency_id', $user->agency_id);
+        } else {
+            $clientQuery->where('registered_by', $agentId);
+        }
+        $clientIds = $clientQuery->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)
             ->where('status', 'active')
@@ -158,7 +164,10 @@ class AgentDashboardController extends Controller
         return [
             'total_balance'      => Account::whereIn('id', $accountIds)->sum('balance'),
             'total_clients'      => $clientIds->count(),
-            'active_clients'     => Transaction::whereIn('account_id', $accountIds)
+            'active_clients'     => Transaction::where(function ($q) use ($agentId, $accountIds) {
+                    $q->where('processed_by', $agentId)
+                      ->orWhereIn('account_id', $accountIds);
+                })
                 ->whereBetween('created_at', $dateRange)
                 ->distinct('account_id')
                 ->count('account_id'),
@@ -477,15 +486,21 @@ class AgentDashboardController extends Controller
 
     private function getRecentActivities($agentId, $limit = 15)
     {
-        $clientIds = Client::where('registered_by', $agentId)
-            ->whereIn('registration_status', ['approved', 'pending'])
-            ->pluck('id');
+        $user = auth()->user();
+        $clientQuery = Client::query();
+        if ($user && $user->role === 'caissier') {
+            $clientQuery->where('agency_id', $user->agency_id);
+        } else {
+            $clientQuery->where('registered_by', $agentId);
+        }
+        $clientIds = $clientQuery->pluck('id');
 
-        $accountIds = Account::whereIn('client_id', $clientIds)
-            ->where('status', 'active')
-            ->pluck('id');
+        $accountIds = Account::whereIn('client_id', $clientIds)->pluck('id');
 
-        return Transaction::whereIn('account_id', $accountIds)
+        return Transaction::where(function ($q) use ($agentId, $accountIds) {
+                $q->where('processed_by', $agentId)
+                  ->orWhereIn('account_id', $accountIds);
+            })
             ->with([
                 'account.client:id,first_name,last_name,client_number',
                 'processedBy:id,first_name,last_name'
@@ -496,12 +511,12 @@ class AgentDashboardController extends Controller
             ->map(function($transaction) {
                 return [
                     'id'               => $transaction->id,
-                    'transaction_number'=> $transaction->transaction_number ?? 'N/A',
+                    'transaction_number'=> $transaction->transaction_reference ?? $transaction->transaction_number ?? 'TX-' . $transaction->id,
                     'transaction_type'  => $transaction->transaction_type,
                     'amount'           => $transaction->amount,
-                    'client'           => $transaction->account->client->full_name,
-                    'client_number'    => $transaction->account->client->client_number,
-                    'account_number'   => $transaction->account->account_number,
+                    'client'           => $transaction->account->client->full_name ?? 'Client Guichet',
+                    'client_number'    => $transaction->account->client->client_number ?? 'N/A',
+                    'account_number'   => $transaction->account->account_number ?? 'N/A',
                     'performed_by'     => $transaction->processedBy ?
                         $transaction->processedBy->full_name : 'Système',
                     'created_at'       => $transaction->created_at,
