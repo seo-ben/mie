@@ -191,7 +191,7 @@ class AgentSyncController extends Controller
                     'password'      => Hash::make('1234'), // Mot de passe par défaut
                     'registered_by' => $agent->id,
                     'agency_id'     => $agent->agency_id   ?? 1,
-                    'registration_status' => 'completed',
+                    'registration_status' => 'approved',
                     'kyc_status'          => 'pending',
                 ]);
             }

@@ -201,7 +201,7 @@ class AgentSyncController extends Controller
                     'password'      => Hash::make('1234'), 
                     'registered_by' => $agent->id,
                     'agency_id'     => $agent->agency_id   ?? 1,
-                    'registration_status' => 'completed',
+                    'registration_status' => 'approved',
                     'kyc_status'          => 'pending',
                 ]);
             }
@@ -533,7 +533,7 @@ class AgentSyncController extends Controller
                             'password'            => Hash::make('1234'),
                             'registered_by'       => $user->id,
                             'agency_id'           => $user->agency_id ?? 1,
-                            'registration_status' => 'completed',
+                            'registration_status' => 'approved',
                             'kyc_status'          => 'pending',
                         ]);
                     }
