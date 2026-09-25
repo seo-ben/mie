@@ -500,25 +500,52 @@ class AgentSyncController extends Controller
                                 'registration_status' => 'completed',
                                 'kyc_status'          => 'pending',
                             ]);
+                        }
 
-                            if (!empty($item['create_tontine']) || !empty($item['initial_tontine_amount'])) {
-                                $acc = Account::create([
-                                    'client_id'      => $client->id,
-                                    'account_number' => 'TON-' . strtoupper(Str::random(8)),
-                                    'account_type'   => 'tontine',
-                                    'balance'        => 0,
-                                    'status'         => 'active',
-                                    'created_by'     => $user->id,
-                                    'activated_at'   => now(),
-                                ]);
-                                $this->createTontineAccount($acc, ['target_amount' => $item['initial_tontine_amount'] ?? 1000]);
-                            }
+                        // Création automatique compte épargne et compte tontine
+                        $savAcc = Account::firstOrCreate([
+                            'client_id'    => $client->id,
+                            'account_type' => 'savings',
+                        ], [
+                            'account_number' => 'SAV-' . strtoupper(Str::random(8)),
+                            'balance'        => 0,
+                            'status'         => 'active',
+                            'created_by'     => $user->id,
+                            'activated_at'   => now(),
+                        ]);
+
+                        $tonAcc = Account::where('client_id', $client->id)->where('account_type', 'tontine')->first();
+                        if (!$tonAcc) {
+                            $tonAcc = Account::create([
+                                'client_id'      => $client->id,
+                                'account_number' => 'TON-' . strtoupper(Str::random(8)),
+                                'account_type'   => 'tontine',
+                                'balance'        => 0,
+                                'status'         => 'active',
+                                'created_by'     => $user->id,
+                                'activated_at'   => now(),
+                            ]);
+                            $this->createTontineAccount($tonAcc, ['target_amount' => $item['initial_tontine_amount'] ?? 1000]);
                         }
 
                         $this->idMapping['clients'][$offlineId] = $client->id;
+                        $this->idMapping['clients'][(string)$offlineId] = $client->id;
                         if (!empty($item['id'])) {
                             $this->idMapping['clients'][$item['id']] = $client->id;
+                            $this->idMapping['clients'][(string)$item['id']] = $client->id;
                         }
+                        if (!empty($item['temp_client_id'])) {
+                            $this->idMapping['clients'][$item['temp_client_id']] = $client->id;
+                            $this->idMapping['clients'][(string)$item['temp_client_id']] = $client->id;
+                        }
+                        preg_match_all('!\d+!', (string)$offlineId, $matches);
+                        if (!empty($matches[0])) {
+                            foreach ($matches[0] as $numStr) {
+                                $this->idMapping['clients'][$numStr] = $client->id;
+                                $this->idMapping['clients']['-' . $numStr] = $client->id;
+                            }
+                        }
+
                         $syncedIds[] = (string)$offlineId;
                     } catch (\Exception $ce) {
                         $errors[] = ['id' => $offlineId, 'error' => 'Client: ' . $ce->getMessage()];
@@ -716,6 +743,7 @@ class AgentSyncController extends Controller
                 try {
                     $rawAccountId = $item['account_id'] ?? null;
                     $realAccountId = $this->idMapping['accounts'][$rawAccountId] 
+                        ?? $this->idMapping['accounts'][(string)$rawAccountId]
                         ?? (is_numeric($rawAccountId) && $rawAccountId > 0 ? (int)$rawAccountId : null);
 
                     $account = null;
@@ -729,12 +757,57 @@ class AgentSyncController extends Controller
                             ->first();
                     }
 
+                    // Recherche avancée et liaison de compte hors-ligne (ex: OFF-TON-..., compte d'un nouveau client)
                     if (!$account) {
-                        // Chercher par le numéro de téléphone ou nom si présent
-                        if (!empty($item['phone'])) {
+                        $clientId = null;
+                        $rawCliId = $item['client_id'] ?? $item['temp_client_id'] ?? null;
+                        if ($rawCliId && isset($this->idMapping['clients'][$rawCliId])) {
+                            $clientId = $this->idMapping['clients'][$rawCliId];
+                        }
+                        if (!$clientId && $rawAccountId && isset($this->idMapping['clients'][$rawAccountId])) {
+                            $clientId = $this->idMapping['clients'][$rawAccountId];
+                        }
+
+                        // Chercher par le numéro de téléphone si présent
+                        if (!$clientId && !empty($item['phone'])) {
                             $cl = Client::where('phone', $item['phone'])->first();
-                            if ($cl) {
-                                $account = Account::with('tontineAccount.activeCycle')->where('client_id', $cl->id)->first();
+                            if ($cl) $clientId = $cl->id;
+                        }
+
+                        // Si aucun clientId mais un client créé dans le même lot de synchro
+                        if (!$clientId && !empty($this->idMapping['clients'])) {
+                            $clientId = end($this->idMapping['clients']);
+                        }
+
+                        if ($clientId) {
+                            $isTontine = str_contains((string)($item['account_number'] ?? ''), 'TON') 
+                                || ($item['account_type'] ?? '') === 'tontine'
+                                || ($item['transaction_type'] ?? '') === 'tontine';
+
+                            $account = Account::with('tontineAccount.activeCycle')
+                                ->where('client_id', $clientId)
+                                ->where('account_type', $isTontine ? 'tontine' : 'savings')
+                                ->first();
+
+                            if (!$account) {
+                                $account = Account::with('tontineAccount.activeCycle')
+                                    ->where('client_id', $clientId)
+                                    ->first();
+                            }
+
+                            if (!$account) {
+                                $account = Account::create([
+                                    'client_id'      => $clientId,
+                                    'account_number' => ($isTontine ? 'TON-' : 'SAV-') . strtoupper(Str::random(8)),
+                                    'account_type'   => $isTontine ? 'tontine' : 'savings',
+                                    'balance'        => 0,
+                                    'status'         => 'active',
+                                    'created_by'     => $user->id,
+                                    'activated_at'   => now(),
+                                ]);
+                                if ($isTontine) {
+                                    $this->createTontineAccount($account, ['target_amount' => 1000]);
+                                }
                             }
                         }
                     }
