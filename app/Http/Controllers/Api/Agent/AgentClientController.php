@@ -101,7 +101,7 @@ class AgentClientController extends Controller
             // Informations d'enregistrement & Auto-approbation KYC au guichet caisse
             $clientData['registered_by'] = $user->id;
             $clientData['agency_id'] = $user->agency_id;
-            $clientData['registration_channel'] = $user->role === 'caissier' ? 'cashier_desk' : 'agent_assisted';
+            $clientData['registration_channel'] = 'agent_assisted';
             $clientData['registration_status'] = 'approved';
             $clientData['kyc_status'] = 'approved';
             $clientData['kyc_approved_at'] = now();

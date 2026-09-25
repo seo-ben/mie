@@ -181,16 +181,26 @@ class AgentSyncController extends Controller
             $client = Client::where('phone', $item['phone'])->first();
 
             if (!$client) {
+                $rawGender = strtoupper((string)($item['gender'] ?? 'M'));
+                $gender = in_array($rawGender, ['M', 'F', 'OTHER']) ? ($rawGender === 'OTHER' ? 'Other' : $rawGender) : 'M';
+                $rawIdType = strtolower((string)($item['id_type'] ?? 'cni'));
+                $idType = in_array($rawIdType, ['cni', 'passport', 'driving_license', 'other']) ? $rawIdType : 'cni';
+
                 $client = Client::create([
-                    'client_number' => $this->generateClientNumber(),
-                    'first_name'    => $item['first_name'] ?? 'Inconnu',
-                    'last_name'     => $item['last_name']  ?? 'Inconnu',
-                    'phone'         => $item['phone'],
-                    'email'         => $item['email']      ?? null,
-                    'address'       => $item['address']    ?? null,
-                    'password'      => Hash::make('1234'), // Mot de passe par défaut
-                    'registered_by' => $agent->id,
-                    'agency_id'     => $agent->agency_id   ?? 1,
+                    'client_number'       => $this->generateClientNumber(),
+                    'first_name'          => $item['first_name'] ?? 'Inconnu',
+                    'last_name'           => $item['last_name']  ?? 'Inconnu',
+                    'phone'               => $item['phone'],
+                    'email'               => $item['email']      ?? null,
+                    'address'             => $item['address']    ?? null,
+                    'gender'              => $gender,
+                    'id_type'             => $idType,
+                    'id_number'           => $item['id_number']  ?? null,
+                    'password'            => Hash::make('1234'), // Mot de passe par défaut
+                    'registered_by'       => $agent->id,
+                    'agency_id'           => $agent->agency_id   ?? 1,
+                    'registration_channel'=> 'agent_assisted',
+                    'registration_type'   => 'agency',
                     'registration_status' => 'approved',
                     'kyc_status'          => 'pending',
                 ]);

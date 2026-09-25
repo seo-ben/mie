@@ -191,16 +191,26 @@ class AgentSyncController extends Controller
             $client = Client::where('phone', $item['phone'])->first();
 
             if (!$client) {
+                $rawGender = strtoupper((string)($item['gender'] ?? 'M'));
+                $gender = in_array($rawGender, ['M', 'F', 'OTHER']) ? ($rawGender === 'OTHER' ? 'Other' : $rawGender) : 'M';
+                $rawIdType = strtolower((string)($item['id_type'] ?? 'cni'));
+                $idType = in_array($rawIdType, ['cni', 'passport', 'driving_license', 'other']) ? $rawIdType : 'cni';
+
                 $client = Client::create([
-                    'client_number' => $this->generateClientNumber(),
-                    'first_name'    => $item['first_name'] ?? 'Inconnu',
-                    'last_name'     => $item['last_name']  ?? 'Inconnu',
-                    'phone'         => $item['phone'],
-                    'email'         => $item['email']      ?? null,
-                    'address'       => $item['address']    ?? null,
-                    'password'      => Hash::make('1234'), 
-                    'registered_by' => $agent->id,
-                    'agency_id'     => $agent->agency_id   ?? 1,
+                    'client_number'       => $this->generateClientNumber(),
+                    'first_name'          => $item['first_name'] ?? 'Inconnu',
+                    'last_name'           => $item['last_name']  ?? 'Inconnu',
+                    'phone'               => $item['phone'],
+                    'email'               => $item['email']      ?? null,
+                    'address'             => $item['address']    ?? null,
+                    'gender'              => $gender,
+                    'id_type'             => $idType,
+                    'id_number'           => $item['id_number']  ?? null,
+                    'password'            => Hash::make('1234'), 
+                    'registered_by'       => $agent->id,
+                    'agency_id'           => $agent->agency_id   ?? 1,
+                    'registration_channel'=> 'agent_assisted',
+                    'registration_type'   => 'agency',
                     'registration_status' => 'approved',
                     'kyc_status'          => 'pending',
                 ]);
@@ -520,6 +530,11 @@ class AgentSyncController extends Controller
                     $client = $phone ? Client::where('phone', $phone)->first() : null;
 
                     if (!$client) {
+                        $rawGender = strtoupper((string)($item['gender'] ?? 'M'));
+                        $gender = in_array($rawGender, ['M', 'F', 'OTHER']) ? ($rawGender === 'OTHER' ? 'Other' : $rawGender) : 'M';
+                        $rawIdType = strtolower((string)($item['id_type'] ?? 'cni'));
+                        $idType = in_array($rawIdType, ['cni', 'passport', 'driving_license', 'other']) ? $rawIdType : 'cni';
+
                         $client = Client::create([
                             'client_number'       => $this->generateClientNumber(),
                             'first_name'          => $item['first_name'] ?? 'Client',
@@ -527,12 +542,14 @@ class AgentSyncController extends Controller
                             'phone'               => $phone ?? ('+2289' . rand(1000000, 9999999)),
                             'email'               => $item['email'] ?? null,
                             'address'             => $item['address'] ?? null,
-                            'gender'              => $item['gender'] ?? 'M',
-                            'id_type'             => $item['id_type'] ?? 'cni',
+                            'gender'              => $gender,
+                            'id_type'             => $idType,
                             'id_number'           => $item['id_number'] ?? null,
                             'password'            => Hash::make('1234'),
                             'registered_by'       => $user->id,
                             'agency_id'           => $user->agency_id ?? 1,
+                            'registration_channel'=> 'agent_assisted',
+                            'registration_type'   => 'agency',
                             'registration_status' => 'approved',
                             'kyc_status'          => 'pending',
                         ]);
@@ -673,9 +690,9 @@ class AgentSyncController extends Controller
                             'approved_amount'        => 0,
                             'interest_rate'          => $rate,
                             'duration_months'        => $duration,
-                            'total_amount'           => $totalDue,
-                            'remaining_amount'       => $totalDue,
-                            'paid_amount'            => 0,
+                            'total_amount_due'       => $totalDue,
+                            'outstanding_principal'  => $totalDue,
+                            'total_paid'             => 0,
                             'purpose'                => $item['purpose'] ?? null,
                             'collateral_description' => $item['collateral_description'] ?? null,
                             'status'                 => 'pending',
@@ -724,6 +741,7 @@ class AgentSyncController extends Controller
                     Transaction::create([
                         'transaction_reference' => $txRef,
                         'account_id'            => $clientAccount->id ?? 1,
+                        'loan_id'               => $loan->id,
                         'cashier_session_id'    => $activeSession?->id,
                         'transaction_type'      => 'loan_repayment',
                         'amount'                => $amount,
@@ -778,12 +796,12 @@ class AgentSyncController extends Controller
                     }
 
                     $totalPaid = LoanPayment::where('loan_id', $loan->id)->sum('paid_amount');
-                    $totalExpected = (float) $loan->total_amount;
+                    $totalExpected = (float) ($loan->total_amount_due ?? $loan->requested_amount);
                     $isFullyPaid = $totalPaid >= ($totalExpected - 1.0);
                     $loan->update([
-                        'paid_amount' => round($totalPaid, 2),
-                        'remaining_amount' => max(0, round($totalExpected - $totalPaid, 2)),
-                        'status' => $isFullyPaid ? 'paid' : $loan->status,
+                        'total_paid' => round($totalPaid, 2),
+                        'outstanding_principal' => max(0, round($totalExpected - $totalPaid, 2)),
+                        'status' => $isFullyPaid ? 'completed' : $loan->status,
                     ]);
 
                     if ($activeSession) {
@@ -896,13 +914,20 @@ class AgentSyncController extends Controller
                 $txPrefix = ($type === 'withdrawal') ? 'SYNC-RET-' : 'SYNC-DEP-';
                 $txRef = $txPrefix . strtoupper(Str::random(5)) . '-' . date('ymd');
 
+                $validTxTypes = ['deposit', 'withdrawal', 'transfer', 'fee', 'interest', 'penalty', 'payout', 'tontine_contribution', 'tontine_payout', 'savings_deposit', 'tontine_deposit', 'loan_repayment', 'loan_disbursement', 'transfer_in', 'transfer_out'];
+                $dbTxType = in_array($type, $validTxTypes) ? $type : 'deposit';
+
+                $validPayMethods = ['cash', 'mobile_money', 'bank_transfer', 'system'];
+                $rawPayMethod = strtolower((string)($item['payment_method'] ?? 'cash'));
+                $dbPayMethod = in_array($rawPayMethod, $validPayMethods) ? $rawPayMethod : 'cash';
+
                 Transaction::create([
                     'transaction_reference' => $txRef,
                     'account_id'            => $account->id,
                     'cashier_session_id'    => $activeSession?->id,
-                    'transaction_type'      => $type,
+                    'transaction_type'      => $dbTxType,
                     'amount'                => $amount,
-                    'payment_method'        => $item['payment_method'] ?? 'cash',
+                    'payment_method'        => $dbPayMethod,
                     'payment_reference'     => $offlineIdStr,
                     'fee_amount'            => 0,
                     'description'           => $item['description'] ?? ($type === 'withdrawal' ? 'Retrait guichet hors-ligne' : 'Dépôt guichet hors-ligne'),
