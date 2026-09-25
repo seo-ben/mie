@@ -582,14 +582,15 @@ class AgentClientController extends Controller
         try {
             $user = auth()->user();
 
-            // Statistiques des clients
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+            // Statistiques des clients visibles (toute l'agence pour le caissier)
+            $clientQuery = $this->clientsVisibleTo($user);
+            $clientIds = (clone $clientQuery)->pluck('id');
 
             $stats = [
-                'total_clients' => Client::where('registered_by', $user->id)->count(),
-                'new_today' => Client::where('registered_by', $user->id)
+                'total_clients' => (clone $clientQuery)->count(),
+                'new_today' => (clone $clientQuery)
                     ->whereDate('created_at', today())->count(),
-                'new_this_week' => Client::where('registered_by', $user->id)
+                'new_this_week' => (clone $clientQuery)
                     ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
                 'total_accounts' => Account::whereIn('client_id', $clientIds)->count(),
                 'active_accounts' => Account::whereIn('client_id', $clientIds)

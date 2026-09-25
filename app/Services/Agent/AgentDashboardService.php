@@ -17,9 +17,17 @@ class AgentDashboardService
      */
     private function getAgentClientIds($agentId)
     {
-        return Client::where('registered_by', $agentId)
-            ->where('registration_status', 'approved')
-            ->pluck('id');
+        $user = auth()->user() ?? \App\Models\User::find($agentId);
+        return Client::query()->where(function ($query) use ($user, $agentId) {
+            if ($user && ($user->role === 'caissier' || $user->agency_id)) {
+                $query->where('agency_id', $user->agency_id)
+                      ->orWhere('registered_by', $agentId);
+            } else {
+                $query->where('registered_by', $agentId);
+            }
+        })
+        ->whereIn('registration_status', ['approved', 'pending'])
+        ->pluck('id');
     }
 
     /**
@@ -173,7 +181,15 @@ class AgentDashboardService
      */
     public function getClientStats($agentId)
     {
-        $clients = Client::where('registered_by', $agentId);
+        $user = auth()->user() ?? \App\Models\User::find($agentId);
+        $clients = Client::query()->where(function ($query) use ($user, $agentId) {
+            if ($user && ($user->role === 'caissier' || $user->agency_id)) {
+                $query->where('agency_id', $user->agency_id)
+                      ->orWhere('registered_by', $agentId);
+            } else {
+                $query->where('registered_by', $agentId);
+            }
+        });
 
         return [
             'total' => (clone $clients)->where('registration_status', 'approved')->count(),

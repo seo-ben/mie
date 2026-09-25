@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Agent\AgentAccountController;
 use App\Http\Controllers\Api\Agent\AgentTransactionController;
 use App\Http\Controllers\Api\Agent\AgentSessionController;
 use App\Http\Controllers\Api\Agent\AgentLoanController;
+use App\Http\Controllers\Api\Agent\AgentFieldTeamController;
 use App\Http\Controllers\Api\Agent\AgentReportController;
 use App\Http\Controllers\Api\Manager\ManagerDashboardController;
 use App\Http\Controllers\Api\Manager\ManagerKYCController;
@@ -203,6 +204,7 @@ Route::prefix('v1')->group(function () {
             // Gestion & Décaissement des Prêts
             Route::prefix('loans')->group(function () {
                 Route::get('/', [AgentLoanController::class, 'index']);
+                Route::get('config', [AgentLoanController::class, 'config']);
                 Route::get('client/{clientId}/eligibility', [AgentLoanController::class, 'checkEligibility']);
                 Route::post('simulate', [AgentLoanController::class, 'simulate']);
                 Route::post('apply', [AgentLoanController::class, 'apply']);
@@ -210,6 +212,12 @@ Route::prefix('v1')->group(function () {
                 Route::post('{loanId}/disburse', [AgentLoanController::class, 'disburse']);
                 Route::post('{loanId}/repay', [AgentLoanController::class, 'repay']);
                 Route::get('{loanId}/schedule', [AgentLoanController::class, 'schedule']);
+            });
+
+            // Supervision & Collectes des Agents de Terrain
+            Route::prefix('field-agents')->group(function () {
+                Route::get('/', [AgentFieldTeamController::class, 'index']);
+                Route::get('{agentId}', [AgentFieldTeamController::class, 'show']);
             });
 
             // Gestion des clients

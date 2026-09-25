@@ -680,7 +680,8 @@ class AgentSyncController extends Controller
                     if ($clientId) {
                         $reqAmount = (float)($item['requested_amount'] ?? 0);
                         $duration = (int)($item['duration_months'] ?? 6);
-                        $rate = (float)($item['interest_rate'] ?? 10.0);
+                        $defaultRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') ?? 17.0);
+                        $rate = (float)($item['interest_rate'] ?? $defaultRate);
                         $totalDue = $reqAmount + ($reqAmount * ($rate / 100));
 
                         Loan::create([

@@ -144,17 +144,25 @@ class AgentDashboardController extends Controller
      * Méthodes privées (logique métier) – identiques à la version Web
      * ----------------------------------------------------------------- */
 
+    private function getAgencyClientsQuery($user = null)
+    {
+        $user = $user ?? auth()->user();
+        return Client::query()->where(function ($query) use ($user) {
+            if ($user && ($user->role === 'caissier' || $user->agency_id)) {
+                $query->where('agency_id', $user->agency_id)
+                      ->orWhere('registered_by', $user->id);
+            } else {
+                $query->where('registered_by', $user ? $user->id : 0);
+            }
+        });
+    }
+
     private function getOverviewStats($agentId, $period, $request = null)
     {
         $user = auth()->user();
         $dateRange = $this->getDateRange($period, $request);
         
-        $clientQuery = Client::query()->whereIn('registration_status', ['approved', 'pending']);
-        if ($user && $user->role === 'caissier') {
-            $clientQuery->where('agency_id', $user->agency_id);
-        } else {
-            $clientQuery->where('registered_by', $agentId);
-        }
+        $clientQuery = $this->getAgencyClientsQuery($user)->whereIn('registration_status', ['approved', 'pending']);
         $clientIds = $clientQuery->pluck('id');
 
         $accountIds = Account::whereIn('client_id', $clientIds)
@@ -355,7 +363,7 @@ class AgentDashboardController extends Controller
 
     private function getClientStats($agentId)
     {
-        $clients = Client::where('registered_by', $agentId);
+        $clients = $this->getAgencyClientsQuery();
         return [
             'total'            => (clone $clients)->where('registration_status', 'approved')->count(),
             'pending'           => (clone $clients)->where('registration_status', 'pending')->count(),
@@ -373,7 +381,7 @@ class AgentDashboardController extends Controller
 
     private function getReminders($agentId)
     {
-        $clientIds = Client::where('registered_by', $agentId)
+        $clientIds = $this->getAgencyClientsQuery()
             ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 
@@ -528,7 +536,7 @@ class AgentDashboardController extends Controller
 
     private function getChartData($agentId)
     {
-        $clientIds = Client::where('registered_by', $agentId)
+        $clientIds = $this->getAgencyClientsQuery()
             ->whereIn('registration_status', ['approved', 'pending'])
             ->pluck('id');
 

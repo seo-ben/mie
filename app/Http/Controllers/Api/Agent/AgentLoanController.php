@@ -185,7 +185,32 @@ class AgentLoanController extends Controller
                 ],
                 'is_eligible' => $isEligible,
                 'eligibility_score' => $score,
-                'risk_level' => $score >= 75 ? 'low' : ($score >= 50 ? 'medium' : 'high'),
+        $riskLevel = $score >= 75 ? 'low' : ($score >= 50 ? 'medium' : 'high');
+        $rateKey = match($riskLevel) {
+            'low' => 'loan_interest_rate_low',
+            'medium' => 'loan_interest_rate_medium',
+            'high' => 'loan_interest_rate_high',
+            default => 'loan_interest_rate_default',
+        };
+        $suggestedRate = (float)(DB::table('system_parameters')->where('parameter_key', $rateKey)->value('parameter_value') 
+            ?? DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') 
+            ?? 17.0);
+        $defaultRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') ?? 17.0);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'client' => [
+                    'id' => $client->id,
+                    'full_name' => $client->full_name,
+                    'phone' => $client->phone,
+                    'kyc_status' => $client->kyc_status,
+                ],
+                'is_eligible' => $isEligible,
+                'eligibility_score' => $score,
+                'risk_level' => $riskLevel,
+                'suggested_interest_rate' => $suggestedRate,
+                'default_interest_rate' => $defaultRate,
                 'max_borrowing_capacity' => $maxCapacity,
                 'savings_balance' => $savingsBalance,
                 'tontine_balance' => $tontineBalance,
@@ -207,6 +232,37 @@ class AgentLoanController extends Controller
     }
 
     /**
+     * Récupérer les paramètres système du crédit (taux, plafonds configurés par l'admin).
+     */
+    public function config(): JsonResponse
+    {
+        $defaultRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') ?? 17.0);
+        $lowRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_low')->value('parameter_value') ?? 12.0);
+        $mediumRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_medium')->value('parameter_value') ?? 17.0);
+        $highRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_high')->value('parameter_value') ?? 20.0);
+        $veryHighRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_very_high')->value('parameter_value') ?? 25.0);
+        $minAmount = (float)(DB::table('system_parameters')->where('parameter_key', 'min_loan_amount')->value('parameter_value') ?? 10000);
+        $maxAmount = (float)(DB::table('system_parameters')->where('parameter_key', 'max_loan_amount')->value('parameter_value') ?? 5000000);
+        $maxDuration = (int)(DB::table('system_parameters')->where('parameter_key', 'max_loan_duration_months')->value('parameter_value') ?? 36);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'default_interest_rate' => $defaultRate,
+                'rates_by_risk' => [
+                    'low' => $lowRate,
+                    'medium' => $mediumRate,
+                    'high' => $highRate,
+                    'very_high' => $veryHighRate,
+                ],
+                'min_amount' => $minAmount,
+                'max_amount' => $maxAmount,
+                'max_duration_months' => $maxDuration,
+            ],
+        ]);
+    }
+
+    /**
      * Simulation d'un prêt avec tableau d'amortissement prévisionnel.
      */
     public function simulate(Request $request): JsonResponse
@@ -214,14 +270,15 @@ class AgentLoanController extends Controller
         $validated = $request->validate([
             'amount' => 'required|numeric|min:10000',
             'duration_months' => 'required|integer|min:1|max:36',
-            'interest_rate' => 'nullable|numeric|min:0|max:100', // Taux annuel en % (ex: 12%)
+            'interest_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $amount = (float) $validated['amount'];
         $duration = (int) $validated['duration_months'];
+        $defaultRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') ?? 17.0);
         $annualRate = isset($validated['interest_rate']) && $validated['interest_rate'] > 0
             ? (float) $validated['interest_rate']
-            : 12.0; // 12% standard par an
+            : $defaultRate;
 
         $monthlyRate = ($annualRate / 100) / 12;
 
@@ -286,9 +343,10 @@ class AgentLoanController extends Controller
         $clientId = $validated['client_id'];
         $amount = (float) $validated['requested_amount'];
         $duration = (int) $validated['duration_months'];
+        $defaultRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') ?? 17.0);
         $rate = isset($validated['interest_rate']) && $validated['interest_rate'] > 0
             ? (float) $validated['interest_rate']
-            : 12.0;
+            : $defaultRate;
 
         $monthlyRate = ($rate / 100) / 12;
         $monthlyPayment = $monthlyRate > 0
