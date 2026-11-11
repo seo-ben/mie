@@ -28,9 +28,9 @@
             position: relative;
             overflow: hidden;
             background-color: #6ba6ed;
-            background-image: url('{{ asset('images/clouds-aerial-2.jpg') }}');
+            background-image: url('{{ asset('images/clouds-aerial.jpg') }}');
             background-size: cover;
-            background-position: center 25%;
+            background-position: center top;
             background-repeat: no-repeat;
         }
 
@@ -417,11 +417,6 @@
                 <button type="submit" class="btn-sign-in">
                     Sign in
                 </button>
-
-                <!-- Footer Note -->
-                <div class="footer-prompt">
-                    Don't have an account yet? <a href="{{ route('client.register') }}">Sign up</a>
-                </div>
             </form>
         </div>
     </div>

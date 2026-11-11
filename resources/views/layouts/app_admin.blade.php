@@ -387,15 +387,21 @@
                     <span>Épargne Mutuelle (Tontines)</span>
                 </a>
 
-                <div class="sidebar-section-title">Audit Interne</div>
-                <a href="{{ route('admin.profitability.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.profitability.*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-pie text-emerald-500"></i>
-                    <span>Rentabilité</span>
+                <div class="sidebar-section-title">Finances & Trésorerie</div>
+                <a href="{{ route('admin.treasury.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.treasury.*') ? 'active' : '' }}">
+                    <i class="fas fa-vault text-amber-500"></i>
+                    <span>Trésorerie & Coffres</span>
                 </a>
                 <a href="{{ route('admin.transactions.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Audit du Grand Livre</span>
+                    <i class="fas fa-file-invoice-dollar text-blue-500"></i>
+                    <span>Grand Livre des Flux</span>
                 </a>
+                <a href="{{ route('admin.profitability.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.profitability.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-pie text-emerald-500"></i>
+                    <span>Rentabilité & PNB</span>
+                </a>
+
+                <div class="sidebar-section-title">Audit & Rapports</div>
                 <a href="{{ route('admin.reports.index') }}" class="sidebar-item-corporate {{ request()->routeIs('admin.reports.index') ? 'active' : '' }}">
                     <i class="fas fa-chart-line"></i>
                     <span>Analyses Officiers</span>

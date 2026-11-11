@@ -257,13 +257,13 @@ Route::middleware(['role:administrateur_systeme,administrateur_reglementaire'])-
     // Rentabilité
     Route::prefix('profitability')->name('profitability.')->middleware(['auth'])->group(function () {
         Route::get('/', [AdminProfitabilityController::class, 'index'])->name('index');
-        Route::get('/fees-report', [AdminProfitabilityController::class, 'feesReport'])->name('fees-report');
-        Route::get('/loan-interest-report', [AdminProfitabilityController::class, 'loanInterestReport'])->name('loan-interest');
-        Route::get('/tontine-report', [AdminProfitabilityController::class, 'tontineProfitabilityReport'])->name('tontine-report');
-        Route::get('/savings-interest-report', [AdminProfitabilityController::class, 'savingsInterestReport'])->name('savings-interest');
-        Route::get('/investor-report', [AdminProfitabilityController::class, 'investorReport'])->name('investor-report');
-        Route::get('/revenue-breakdown', [AdminProfitabilityController::class, 'revenueBreakdown'])->name('revenue-breakdown');
-        Route::get('/cash-flow', [AdminProfitabilityController::class, 'cashFlowDashboard'])->name('cash-flow');
+        Route::get('/fees-report', [AdminProfitabilityController::class, 'index'])->name('fees-report');
+        Route::get('/loan-interest-report', [AdminProfitabilityController::class, 'index'])->name('loan-interest');
+        Route::get('/tontine-report', [AdminProfitabilityController::class, 'index'])->name('tontine-report');
+        Route::get('/savings-interest-report', [AdminProfitabilityController::class, 'index'])->name('savings-interest');
+        Route::get('/investor-report', [AdminProfitabilityController::class, 'index'])->name('investor-report');
+        Route::get('/revenue-breakdown', [AdminProfitabilityController::class, 'index'])->name('revenue-breakdown');
+        Route::get('/cash-flow', [AdminProfitabilityController::class, 'index'])->name('cash-flow');
         Route::get('/export-investor-report', [AdminProfitabilityController::class, 'exportInvestorReport'])->name('export-investor');
     });
 

@@ -52,6 +52,18 @@ class AdminTransactionController extends Controller
             });
         }
 
+        // Filtre par direction de flux (Entrées vs Sorties)
+        $inflowTypes = ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment', 'transfer_in', 'capital_contribution', 'fee'];
+        $outflowTypes = ['withdrawal', 'loan_disbursement', 'payout', 'transfer_out'];
+
+        if ($request->filled('flow_direction')) {
+            if ($request->flow_direction === 'inflow') {
+                $query->whereIn('transaction_type', $inflowTypes);
+            } elseif ($request->flow_direction === 'outflow') {
+                $query->whereIn('transaction_type', $outflowTypes);
+            }
+        }
+
         if ($request->filled('transaction_type')) {
             $query->where('transaction_type', $request->transaction_type);
         }
@@ -168,6 +180,18 @@ class AdminTransactionController extends Controller
         $format = $request->get('format', 'csv');
 
         $query = Transaction::with(['account.client', 'processedBy']);
+
+        // Filtre par direction de flux (Entrées vs Sorties)
+        $inflowTypes = ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment', 'transfer_in', 'capital_contribution', 'fee'];
+        $outflowTypes = ['withdrawal', 'loan_disbursement', 'payout', 'transfer_out'];
+
+        if ($request->filled('flow_direction')) {
+            if ($request->flow_direction === 'inflow') {
+                $query->whereIn('transaction_type', $inflowTypes);
+            } elseif ($request->flow_direction === 'outflow') {
+                $query->whereIn('transaction_type', $outflowTypes);
+            }
+        }
 
         if ($request->filled('transaction_type')) {
             $query->where('transaction_type', $request->transaction_type);
@@ -328,6 +352,9 @@ class AdminTransactionController extends Controller
      */
     private function getGlobalStats($request)
     {
+        $inflowTypes = ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment', 'transfer_in', 'capital_contribution', 'fee'];
+        $outflowTypes = ['withdrawal', 'loan_disbursement', 'payout', 'transfer_out'];
+
         // Closure pour créer une query de base avec les filtres de date
         $base = function () use ($request) {
             $q = Transaction::query();
@@ -340,15 +367,35 @@ class AdminTransactionController extends Controller
             return $q;
         };
 
+        $totalInflows = (float) $base()->whereIn('transaction_type', $inflowTypes)
+                                       ->where('status', 'completed')
+                                       ->sum('amount');
+
+        $totalOutflows = (float) $base()->whereIn('transaction_type', $outflowTypes)
+                                        ->where('status', 'completed')
+                                        ->sum('amount');
+
+        $todayInflows = (float) Transaction::whereDate('transaction_date', today())
+                                           ->whereIn('transaction_type', $inflowTypes)
+                                           ->where('status', 'completed')
+                                           ->sum('amount');
+
+        $todayOutflows = (float) Transaction::whereDate('transaction_date', today())
+                                            ->whereIn('transaction_type', $outflowTypes)
+                                            ->where('status', 'completed')
+                                            ->sum('amount');
+
         return [
             'total_transactions' => $base()->count(),
             'total_amount'       => $base()->where('status', 'completed')->sum('amount'),
-            'total_deposits'     => $base()->where('transaction_type', 'deposit')
-                                           ->where('status', 'completed')
-                                           ->sum('amount'),
-            'total_withdrawals'  => $base()->where('transaction_type', 'withdrawal')
-                                           ->where('status', 'completed')
-                                           ->sum('amount'),
+            'total_inflows'      => $totalInflows,
+            'total_outflows'     => $totalOutflows,
+            'net_cash_flow'      => $totalInflows - $totalOutflows,
+            'today_inflows'      => $todayInflows,
+            'today_outflows'     => $todayOutflows,
+            'today_net_flow'     => $todayInflows - $todayOutflows,
+            'total_deposits'     => $totalInflows,
+            'total_withdrawals'  => $totalOutflows,
             'pending_count'      => $base()->where('status', 'pending')->count(),
             'pending_amount'     => $base()->where('status', 'pending')->sum('amount'),
             'completed_count'    => $base()->where('status', 'completed')->count(),

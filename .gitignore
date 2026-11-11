@@ -37,3 +37,5 @@ yarn-error.log
 php
 prepareBindings($bindings)
 fix_namespaces_bulk.php
+.playwright-mcp/
+.phpunit.result.cache
