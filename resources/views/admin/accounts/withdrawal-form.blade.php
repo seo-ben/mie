@@ -71,7 +71,7 @@
                      <div class="relative">
                         <input type="number" name="amount" id="amount" 
                                class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-6 py-5 text-4xl font-black text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition font-mono placeholder:text-slate-300" 
-                               placeholder="0" min="100" max="{{ $maxWithdrawal }}" step="100" required>
+                               placeholder="0" min="100" max="{{ $maxWithdrawal }}" step="any" required>
                         <span class="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-400">XOF</span>
                      </div>
                      <div id="amountError" class="hidden text-[10px] font-bold text-rose-600 uppercase mt-2">

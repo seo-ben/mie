@@ -244,7 +244,7 @@
                                            id="initial_deposit"
                                            name="initial_deposit"
                                            min="0"
-                                           step="100"
+                                           step="any"
                                            placeholder="0"
                                            value="{{ old('initial_deposit') }}">
                                     <span class="bg-white input-group-text">FCFA</span>

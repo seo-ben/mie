@@ -166,7 +166,7 @@
                         @endif
                     </label>
                     <div class="relative">
-                        <input type="number" name="amount" id="amount" class="w-full bg-slate-50 border-2 border-slate-300 rounded-2xl px-6 py-5 text-4xl font-black text-slate-900 focus:ring-2 focus:ring-{{ $account->account_type === 'tontine' ? 'purple' : 'cyan' }}-500/20 focus:border-{{ $account->account_type === 'tontine' ? 'purple' : 'cyan' }}-500 outline-none transition-all" value="{{ old('amount', $suggestedAmount) }}" min="100" step="100" required>
+                        <input type="number" name="amount" id="amount" class="w-full bg-slate-50 border-2 border-slate-300 rounded-2xl px-6 py-5 text-4xl font-black text-slate-900 focus:ring-2 focus:ring-{{ $account->account_type === 'tontine' ? 'purple' : 'cyan' }}-500/20 focus:border-{{ $account->account_type === 'tontine' ? 'purple' : 'cyan' }}-500 outline-none transition-all" value="{{ old('amount', $suggestedAmount) }}" min="100" step="any" required>
                         <span class="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-200">XOF</span>
                     </div>
                     @error('amount') <p class="text-[10px] font-bold text-rose-500 uppercase mt-2 italic px-2"><i class="fas fa-triangle-exclamation mr-1"></i> {{ $message }}</p> @enderror

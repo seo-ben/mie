@@ -125,7 +125,7 @@
                             <div class="col-12">
                                 <label class="form-label text-secondary fw-semibold fs-8 mb-1">Mise de Cotisation (FCFA) <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <input type="number" step="100" min="200" name="target_amount" id="target_amount" class="form-control form-control-solid fs-5 fw-bold text-dark" placeholder="Ex: 1000" value="{{ old('target_amount', 1000) }}" required>
+                                    <input type="number" step="any" min="200" name="target_amount" id="target_amount" class="form-control form-control-solid fs-5 fw-bold text-dark" placeholder="Ex: 1000" value="{{ old('target_amount', 1000) }}" required>
                                     <span class="input-group-text bg-light fw-bold text-muted">FCFA</span>
                                 </div>
                             </div>
@@ -165,7 +165,7 @@
                             <div class="col-12 mt-3">
                                 <label class="form-label text-secondary fw-semibold fs-8 mb-1">Dépôt Initial au Guichet (Optionnel)</label>
                                 <div class="input-group">
-                                    <input type="number" step="100" min="0" name="initial_deposit" class="form-control form-control-solid" placeholder="Ex: 1000" value="{{ old('initial_deposit') }}">
+                                    <input type="number" step="any" min="0" name="initial_deposit" class="form-control form-control-solid" placeholder="Ex: 1000" value="{{ old('initial_deposit') }}">
                                     <span class="input-group-text bg-light fw-bold text-muted">FCFA</span>
                                 </div>
                                 <span class="fs-9 text-muted">Si renseigné, une quittance de versement sera générée immédiatement.</span>

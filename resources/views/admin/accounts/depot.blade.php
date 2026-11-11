@@ -119,7 +119,7 @@
                                     <span class="text-emerald-600 flex items-center gap-1"><i class="fas fa-check-double text-[8px]"></i> Vérification Requise</span>
                                 </label>
                                 <div class="relative">
-                                    <input type="number" name="amount" id="amount" class="w-full bg-slate-50 border-2 border-slate-300 rounded-2xl px-6 py-5 text-4xl font-black text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-200" placeholder="0" min="100" step="100" required>
+                                    <input type="number" name="amount" id="amount" class="w-full bg-slate-50 border-2 border-slate-300 rounded-2xl px-6 py-5 text-4xl font-black text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-200" placeholder="0" min="100" step="any" required>
                                     <span class="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">XOF</span>
                                 </div>
                                 <div id="amountHint" class="px-2"></div>

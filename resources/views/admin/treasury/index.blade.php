@@ -277,7 +277,7 @@
                 <div class="space-y-1.5">
                     <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Montant Initial (XOF)</label>
                     <div class="relative">
-                        <input type="number" name="initial_balance" required min="0" step="100"
+                        <input type="number" name="initial_balance" required min="0" step="any"
                                class="w-full bg-indigo-50/50 border border-indigo-100 rounded-xl px-4 py-4 text-2xl font-black text-indigo-700 focus:ring-1 focus:ring-indigo-500 outline-none font-numeric"
                                placeholder="0">
                         <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-indigo-300 uppercase">XOF</span>
@@ -321,7 +321,7 @@
                 <div class="space-y-1.5">
                     <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Montant (XOF)</label>
                     <div class="relative">
-                        <input type="number" name="amount" id="mv_amount" required min="1" step="100"
+                        <input type="number" name="amount" id="mv_amount" required min="1" step="any"
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 text-2xl font-black text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none font-numeric"
                                placeholder="0">
                         <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300 uppercase">XOF</span>

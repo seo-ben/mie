@@ -190,7 +190,7 @@
                     <div class="mt-8 space-y-4">
                         <div class="space-y-2">
                             <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Montant du Virement (CFA)</label>
-                            <input type="number" name="amount" required step="100" min="100" class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-4 text-2xl font-black text-slate-900 focus:ring-slate-900 focus:border-slate-900 transition font-numeric">
+                            <input type="number" name="amount" required step="any" min="100" class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-4 text-2xl font-black text-slate-900 focus:ring-slate-900 focus:border-slate-900 transition font-numeric">
                         </div>
                         <div class="space-y-2">
                             <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Note descriptive</label>

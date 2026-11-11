@@ -235,7 +235,7 @@
                                    id="modal_amount"
                                    name="amount"
                                    min="100"
-                                   step="100"
+                                   step="any"
                                    placeholder="Entrez le montant (min. 100 FCFA)"
                                    required
                                    autocomplete="off">

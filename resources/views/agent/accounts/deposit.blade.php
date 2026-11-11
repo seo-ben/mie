@@ -91,7 +91,7 @@
                                        id="amount"
                                        name="amount"
                                        min="100"
-                                       step="100"
+                                       step="any"
                                        placeholder="{{ number_format($suggestedAmount, 0, ',', ' ') }}"
                                        value="{{ old('amount', $suggestedAmount) }}"
                                        required

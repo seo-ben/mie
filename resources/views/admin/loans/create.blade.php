@@ -253,7 +253,7 @@
                             <label class="block mb-1 text-xs font-medium text-gray-700">Valeur de l'Engagement (FCFA)</label>
                             <input type="number" name="guarantors[{{ $i }}][collateral_value]"
                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                   placeholder="Ex: 250000" step="10000"
+                                   placeholder="Ex: 250000" step="any"
                                    value="{{ old("guarantors.$i.collateral_value") }}">
                         </div>
 

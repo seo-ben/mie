@@ -91,7 +91,7 @@
                                        id="target_amount"
                                        name="target_amount"
                                        min="100"
-                                       step="50"
+                                       step="any"
                                        value="{{ old('target_amount', 200) }}"
                                        placeholder="1000"
                                        required>

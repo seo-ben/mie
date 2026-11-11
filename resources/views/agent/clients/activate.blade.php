@@ -91,7 +91,7 @@
                                                    name="accounts[{{ $index }}][amount_paid]"
                                                    placeholder="Ex: 1000"
                                                    min="0"
-                                                   step="100"
+                                                   step="any"
                                                    data-index="{{ $index }}">
                                             <small class="text-muted">Frais standard: 1,000 FCFA</small>
                                         </div>
@@ -103,7 +103,7 @@
                                                    name="accounts[{{ $index }}][initial_deposit]"
                                                    placeholder="Ex: 5000"
                                                    min="0"
-                                                   step="100"
+                                                   step="any"
                                                    data-index="{{ $index }}">
                                             <small class="text-muted">Optionnel</small>
                                         </div>

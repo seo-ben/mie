@@ -56,7 +56,7 @@
                 <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fonds de Roulement (Provision)</label>
                     <div class="relative">
-                        <input type="number" name="opening_balance" value="{{ old('opening_balance', 0) }}" step="100" min="0" required
+                        <input type="number" name="opening_balance" value="{{ old('opening_balance', 0) }}" step="any" min="0" required
                             class="w-full bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-lg font-black text-slate-900 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition placeholder:text-slate-300"
                             placeholder="0">
                         <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">CFA</span>

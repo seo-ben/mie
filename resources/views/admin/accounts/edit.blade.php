@@ -136,7 +136,7 @@
                             <div class="space-y-2">
                                 <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Seuil de Survie (Minimum XOF) *</label>
                                 <div class="relative">
-                                    <input type="number" name="minimum_balance" value="{{ old('minimum_balance', $account->savingsAccount->minimum_balance) }}" min="0" step="1000" class="bank-input font-black text-blue-600 @error('minimum_balance') border-rose-500 @enderror">
+                                    <input type="number" name="minimum_balance" value="{{ old('minimum_balance', $account->savingsAccount->minimum_balance) }}" min="0" step="any" class="bank-input font-black text-blue-600 @error('minimum_balance') border-rose-500 @enderror">
                                     <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">XOF</span>
                                 </div>
                                 @error('minimum_balance') <p class="text-[9px] font-bold text-rose-500 uppercase mt-1">{{ $message }}</p> @enderror
@@ -145,7 +145,7 @@
                             <div class="space-y-2 md:col-span-2">
                                 <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Redevance de Maintenance Mensuelle (XOF) *</label>
                                 <div class="relative">
-                                    <input type="number" name="monthly_fee" value="{{ old('monthly_fee', $account->savingsAccount->monthly_fee) }}" min="0" step="100" class="bank-input font-black text-blue-600 @error('monthly_fee') border-rose-500 @enderror">
+                                    <input type="number" name="monthly_fee" value="{{ old('monthly_fee', $account->savingsAccount->monthly_fee) }}" min="0" step="any" class="bank-input font-black text-blue-600 @error('monthly_fee') border-rose-500 @enderror">
                                     <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">XOF</span>
                                 </div>
                                 @error('monthly_fee') <p class="text-[9px] font-bold text-rose-500 uppercase mt-1">{{ $message }}</p> @enderror
@@ -187,7 +187,7 @@
                                 <div class="relative">
                                     <input type="number" name="tontine_amount" id="tontine_amount" 
                                            value="{{ old('tontine_amount', $account->tontineAccount->tontine_amount) }}" 
-                                           min="50" step="50"
+                                           min="50" step="any"
                                            {{ !empty($isTontineCycleLocked) ? 'readonly' : '' }}
                                            class="bank-input font-black text-purple-600 text-lg {{ !empty($isTontineCycleLocked) ? 'bg-slate-100 cursor-not-allowed opacity-80' : '' }} @error('tontine_amount') border-rose-500 @enderror">
                                     <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">XOF</span>

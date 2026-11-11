@@ -54,7 +54,7 @@
                                    class="form-control form-control-lg text-center @error('amount') is-invalid @enderror"
                                    value="{{ old('amount') }}"
                                    min="100"
-                                   step="100"
+                                   step="any"
                                    placeholder="Ex: 3 000"
                                    required>
                             @error('amount')
