@@ -2042,11 +2042,20 @@ class AgentCashierController extends Controller
                 $verifications[$key] = !empty($submittedVerifs[$key]);
             }
 
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('loans', 'application_fee')) {
+                \Illuminate\Support\Facades\Schema::table('loans', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->decimal('application_fee', 15, 2)->default(0)->after('requested_amount');
+                });
+            }
+
+            $applicationFee = (float) ($request->input('application_fee', 0));
+
             $loan = Loan::create([
                 'loan_number'            => $loanNumber,
                 'client_id'              => $request->client_id,
                 'requested_amount'       => $amount,
                 'approved_amount'        => $amount,
+                'application_fee'        => $applicationFee,
                 'duration_months'        => $months,
                 'interest_rate'          => $annualRate,
                 'total_interest'         => $totalInterest,
@@ -2059,6 +2068,30 @@ class AgentCashierController extends Controller
                 'guarantors_count'       => 0,
                 'created_by'             => Auth::id(),
             ]);
+
+            // Enregistrer la transaction des frais de dossier de prêt si perçus
+            if ($applicationFee > 0) {
+                $activeSession = $this->getActiveSession($user);
+                $clientAccount = Account::where('client_id', $request->client_id)->first();
+                Transaction::create([
+                    'transaction_reference' => 'FEE-DOSSIER-' . strtoupper(Str::random(8)),
+                    'loan_id' => $loan->id,
+                    'account_id' => $clientAccount?->id,
+                    'transaction_type' => 'fee',
+                    'amount' => $applicationFee,
+                    'fee_amount' => $applicationFee,
+                    'balance_before' => 0,
+                    'balance_after' => 0,
+                    'payment_method' => 'cash',
+                    'description' => "Frais d'étude et montage dossier de prêt {$loan->loan_number}",
+                    'status' => 'completed',
+                    'processed_by' => $user->id,
+                    'agency_id' => $user->agency_id,
+                    'cashier_session_id' => $activeSession?->id,
+                    'processed_at' => now(),
+                    'transaction_date' => now(),
+                ]);
+            }
 
             // Enregistrer jusqu'à 3 cautionnaires solidaires
             $guarantorsData = $request->input('guarantors', []);

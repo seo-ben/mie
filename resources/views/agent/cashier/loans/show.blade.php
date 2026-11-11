@@ -169,6 +169,10 @@
                         <strong class="text-dark fs-7">{{ $loan->created_at->format('d/m/Y à H:i') }}</strong>
                     </div>
                     <div class="col-6">
+                        <span class="d-block mb-1">Frais de Dossier Encaissés :</span>
+                        <strong class="text-success fs-7">{{ number_format($loan->application_fee ?? 0, 0, ',', ' ') }} FCFA</strong>
+                    </div>
+                    <div class="col-6">
                         <span class="d-block mb-1">Statut d'approbation :</span>
                         @switch($loan->status)
                             @case('approved')

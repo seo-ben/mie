@@ -161,14 +161,23 @@
                                 </div>
                             </div>
 
-                            <!-- Dépôt initial -->
-                            <div class="col-12 mt-3">
+                            <!-- Frais de carnet tontine & Dépôt initial -->
+                            <div class="col-12 col-sm-6 mt-3">
+                                <label class="form-label text-secondary fw-semibold fs-8 mb-1">Frais de Carnet Tontine <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" step="any" min="0" name="carnet_fee" id="carnet_fee" class="form-control form-control-solid fw-bold text-purple-700" placeholder="300" value="{{ old('carnet_fee', 300) }}" required>
+                                    <span class="input-group-text bg-light fw-bold text-muted">FCFA</span>
+                                </div>
+                                <span class="fs-9 text-muted">Défaut institutionnel : 300 FCFA (Modifiable).</span>
+                            </div>
+
+                            <div class="col-12 col-sm-6 mt-3">
                                 <label class="form-label text-secondary fw-semibold fs-8 mb-1">Dépôt Initial au Guichet (Optionnel)</label>
                                 <div class="input-group">
                                     <input type="number" step="any" min="0" name="initial_deposit" class="form-control form-control-solid" placeholder="Ex: 1000" value="{{ old('initial_deposit') }}">
                                     <span class="input-group-text bg-light fw-bold text-muted">FCFA</span>
                                 </div>
-                                <span class="fs-9 text-muted">Si renseigné, une quittance de versement sera générée immédiatement.</span>
+                                <span class="fs-9 text-muted">Si renseigné, quittance de versement générée.</span>
                             </div>
                         </div>
                     </div>

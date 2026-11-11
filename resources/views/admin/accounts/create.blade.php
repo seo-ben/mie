@@ -144,7 +144,12 @@
                         </h3>
                     </div>
                     <div class="p-8 space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-blue-700 uppercase tracking-widest">Frais d'Adhésion (FCFA) *</label>
+                                <input type="number" step="any" name="activation_fee" value="{{ old('activation_fee', $savingsActivationFee) }}" class="bank-input font-black text-blue-700 text-sm" min="0">
+                                <p class="text-[8px] font-bold text-slate-400 uppercase">Défaut : {{ number_format($savingsActivationFee, 0, ',', ' ') }} F (Variable)</p>
+                            </div>
                             <div class="space-y-2">
                                 <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Taux d'Intérêt (%) *</label>
                                 <input type="number" step="0.01" name="interest_rate" value="2.5" class="bank-input font-bold" min="0" max="100">
@@ -156,7 +161,7 @@
                                 <p class="text-[8px] font-bold text-slate-400 uppercase">Valeur Standard : 5,000 XOF</p>
                             </div>
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Redevance de Maintenance *</label>
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Redevance Maintenance *</label>
                                 <input type="number" name="monthly_fee" value="500" class="bank-input font-bold" min="0">
                                 <p class="text-[8px] font-bold text-slate-400 uppercase">Valeur Standard : 500 XOF</p>
                             </div>
@@ -176,15 +181,20 @@
                         </h3>
                     </div>
                     <div class="p-8 space-y-8">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Charge de Cotisation (XOF) *</label>
-                                <input type="number" name="target_amount" id="target_amount" value="5000" class="bank-input font-black text-blue-600 text-lg" min="200">
-                                <p class="text-[8px] font-bold text-slate-400 uppercase leading-tight">Volume de liquide à injecter par cycle périodique</p>
+                                <label class="text-[10px] font-black text-purple-700 uppercase tracking-widest">Frais de Carnet (FCFA) *</label>
+                                <input type="number" step="any" name="activation_fee" value="{{ old('activation_fee', $tontineCarnetFee) }}" class="bank-input font-black text-purple-700 text-sm" min="0">
+                                <p class="text-[8px] font-bold text-slate-400 uppercase">Défaut : {{ number_format($tontineCarnetFee, 0, ',', ' ') }} F (Modifiable)</p>
                             </div>
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Durée de l'Engagement (Mois) *</label>
-                                <select name="cycle_duration_months" id="cycle_duration_months" class="bank-input uppercase font-bold">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Charge de Cotisation (XOF) *</label>
+                                <input type="number" name="target_amount" id="target_amount" value="1000" class="bank-input font-black text-blue-600 text-sm" min="200">
+                                <p class="text-[8px] font-bold text-slate-400 uppercase leading-tight">Volume de liquide par injection</p>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Durée de l'Engagement *</label>
+                                <select name="cycle_duration_months" id="cycle_duration_months" class="bank-input uppercase font-bold text-sm">
                                     <option value="1">01 Mois (Cycle Éclair)</option>
                                     <option value="3">03 Mois (Trimestre)</option>
                                     <option value="6">06 Mois (Semestre)</option>

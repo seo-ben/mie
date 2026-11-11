@@ -150,11 +150,20 @@ class AdminLoanController extends Controller
                 $verifications[$key] = !empty($submittedVerifs[$key]);
             }
 
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('loans', 'application_fee')) {
+                \Illuminate\Support\Facades\Schema::table('loans', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->decimal('application_fee', 15, 2)->default(0)->after('requested_amount');
+                });
+            }
+
+            $applicationFee = (float) ($request->input('application_fee', 0));
+
             // Créer le prêt
             $loan = Loan::create([
                 'loan_number' => $this->generateLoanNumber(),
                 'client_id' => $request->client_id,
                 'requested_amount' => $request->requested_amount,
+                'application_fee' => $applicationFee,
                 'interest_rate' => $interestRate,
                 'duration_months' => $request->duration_months,
                 'loan_type' => $request->loan_type,
@@ -168,6 +177,27 @@ class AdminLoanController extends Controller
                 'application_date' => now(),
                 'submitted_by' => auth()->id(),
             ]);
+
+            // Enregistrer la transaction des frais de dossier si perçus
+            if ($applicationFee > 0) {
+                \App\Models\Transaction::create([
+                    'transaction_reference' => 'FEE-DOSSIER-' . strtoupper(\Illuminate\Support\Str::random(8)),
+                    'loan_id' => $loan->id,
+                    'account_id' => $client->accounts()->first()?->id,
+                    'transaction_type' => 'fee',
+                    'amount' => $applicationFee,
+                    'fee_amount' => $applicationFee,
+                    'balance_before' => 0,
+                    'balance_after' => 0,
+                    'payment_method' => 'cash',
+                    'description' => "Frais d'étude et montage dossier de prêt {$loan->loan_number}",
+                    'status' => 'completed',
+                    'processed_by' => auth()->id(),
+                    'agency_id' => auth()->user()->agency_id ?? $client->agency_id,
+                    'processed_at' => now(),
+                    'transaction_date' => now(),
+                ]);
+            }
 
             // Enregistrer jusqu'à 3 cautionnaires solidaires
             $guarantorsData = $request->input('guarantors', []);

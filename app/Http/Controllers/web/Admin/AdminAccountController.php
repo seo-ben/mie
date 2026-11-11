@@ -96,13 +96,8 @@ class AdminAccountController extends Controller
             $client = Client::with(['accounts'])->findOrFail($clientId);
 
             // Récupérer les frais d'activation via les paramètres système
-            $savingsActivationFee = SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000;
-            
-            // Logique de fallback pour les frais de tontine
-            $tontineCarnetFee = SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value');
-            if (!$tontineCarnetFee) {
-                $tontineCarnetFee = SystemParameter::where('parameter_key', 'tontine_300_activation_fee')->value('parameter_value') ?? 1000;
-            }
+            $savingsActivationFee = (float) (SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000);
+            $tontineCarnetFee = (float) (SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value') ?? 300);
 
             // Vérifier si le client a déjà un compte d'épargne ou tontine
             $hasSavingsAccount = !$client->canOpenSavingsAccount();
@@ -154,17 +149,14 @@ class AdminAccountController extends Controller
                 DB::beginTransaction();
 
                 // 1ï¸â£ Récupérer les frais d'activation via les paramètres système
+                // Récupérer les frais d'adhésion / carnet (personnalisable ou valeur par défaut système)
                 $activationFee = 0;
-                if ($request->account_type === 'savings') {
-                    $activationFee = SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000;
+                if ($request->filled('activation_fee')) {
+                    $activationFee = (float) $request->activation_fee;
+                } elseif ($request->account_type === 'savings') {
+                    $activationFee = (float) (SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000);
                 } elseif ($request->account_type === 'tontine') {
-                    // Utilisation du paramètre correct selon la configuration système (tontine_300_activation_fee ou tontine_carnet_fee)
-                    // On privilégie tontine_carnet_fee si présent, sinon on cherche tontine_300_activation_fee, sinon défaut 1000
-                    $activationFee = SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value');
-                    
-                    if (!$activationFee) {
-                         $activationFee = SystemParameter::where('parameter_key', 'tontine_300_activation_fee')->value('parameter_value') ?? 1000;
-                    }
+                    $activationFee = (float) (SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value') ?? 300);
                 }
 
                 // 2ï¸â£ Créer le compte de base

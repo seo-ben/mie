@@ -193,9 +193,9 @@
                         </div>
                     </div>
 
-                    <!-- MONTANT & DURÉE -->
+                    <!-- MONTANT & DURÉE & FRAIS DOSSIER -->
                     <div class="row g-3 mb-3">
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-4">
                             <label class="form-label fw-bold text-dark fs-8 mb-1">Montant Souhaité (FCFA) *</label>
                             <div class="input-group">
                                 <input type="number" name="requested_amount" id="loanAmount" class="form-control rounded-start-3 border fw-bold" style="padding: 10px 14px; font-size: 1.1rem;" value="200000" min="1000" step="any" required oninput="recalcSimulation()">
@@ -203,7 +203,16 @@
                             </div>
                         </div>
 
-                        <div class="col-6 col-md-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold text-success fs-8 mb-1">Frais de Dossier Perçus (FCFA)</label>
+                            <div class="input-group">
+                                <input type="number" name="application_fee" id="applicationFee" class="form-control rounded-start-3 border fw-bold text-success" style="padding: 10px 14px; font-size: 1.05rem;" value="{{ old('application_fee', 0) }}" min="0" step="any" placeholder="Ex: 5000">
+                                <span class="input-group-text bg-light fw-bold text-muted border-start-0 rounded-end-3">FCFA</span>
+                            </div>
+                            <small class="text-muted fs-9">Montant pris pour le montage du dossier.</small>
+                        </div>
+
+                        <div class="col-6 col-md-2">
                             <label class="form-label fw-bold text-dark fs-8 mb-1">Durée (Mois) *</label>
                             <select name="duration_months" id="loanDuration" class="form-select rounded-3 border fw-bold" style="padding: 10px 14px; font-size: 0.88rem;" required onchange="recalcSimulation()">
                                 <option value="3">3 Mois</option>
@@ -215,8 +224,8 @@
                             </select>
                         </div>
 
-                        <div class="col-6 col-md-3">
-                            <label class="form-label fw-bold text-dark fs-8 mb-1">Taux Annuel (%)</label>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold text-dark fs-8 mb-1">Taux (%)</label>
                             <div class="input-group">
                                 <input type="number" name="interest_rate" id="loanRate" value="17.0" class="form-control rounded-start-3 border fw-bold" style="padding: 10px 14px; font-size: 0.88rem;" step="0.5" min="1" max="50" oninput="recalcSimulation()">
                                 <span class="input-group-text bg-light fw-bold text-muted border-start-0 rounded-end-3">%</span>

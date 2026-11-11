@@ -10,6 +10,7 @@ class Loan extends Model
         'loan_number',
         'client_id',
         'requested_amount',
+        'application_fee',
         'approved_amount',
         'interest_rate',
         'duration_months',

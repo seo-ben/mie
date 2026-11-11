@@ -96,7 +96,7 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'parameter_key' => 'tontine_carnet_fee',
-                'parameter_value' => '1000',
+                'parameter_value' => '300',
                 'parameter_type' => 'number',
                 'description' => 'Frais d\'adhésion / carnet de tontine (FCFA)',
                 'category' => 'fees',

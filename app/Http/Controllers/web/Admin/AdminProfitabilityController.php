@@ -35,8 +35,10 @@ class AdminProfitabilityController extends Controller
         // Section 3: Breakdown détaillé des revenus
         $revenueBreakdown = [
             'loan_interest' => $this->getCollectedLoanInterest($startDate, $endDate),
+            'loan_application_fees' => $this->getLoanApplicationFees($startDate, $endDate),
             'loan_penalties' => $this->getLoanPenalties($startDate, $endDate),
-            'account_fees' => $this->getAccountActivationFees($startDate, $endDate),
+            'savings_activation_fees' => $this->getSavingsActivationFees($startDate, $endDate),
+            'tontine_carnet_fees' => $this->getTontineCarnetFees($startDate, $endDate),
             'transaction_fees' => $this->getTransactionFees($startDate, $endDate),
             'withdrawal_fees' => $this->getWithdrawalFees($startDate, $endDate),
             'transfer_fees' => $this->getTransferFees($startDate, $endDate),
@@ -51,9 +53,17 @@ class AdminProfitabilityController extends Controller
 
         // Section 4: Rapport détaillé sur les frais
         $feesReport = [
-            'account_activation' => [
-                'total' => $this->getAccountActivationFees($startDate, $endDate),
-                'label' => 'Frais d\'ouverture de compte'
+            'savings_activation' => [
+                'total' => $this->getSavingsActivationFees($startDate, $endDate),
+                'label' => 'Frais d\'ouverture Épargne (défaut 7 000 F / variable)'
+            ],
+            'tontine_carnet' => [
+                'total' => $this->getTontineCarnetFees($startDate, $endDate),
+                'label' => 'Frais de Carnets Tontine (défaut 300 F / variable)'
+            ],
+            'loan_application_fees' => [
+                'total' => $this->getLoanApplicationFees($startDate, $endDate),
+                'label' => 'Frais d\'étude et montage de dossiers Prêts'
             ],
             'transaction_fees' => [
                 'total' => $this->getTransactionFees($startDate, $endDate),
@@ -269,6 +279,7 @@ class AdminProfitabilityController extends Controller
     private function getTotalRevenue($startDate, $endDate)
     {
         return $this->getCollectedLoanInterest($startDate, $endDate)
+            + $this->getLoanApplicationFees($startDate, $endDate)
             + $this->getLoanPenalties($startDate, $endDate)
             + $this->getAccountActivationFees($startDate, $endDate)
             + $this->getTransactionFees($startDate, $endDate)
@@ -330,6 +341,45 @@ class AdminProfitabilityController extends Controller
                 ->sum('activation_fee');
         }
         return Account::sum('activation_fee');
+    }
+
+    /**
+     * Frais de carnet tontine
+     */
+    private function getTontineCarnetFees($startDate = null, $endDate = null)
+    {
+        $query = Account::where('account_type', 'tontine');
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        return (float) $query->sum('activation_fee');
+    }
+
+    /**
+     * Frais d'adhésion / ouverture compte épargne
+     */
+    private function getSavingsActivationFees($startDate = null, $endDate = null)
+    {
+        $query = Account::where('account_type', 'savings');
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        return (float) $query->sum('activation_fee');
+    }
+
+    /**
+     * Frais d'étude et montage de dossiers de prêt
+     */
+    private function getLoanApplicationFees($startDate = null, $endDate = null)
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('loans', 'application_fee')) {
+            return 0.0;
+        }
+        $query = Loan::query();
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        return (float) $query->sum('application_fee');
     }
 
     /**

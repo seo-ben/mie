@@ -70,7 +70,7 @@
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <!-- Montant demandé -->
-                <div class="md:col-span-2">
+                <div>
                     <label class="block mb-2 text-sm font-medium text-gray-700">
                         Montant Demandé <span class="text-red-500">*</span>
                     </label>
@@ -78,11 +78,26 @@
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('requested_amount') border-red-500 @enderror"
                            placeholder="Ex: 500000"
                            value="{{ old('requested_amount') }}"
-                           min="1000" max="5000000" >
+                           min="1000" max="5000000" step="any">
                     @error('requested_amount')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                    <p class="mt-1 text-xs text-gray-500">Minimum: 1,000 FCFA - Maximum: 5,000,000 FCFA</p>
+                    <p class="mt-1 text-xs text-gray-500">Min: 1 000 FCFA - Max: 5 000 000 FCFA</p>
+                </div>
+
+                <!-- Frais de dossier de crédit (selon client/négocié) -->
+                <div>
+                    <label class="block mb-2 text-sm font-semibold text-emerald-800">
+                        Frais de Dossier de Crédit Perçus (FCFA) <span class="text-xs font-normal text-gray-500">(Variable)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="number" step="any" min="0" name="application_fee"
+                               class="w-full px-4 py-2 font-bold text-gray-900 bg-emerald-50/50 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                               placeholder="Ex: 5000, 10000, 25000..."
+                               value="{{ old('application_fee', 0) }}">
+                        <span class="absolute right-4 top-2 text-xs font-bold text-emerald-700">FCFA</span>
+                    </div>
+                    <p class="mt-1 text-xs text-emerald-600">Montant des frais d'étude encaissés lors du montage du dossier.</p>
                 </div>
 
                 <!-- Durée -->

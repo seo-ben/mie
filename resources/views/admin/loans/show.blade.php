@@ -286,6 +286,11 @@
                         <p class="text-lg font-semibold text-gray-900">{{ number_format($loan->requested_amount, 0, ',', ' ') }} FCFA</p>
                     </div>
 
+                    <div>
+                        <p class="text-sm text-emerald-700 font-semibold">Frais de Dossier Encaissés</p>
+                        <p class="text-lg font-bold text-emerald-600">{{ number_format($loan->application_fee ?? 0, 0, ',', ' ') }} FCFA</p>
+                    </div>
+
                     @if($loan->approved_amount)
                     <div>
                         <p class="text-sm text-gray-600">Montant Approuvé</p>

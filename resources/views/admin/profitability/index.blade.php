@@ -251,14 +251,16 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             @php
                 $breakdownLabels = [
-                    'loan_interest' => 'Rendement Crédit',
-                    'loan_penalties' => 'Frais de Recouvrement',
-                    'account_fees' => 'Activation de compte',
-                    'transaction_fees' => 'Frais de Cycle',
-                    'withdrawal_fees' => 'Frais de Règlement',
-                    'transfer_fees' => 'Frais de Protocole',
-                    'monthly_fees' => 'Abo. Service',
-                    'tontine_revenue' => 'Rendement Mutuel'
+                    'loan_interest' => 'Intérêts Crédits Remboursés',
+                    'loan_application_fees' => 'Frais Dossiers Prêts',
+                    'loan_penalties' => 'Pénalités Retard Prêts',
+                    'savings_activation_fees' => 'Adhésion Épargne (7 000 F)',
+                    'tontine_carnet_fees' => 'Frais Carnets Tontine (300 F)',
+                    'tontine_revenue' => 'Commissions Cycles Tontine',
+                    'monthly_fees' => 'Frais Tenue Compte',
+                    'withdrawal_fees' => 'Commissions Retraits',
+                    'transaction_fees' => 'Frais de Transaction',
+                    'transfer_fees' => 'Frais de Virement'
                 ];
             @endphp
             @foreach($breakdownLabels as $key => $label)
