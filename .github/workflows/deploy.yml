@@ -17,6 +17,11 @@ jobs:
         with:
           fetch-depth: 0 # Récupère tout l'historique pour synchroniser tous les commits avec le serveur via FTP
 
+      - name: 🔀 Mirror Controllers for Linux Case Sensitivity
+        run: |
+          mkdir -p app/Http/Controllers/Web
+          cp -r app/Http/Controllers/web/* app/Http/Controllers/Web/
+
       - name: 📂 Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:

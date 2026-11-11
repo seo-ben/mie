@@ -60,7 +60,34 @@ Route::middleware(['role:administrateur_systeme,administrateur_reglementaire'])-
         Route::delete('{user}', [AdminUserController::class, 'destroy'])->name('destroy');
         Route::get('{user}/reset-password', [AdminUserController::class, 'resetPassword'])->name('reset-password');
         Route::get('{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('toggle-status');
-        Route::get('{user}/toggle-cashier-open', [AdminUserController::class, 'toggleCashierOpenPermission'])->name('toggle-cashier-open');
+        Route::get('{user}/toggle-cashier-open', function ($userId) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('users', 'can_open_cashier_session')) {
+                \Illuminate\Support\Facades\Schema::table('users', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->boolean('can_open_cashier_session')->default(false)->after('role');
+                });
+            }
+
+            $user = \App\Models\User::findOrFail($userId);
+            $user->can_open_cashier_session = !$user->can_open_cashier_session;
+            $user->save();
+
+            \App\Models\AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => $user->can_open_cashier_session ? 'GRANT_CASHIER_OPEN_PERMISSION' : 'REVOKE_CASHIER_OPEN_PERMISSION',
+                'table_name' => 'users',
+                'record_id' => $user->id,
+                'additional_data' => [
+                    'user' => $user->first_name . ' ' . $user->last_name,
+                    'can_open_cashier_session' => $user->can_open_cashier_session
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+
+            $etat = $user->can_open_cashier_session ? 'accordée avec succès' : 'révoquée';
+            return redirect()->back()
+                ->with('success', "Autorisation d'ouverture autonome de caisse {$etat} pour {$user->first_name} {$user->last_name}.");
+        })->name('toggle-cashier-open');
         Route::post('{user}/transfer-clients', [AdminUserController::class, 'transferClients'])->name('transfer-clients');
     });
 
