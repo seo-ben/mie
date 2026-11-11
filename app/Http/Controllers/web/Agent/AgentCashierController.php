@@ -26,6 +26,7 @@ use Carbon\Carbon;
 
 class AgentCashierController extends Controller
 {
+    // Contrôleur de gestion des opérations de guichet & caisse FSD YAYRA
 
     /**
      * Tableau de bord principal du caissier

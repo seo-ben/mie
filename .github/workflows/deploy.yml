@@ -15,7 +15,7 @@ jobs:
       - name: 🚚 Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # Optimise le transfert en ne synchronisant que les fichiers modifiés
+          fetch-depth: 0 # Récupère tout l'historique pour synchroniser tous les commits avec le serveur via FTP
 
       - name: 📂 Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

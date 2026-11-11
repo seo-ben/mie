@@ -2,6 +2,18 @@
 
 @section('title', 'Tableau de Bord Caissier')
 
+@php
+    $currentCash = $currentCash ?? ((float) ($activeSession->opening_balance ?? 0) + (float) ($todayStats->total_in ?? 0) - (float) ($todayStats->total_out ?? 0));
+    $vaultBalance = $vaultBalance ?? ((float) ($activeSession->agency->vault_balance ?? 0.0));
+    $fieldAgentsCount = $fieldAgentsCount ?? 0;
+    $fieldAgentsTodayCollected = $fieldAgentsTodayCollected ?? 0.0;
+    $todayClientsServed = $todayClientsServed ?? 0;
+    $agencyClientCount = $agencyClientCount ?? 0;
+    $activeLoanCount = $activeLoanCount ?? 0;
+    $approvedLoanCount = $approvedLoanCount ?? 0;
+    $recentTransactions = $recentTransactions ?? collect();
+@endphp
+
 @push('styles')
 <style>
     /* Cartes Pastel Spécifiques (Inspirées du Mockup eMart) */
@@ -274,7 +286,7 @@
                     </span>
                 </div>
                 <div>
-                    <div class="kpi-number">{{ number_format($currentCash, 0, ',', ' ') }} <small class="fs-7 text-muted">F</small></div>
+                    <div class="kpi-number">{{ number_format($currentCash ?? 0, 0, ',', ' ') }} <small class="fs-7 text-muted">F</small></div>
                     <p class="kpi-label">Disponible en Caisse</p>
                 </div>
             </div>
@@ -292,7 +304,7 @@
                     </span>
                 </div>
                 <div>
-                    <div class="kpi-number">{{ number_format($vaultBalance, 0, ',', ' ') }} <small class="fs-7 text-muted">F</small></div>
+                    <div class="kpi-number">{{ number_format($vaultBalance ?? 0, 0, ',', ' ') }} <small class="fs-7 text-muted">F</small></div>
                     <p class="kpi-label">Trésorerie Coffre-Fort</p>
                 </div>
             </div>
@@ -305,7 +317,7 @@
                     <div class="kpi-icon-box rose">
                         <i class="fas fa-file-invoice-dollar"></i>
                     </div>
-                    @if($approvedLoanCount > 0)
+                    @if(($approvedLoanCount ?? 0) > 0)
                         <span class="kpi-growth-badge alert">
                             À Payer
                         </span>
@@ -348,7 +360,7 @@
                     </div>
                     <span class="kpi-growth-badge positive">Terrain</span>
                 </div>
-                <div class="kpi-number fs-4">{{ number_format($fieldAgentsTodayCollected, 0, ',', ' ') }} <small class="fs-8 text-muted">F</small></div>
+                <div class="kpi-number fs-4">{{ number_format($fieldAgentsTodayCollected ?? 0, 0, ',', ' ') }} <small class="fs-8 text-muted">F</small></div>
                 <p class="kpi-label">Collecte Agents Rapatriée</p>
             </div>
         </div>
@@ -362,7 +374,7 @@
                     </div>
                     <span class="kpi-growth-badge neutral">Actifs</span>
                 </div>
-                <div class="kpi-number fs-4">{{ $fieldAgentsCount }}</div>
+                <div class="kpi-number fs-4">{{ $fieldAgentsCount ?? 0 }}</div>
                 <p class="kpi-label">Collecteurs Déployés</p>
             </div>
         </div>
@@ -548,7 +560,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span class="text-muted fs-8 d-block">Total collecté ce jour par les agents</span>
-                            <h4 class="fw-black text-success mb-0 font-numeric">{{ number_format($fieldAgentsTodayCollected, 0, ',', ' ') }} FCFA</h4>
+                            <h4 class="fw-black text-success mb-0 font-numeric">{{ number_format($fieldAgentsTodayCollected ?? 0, 0, ',', ' ') }} FCFA</h4>
                         </div>
                         <div class="rounded-circle bg-success text-white p-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                             <i class="fas fa-motorcycle"></i>
@@ -558,7 +570,7 @@
 
                 <div class="d-flex justify-content-between fs-8 py-2 border-bottom">
                     <span class="text-muted">Agents rattachés à votre agence</span>
-                    <strong class="text-dark">{{ $fieldAgentsCount }} agents</strong>
+                    <strong class="text-dark">{{ $fieldAgentsCount ?? 0 }} agents</strong>
                 </div>
                 <div class="d-flex justify-content-between fs-8 py-2">
                     <span class="text-muted">Plafond de sécurité par agent</span>
