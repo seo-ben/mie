@@ -291,6 +291,12 @@ class AdminUserController extends Controller
      */
     public function toggleCashierOpenPermission($userId)
     {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('users', 'can_open_cashier_session')) {
+            \Illuminate\Support\Facades\Schema::table('users', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->boolean('can_open_cashier_session')->default(false)->after('role');
+            });
+        }
+
         $user = User::findOrFail($userId);
 
         $user->can_open_cashier_session = !$user->can_open_cashier_session;
