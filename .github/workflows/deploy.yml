@@ -15,12 +15,101 @@ jobs:
       - name: 🚚 Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Récupère tout l'historique pour synchroniser tous les commits avec le serveur via FTP
+          fetch-depth: 0
 
-      - name: 🔀 Mirror Controllers for Linux Case Sensitivity
+      - name: 🔍 Inspect FTP & Auto-detect Laravel Directory
+        id: detect-dir
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
         run: |
-          mkdir -p app/Http/Controllers/Web
-          cp -r app/Http/Controllers/web/* app/Http/Controllers/Web/
+          python3 - << 'EOF'
+          import ftplib
+          import os
+          import sys
+
+          server = os.environ.get('FTP_SERVER')
+          user = os.environ.get('FTP_USERNAME')
+          passwd = os.environ.get('FTP_PASSWORD')
+
+          if not server or not user or not passwd:
+              print("Missing FTP credentials in secrets. Defaulting to ./mie/")
+              target = os.environ.get('FTP_SERVER_DIR') or './mie/'
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write(f"server_dir={target}\n")
+              sys.exit(0)
+
+          try:
+              ftp = ftplib.FTP(server, timeout=30)
+              ftp.login(user, passwd)
+              pwd = ftp.pwd()
+              print(f"FTP Connected. Working directory: {pwd}")
+              
+              root_items = ftp.nlst()
+              print("Items in root:", root_items)
+
+              # Candidates for Laravel root
+              candidates = ['./mie/', 'mie/', '/mie/', './htdocs/mie/', 'htdocs/mie/', '/htdocs/mie/', './htdocs/', 'htdocs/', '/htdocs/', './']
+              detected_dir = None
+
+              for cand in candidates:
+                  try:
+                      sub = ftp.nlst(cand)
+                      names = [os.path.basename(x.rstrip('/')) for x in sub]
+                      if 'artisan' in names or 'bootstrap' in names:
+                          detected_dir = cand if cand.endswith('/') else cand + '/'
+                          print(f"🎯 Auto-detected active Laravel directory: {detected_dir}")
+                          break
+                  except Exception:
+                      continue
+
+              if not detected_dir:
+                  detected_dir = os.environ.get('FTP_SERVER_DIR') or './mie/'
+                  if not detected_dir.endswith('/'):
+                      detected_dir += '/'
+                  print(f"⚠️ Laravel root not auto-detected; falling back to: {detected_dir}")
+
+              # Delete stale route, config, and view caches on the server directly
+              stale_files = [
+                  detected_dir + 'bootstrap/cache/routes-v7.php',
+                  detected_dir + 'bootstrap/cache/config.php',
+                  detected_dir + 'bootstrap/cache/events.php',
+                  detected_dir + '.ftp-deploy-sync-state.json',
+                  detected_dir + '.ftp-deploy-sync-state-v2.json',
+              ]
+              for sf in stale_files:
+                  try:
+                      ftp.delete(sf)
+                      print(f"🧹 Cleaned stale remote file: {sf}")
+                  except Exception:
+                      pass
+
+              # Clean compiled blade views
+              try:
+                  view_files = ftp.nlst(detected_dir + 'storage/framework/views')
+                  for vf in view_files:
+                      if vf.endswith('.php'):
+                          try:
+                              ftp.delete(vf)
+                              print(f"🧹 Cleaned compiled view: {vf}")
+                          except Exception:
+                              pass
+              except Exception:
+                  pass
+
+              ftp.quit()
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write(f"server_dir={detected_dir}\n")
+          except Exception as e:
+              print(f"Error during FTP inspection: {e}")
+              fallback = os.environ.get('FTP_SERVER_DIR') or './mie/'
+              if not fallback.endswith('/'):
+                  fallback += '/'
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write(f"server_dir={fallback}\n")
+          EOF
 
       - name: 📂 Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -28,8 +117,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR || '/mie/' }}
-          state-name: .ftp-deploy-sync-state-v2.json
+          server-dir: ${{ steps.detect-dir.outputs.server_dir }}
+          log-level: standard
           exclude: |
             **/.git*
             **/.git*/**
