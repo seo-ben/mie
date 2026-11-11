@@ -1,0 +1,50 @@
+name: yayra_caisse
+description: "Application mobile Yayra Caisse"
+publish_to: 'none'
+version: 2.3.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Networking & HTTP Client
+  dio: ^5.7.0
+
+  # Local Storage & Sessions
+  shared_preferences: ^2.3.2
+
+  # Design & Icons
+  google_fonts: ^6.2.1
+  lucide_icons_flutter: ^3.1.2
+  intl: any
+
+  # Receipts & Printing
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  share_plus: ^10.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/yayra.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: "#ff0000"
+  adaptive_icon_foreground: "assets/yayra.png"

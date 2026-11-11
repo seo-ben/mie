@@ -1,6 +1,6 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Gestion des Caisses - MIE YAYRA')
+@section('title', 'Gestion des Caisses - FSD YAYRA')
 
 @section('content')
 <div class="space-y-8">

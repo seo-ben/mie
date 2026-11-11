@@ -305,7 +305,7 @@
                             </h6>
                             <div class="mb-3">
                                 <span class="badge bg-primary-soft text-primary fs-5">
-                                    Cycle #{{ $tontine->activeCycle->cycle_number }}
+                                    Cycle {{ $tontine->activeCycle->cycle_number }}
                                 </span>
                             </div>
                             @php

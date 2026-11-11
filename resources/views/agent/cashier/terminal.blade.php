@@ -2,349 +2,283 @@
 
 @section('title', 'Terminal de Caisse')
 @section('page-title', 'Terminal de Caisse')
-@section('page-subtitle', $stats->is_audit ? 'Mode Audit' : 'Session en cours')
-
-@push('styles')
-<style>
-    .terminal-header {
-        background: linear-gradient(135deg, rgba(0, 209, 178, 0.08), rgba(0, 180, 216, 0.05));
-        border: 1px solid rgba(0, 209, 178, 0.15);
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 25px;
-    }
-
-    .terminal-stat {
-        text-align: center;
-        padding: 10px;
-    }
-
-    .terminal-stat .value {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: white;
-    }
-
-    .terminal-stat .label {
-        font-size: 0.75rem;
-        color: rgba(225, 232, 237, 0.5);
-        margin-top: 4px;
-    }
-
-    .terminal-stat.in .value { color: #10b981; }
-    .terminal-stat.out .value { color: #ef4444; }
-    .terminal-stat.balance .value { color: #00d1b2; }
-
-    .audit-form {
-        background: #1a2332;
-        border: 1px solid rgba(0, 209, 178, 0.1);
-        border-radius: 12px;
-        padding: 18px;
-        margin-bottom: 20px;
-    }
-
-    .audit-form label { color: rgba(225, 232, 237, 0.6); font-size: 0.8rem; }
-
-    .audit-form input[type="date"],
-    .audit-form select {
-        background: #0f1923;
-        border: 1px solid rgba(0, 209, 178, 0.2);
-        color: white;
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-size: 0.85rem;
-    }
-
-    .audit-form input[type="date"]:focus,
-    .audit-form select:focus {
-        border-color: #00d1b2;
-        box-shadow: 0 0 0 3px rgba(0, 209, 178, 0.1);
-        outline: none;
-    }
-
-    .tx-table {
-        background: #1a2332;
-        border: 1px solid rgba(0, 209, 178, 0.1);
-        border-radius: 16px;
-        overflow: hidden;
-    }
-
-    .tx-table .table-header {
-        padding: 18px 22px;
-        border-bottom: 1px solid rgba(0, 209, 178, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .tx-table .table-header h6 { color: white; font-weight: 600; margin: 0; }
-
-    .tx-table table { width: 100%; margin: 0; }
-
-    .tx-table table th {
-        color: #00d1b2 !important; /* Teal for high visibility */
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 12px 16px;
-        border-bottom: 2px solid rgba(0, 209, 178, 0.1);
-        background: rgba(0, 0, 0, 0.15) !important;
-    }
-
-    .tx-table table td {
-        padding: 11px 16px;
-        border-bottom: 1px solid rgba(0, 209, 178, 0.05);
-        color: #e2e8f0; /* Off-white for better visibility */
-        font-size: 0.83rem;
-        vertical-align: middle;
-        background: transparent !important;
-    }
-
-    .tx-table table tr:hover { background: rgba(0, 209, 178, 0.05) !important; }
-
-    .badge-type {
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 0.72rem;
-        font-weight: 600;
-    }
-
-    .badge-type.deposit { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-    .badge-type.withdrawal { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-    .badge-type.other { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-
-    .amount-in { color: #10b981; font-weight: 600; }
-    .amount-out { color: #ef4444; font-weight: 600; }
-
-    .btn-caissier {
-        background: linear-gradient(135deg, #00d1b2, #00b4d8);
-        color: white;
-        border: none;
-        padding: 8px 18px;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-
-    .btn-caissier:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(0, 209, 178, 0.3);
-        color: white;
-    }
-
-    .btn-outline-caissier {
-        background: transparent;
-        color: #00d1b2;
-        border: 1px solid rgba(0, 209, 178, 0.3);
-        padding: 8px 18px;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-
-    .btn-outline-caissier:hover {
-        background: rgba(0, 209, 178, 0.1);
-        color: #00d1b2;
-    }
-
-    .session-info-bar {
-        background: rgba(0, 209, 178, 0.08);
-        border: 1px solid rgba(0, 209, 178, 0.15);
-        border-radius: 10px;
-        padding: 12px 18px;
-        font-size: 0.83rem;
-        color: rgba(225, 232, 237, 0.7);
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .pagination .page-link {
-        background: #1a2332;
-        border-color: rgba(0, 209, 178, 0.15);
-        color: rgba(225, 232, 237, 0.7);
-    }
-
-    .pagination .page-link:hover {
-        background: rgba(0, 209, 178, 0.1);
-        color: #00d1b2;
-    }
-
-    .pagination .page-item.active .page-link {
-        background: #00d1b2;
-        border-color: #00d1b2;
-        color: white;
-    }
-</style>
-@endpush
+@section('page-subtitle', $stats->is_audit ? 'Mode Audit & Consultation d\'Historique' : 'Journal des Opérations de la Session Active')
 
 @section('content')
+<div class="space-y-4">
 
-<!-- Stats Header -->
-<div class="terminal-header">
-    <div class="row align-items-center">
-        <div class="col-md-3">
-            <div class="terminal-stat">
-                <div class="label">Solde d'Ouverture</div>
-                <div class="value">{{ number_format($stats->opening_balance, 0, ',', ' ') }}</div>
-                <div class="label">FCFA</div>
-            </div>
+    <!-- EN-TÊTE DE PAGE & ACTIONS RAPIDES -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1 fs-4">Terminal de Caisse</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 fs-8">
+                    <li class="breadcrumb-item"><a href="{{ route('caissier.dashboard') }}" class="text-decoration-none text-muted">Dashboard</a></li>
+                    <li class="breadcrumb-item active text-emerald-600 fw-semibold" aria-current="page">Terminal & Journal</li>
+                </ol>
+            </nav>
         </div>
-        <div class="col-md-3">
-            <div class="terminal-stat in">
-                <div class="label">Total Entrées</div>
-                <div class="value">+{{ number_format($stats->total_in, 0, ',', ' ') }}</div>
-                <div class="label">FCFA</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="terminal-stat out">
-                <div class="label">Total Sorties</div>
-                <div class="value">-{{ number_format($stats->total_out, 0, ',', ' ') }}</div>
-                <div class="label">FCFA</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="terminal-stat balance">
-                <div class="label">Solde Consolidé</div>
-                <div class="value">{{ number_format($stats->current_balance, 0, ',', ' ') }}</div>
-                <div class="label">FCFA</div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Audit Filter -->
-<div class="audit-form">
-    <form method="GET" action="{{ route('caissier.terminal') }}" class="row g-3 align-items-end">
-        <div class="col-md-3">
-            <label>Date début</label>
-            <input type="date" name="date_start" class="form-control" value="{{ request('date_start') }}">
-        </div>
-        <div class="col-md-3">
-            <label>Date fin</label>
-            <input type="date" name="date_end" class="form-control" value="{{ request('date_end') }}">
-        </div>
-        <div class="col-md-3">
-            <button type="submit" class="btn btn-caissier w-100">
-                <i class="fas fa-search me-1"></i> Auditer
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="{{ route('caissier.depot') }}" class="btn btn-success fw-bold px-3 py-2 rounded-3 fs-7 shadow-sm">
+                <i class="fas fa-plus me-1"></i> Nouveau Dépôt
+            </a>
+            <a href="{{ route('caissier.retrait') }}" class="btn btn-outline-danger fw-bold px-3 py-2 rounded-3 fs-7">
+                <i class="fas fa-minus me-1"></i> Nouveau Retrait
+            </a>
+            <button type="button" class="btn btn-outline-warning border fw-bold text-dark px-3 py-2 rounded-3 fs-7" data-bs-toggle="modal" data-bs-target="#vaultTransferModal">
+                <i class="fas fa-building-columns me-1"></i> Coffre
             </button>
         </div>
-        <div class="col-md-3">
-            <a href="{{ route('caissier.terminal') }}" class="btn btn-outline-caissier w-100">
-                <i class="fas fa-redo me-1"></i> Session Active
-            </a>
+    </div>
+
+    <!-- 4 KPIS PASTELS DU TERMINAL DE CAISSE -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-pastel-card kpi-pastel-teal">
+                <div class="kpi-header">
+                    <div class="kpi-icon-wrapper">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <span class="kpi-trend text-teal-700"><i class="fas fa-play"></i> Ouverture</span>
+                </div>
+                <div class="kpi-body">
+                    <div class="kpi-value text-teal-700 fs-4">{{ number_format($stats->opening_balance, 0, ',', ' ') }} <small class="fs-8">F</small></div>
+                    <div class="kpi-label">Provision Initiale Caisse</div>
+                </div>
+            </div>
         </div>
-    </form>
-</div>
 
-@if($stats->is_audit)
-<div class="session-info-bar">
-    <span><i class="fas fa-info-circle me-1" style="color:#f59e0b;"></i> Mode Audit : données filtrées par intervalle de dates</span>
-</div>
-@else
-<div class="session-info-bar">
-    <span><i class="fas fa-shield-alt me-1" style="color:#00d1b2;"></i> Session #{{ $activeSession->id }} – Ouverte le {{ $activeSession->opened_at->format('d/m/Y H:i') }}</span>
-    <a href="{{ route('caissier.session.close.form') }}" class="btn btn-sm" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); font-size: 0.8rem;">
-        <i class="fas fa-lock me-1"></i> Préparer la clôture
-    </a>
-</div>
-@endif
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-pastel-card kpi-pastel-green">
+                <div class="kpi-header">
+                    <div class="kpi-icon-wrapper">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <span class="kpi-trend text-success"><i class="fas fa-plus"></i> Inflow</span>
+                </div>
+                <div class="kpi-body">
+                    <div class="kpi-value text-emerald-700 fs-4">+{{ number_format($stats->total_in, 0, ',', ' ') }} <small class="fs-8">F</small></div>
+                    <div class="kpi-label">Total Entrées Guichet</div>
+                </div>
+            </div>
+        </div>
 
-<!-- Transactions Table -->
-<div class="tx-table">
-    <div class="table-header">
-        <h6><i class="fas fa-list me-2"></i>Journal des Opérations ({{ $recentTransactions->total() }})</h6>
-        <div class="d-flex gap-2">
-            <a href="{{ route('caissier.depot') }}" class="btn btn-sm btn-caissier">
-                <i class="fas fa-plus me-1"></i> Nouveau dépôt
-            </a>
-            <a href="{{ route('caissier.retrait') }}" class="btn btn-sm btn-outline-caissier">
-                <i class="fas fa-minus me-1"></i> Nouveau retrait
-            </a>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-pastel-card kpi-pastel-rose">
+                <div class="kpi-header">
+                    <div class="kpi-icon-wrapper">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <span class="kpi-trend text-danger"><i class="fas fa-minus"></i> Outflow</span>
+                </div>
+                <div class="kpi-body">
+                    <div class="kpi-value text-rose-700 fs-4">-{{ number_format($stats->total_out, 0, ',', ' ') }} <small class="fs-8">F</small></div>
+                    <div class="kpi-label">Total Sorties Guichet</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="kpi-pastel-card kpi-pastel-blue">
+                <div class="kpi-header">
+                    <div class="kpi-icon-wrapper">
+                        <i class="fas fa-cash-register"></i>
+                    </div>
+                    <span class="kpi-trend text-primary"><i class="fas fa-vault"></i> En Caisse</span>
+                </div>
+                <div class="kpi-body">
+                    <div class="kpi-value text-primary fs-4">{{ number_format($stats->current_balance, 0, ',', ' ') }} <small class="fs-8">F</small></div>
+                    <div class="kpi-label">Solde Consolidé Théorique</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Référence</th>
-                    <th>Client</th>
-                    <th>Compte</th>
-                    <th>Type</th>
-                    <th>Montant</th>
-                    <th>Méthode</th>
-                    <th>Date/Heure</th>
-                    <th class="text-center">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($recentTransactions as $tx)
+    <!-- BARRE D'AUDIT & FILTRAGE -->
+    <div class="white-card p-4 mb-4">
+        <form method="GET" action="{{ route('caissier.terminal') }}" class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-bold text-dark fs-8 mb-1">Date Début</label>
+                <input type="date" name="date_start" class="form-control rounded-3 border" style="padding: 9px 12px; font-size: 0.88rem;" value="{{ request('date_start') }}">
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-bold text-dark fs-8 mb-1">Date Fin</label>
+                <input type="date" name="date_end" class="form-control rounded-3 border" style="padding: 9px 12px; font-size: 0.88rem;" value="{{ request('date_end') }}">
+            </div>
+
+            <div class="col-12 col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-success fw-bold flex-grow-1 py-2 rounded-3 fs-7">
+                    <i class="fas fa-search me-1"></i> Auditer la Période
+                </button>
+                <a href="{{ route('caissier.terminal') }}" class="btn btn-light border fw-bold py-2 px-3 rounded-3 fs-7 text-dark">
+                    Session Actuelle
+                </a>
+            </div>
+        </form>
+    </div>
+
+    @if(!$stats->is_audit && isset($activeSession))
+        <div class="p-3 bg-white border rounded-3 d-flex align-items-center justify-content-between mb-4 shadow-sm">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill fs-8 fw-bold">
+                    <span class="status-dot d-inline-block me-1" style="width: 7px; height: 7px; border-radius: 50%; background: #10b981;"></span> Session Active
+                </span>
+                <span class="text-dark fs-8">Ouverte le {{ \Carbon\Carbon::parse($activeSession->opened_at)->format('d/m/Y à H:i') }}</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-warning text-dark border-warning-subtle fw-bold rounded-2 px-3" data-bs-toggle="modal" data-bs-target="#vaultTransferModal">
+                    <i class="fas fa-building-columns me-1"></i> Transfert Coffre
+                </button>
+                <a href="{{ route('caissier.session.close.form') }}" class="btn btn-sm btn-outline-danger fw-bold rounded-2 px-3">
+                    <i class="fas fa-lock me-1"></i> Clôturer Caisse
+                </a>
+            </div>
+        </div>
+    @endif
+
+    <!-- TABLEAU DU JOURNAL DES ÉCRITURES DE CAISSE -->
+    <div class="white-card p-0 overflow-hidden">
+        <div class="p-3 border-bottom bg-white d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-receipt text-primary"></i>
+                    Journal des Écritures de Caisse ({{ $recentTransactions->total() }})
+                </h6>
+                <small class="text-muted fs-8">Flux chronologiques et écritures de guichet</small>
+            </div>
+
+            <!-- Filtres par statut d'écriture (Actives vs Extournées) -->
+            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                <a href="{{ request()->fullUrlWithQuery(['status' => 'all', 'page' => 1]) }}"
+                   class="btn btn-sm rounded-pill px-3 py-1 fs-8 fw-bold {{ ($statusFilter ?? 'all') === 'all' ? 'btn-primary shadow-sm text-white' : 'btn-light border text-dark' }}">
+                    Toutes ({{ $countAll ?? $recentTransactions->total() }})
+                </a>
+                <a href="{{ request()->fullUrlWithQuery(['status' => 'completed', 'page' => 1]) }}"
+                   class="btn btn-sm rounded-pill px-3 py-1 fs-8 fw-bold {{ ($statusFilter ?? 'all') === 'completed' ? 'btn-success shadow-sm text-white' : 'btn-light border text-dark' }}">
+                    <i class="fas fa-check-circle me-1"></i> Validées ({{ $countCompleted ?? 0 }})
+                </a>
+                <a href="{{ request()->fullUrlWithQuery(['status' => 'cancelled', 'page' => 1]) }}"
+                   class="btn btn-sm rounded-pill px-3 py-1 fs-8 fw-bold {{ ($statusFilter ?? 'all') === 'cancelled' ? 'btn-danger shadow-sm text-white' : 'btn-light border text-danger' }}">
+                    <i class="fas fa-ban me-1"></i> Extournées ({{ $countCancelled ?? 0 }})
+                </a>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table-corporate mb-0">
+                <thead>
                     <tr>
-                        <td style="font-family: 'Courier New', monospace; font-size: 0.78rem;">{{ $tx->transaction_reference }}</td>
-                        <td>{{ $tx->account?->client?->full_name ?? 'N/A' }}</td>
-                        <td style="font-size: 0.8rem;">{{ $tx->account?->account_number ?? '-' }}</td>
-                        <td>
-                            @php
-                                $isIn = in_array($tx->transaction_type, ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment']);
-                                $accType = $tx->account?->account_type;
-                            @endphp
-                            <span class="badge-type {{ $isIn ? 'deposit' : 'withdrawal' }}">
-                                @if($tx->transaction_type === 'loan_disbursement') DÉCAISSEMENT PRÊT
-                                @elseif($tx->transaction_type === 'loan_repayment') REMBOURSEMENT PRÊT
-                                @elseif($accType === 'tontine') TONTINE ({{ $isIn ? 'DÉPÔT' : 'RETRAIT' }})
-                                @elseif($accType === 'savings') ÉPARGNE ({{ $isIn ? 'DÉPÔT' : 'RETRAIT' }})
-                                @else {{ ucfirst(str_replace('_', ' ', $tx->transaction_type)) }} @endif
-                            </span>
-                        </td>
-                        <td>
-                            @if($isIn)
-                                <span class="amount-in">+{{ number_format($tx->amount, 0, ',', ' ') }}</span>
-                            @else
-                                <span class="amount-out">-{{ number_format($tx->amount, 0, ',', ' ') }}</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($tx->payment_method === 'cash')
-                                <i class="fas fa-money-bill-wave text-success me-1"></i> Espèces
-                            @elseif($tx->payment_method === 'mobile_money')
-                                <i class="fas fa-mobile-alt text-info me-1"></i> Mobile Money
-                            @else
-                                <i class="fas fa-university text-primary me-1"></i> Virement
-                            @endif
-                        </td>
-                        <td style="color: rgba(225,232,237,0.5); font-size: 0.8rem;">
-                            {{ $tx->transaction_date ? \Carbon\Carbon::parse($tx->transaction_date)->format('d/m/Y H:i') : '-' }}
-                        </td>
-                        <td class="text-center">
-                            <a href="{{ route('caissier.receipt.print', $tx->id) }}" target="_blank" class="btn btn-sm" style="background: rgba(0, 209, 178, 0.1); color: #00d1b2; border: 1px solid rgba(0, 209, 178, 0.2);" title="Réimprimer le reçu">
-                                <i class="fas fa-print"></i>
-                            </a>
-                        </td>
+                        <th>Réf / Heure</th>
+                        <th>Client & Compte</th>
+                        <th>Nature Opération</th>
+                        <th>Canal</th>
+                        <th class="text-end">Montant</th>
+                        <th class="text-end">Actions</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="text-center" style="padding: 50px; color: rgba(225,232,237,0.3);">
-                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                            <p>Aucune transaction pour cette période</p>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse($recentTransactions as $tx)
+                        @php
+                            $isCancelled = ($tx->status === 'cancelled');
+                            $isIn = in_array($tx->transaction_type, ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment', 'transfer_in']);
+                            $accType = $tx->account?->account_type;
+                        @endphp
+                        <tr class="{{ $isCancelled ? 'table-danger-subtle bg-danger-subtle/10' : '' }}">
+                            <td>
+                                <div class="fw-bold text-dark fs-8">{{ $tx->transaction_date ? \Carbon\Carbon::parse($tx->transaction_date)->format('H:i:s') : $tx->created_at->format('H:i:s') }}</div>
+                                <span class="badge {{ $isCancelled ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-muted border' }} font-monospace fs-8">{{ $tx->transaction_reference }}</span>
+                                @if($isCancelled)
+                                    <small class="text-danger fs-9 d-block fw-semibold mt-0.5" title="{{ $tx->description }}">
+                                        <i class="fas fa-ban me-1"></i> Extournée (Annulée)
+                                    </small>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    @php
+                                        $clientObj = $tx->client;
+                                        $refNumber = $tx->account?->account_number ?? $tx->loan?->loan_number ?? '-';
+                                        $initial = strtoupper(substr($clientObj->first_name ?? ($tx->account ? 'C' : 'P'), 0, 1));
+                                    @endphp
+                                    <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-dark" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                                        {{ $initial }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark fs-7">{{ $clientObj->full_name ?? 'Opération de Caisse' }}</div>
+                                        <small class="text-muted fs-8 font-monospace">{{ $refNumber }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                    <span class="badge {{ $isCancelled ? 'bg-secondary-subtle text-secondary border' : ($isIn ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle') }} fs-8 fw-bold">
+                                        @if($tx->transaction_type === 'loan_disbursement') DÉCAISSEMENT PRÊT
+                                        @elseif($tx->transaction_type === 'loan_repayment') REMBOURSEMENT PRÊT
+                                        @elseif($accType === 'tontine') TONTINE ({{ $isIn ? 'DÉPÔT' : 'RETRAIT' }})
+                                        @elseif($accType === 'savings') ÉPARGNE ({{ $isIn ? 'DÉPÔT' : 'RETRAIT' }})
+                                        @else {{ ucfirst(str_replace('_', ' ', $tx->transaction_type)) }} @endif
+                                    </span>
+                                    @if($isCancelled)
+                                        <span class="badge bg-danger text-white rounded-pill px-2 py-0.5 fs-9 fw-bold">
+                                            <i class="fas fa-rotate-left me-1"></i> Extourné
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-muted border text-capitalize fs-8">
+                                    {{ str_replace('_', ' ', $tx->payment_method) }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @if($isCancelled)
+                                    <del class="text-muted fw-bold fs-7">{{ number_format($tx->amount, 0, ',', ' ') }} FCFA</del>
+                                    <small class="text-danger d-block fs-9 font-monospace">Annulé</small>
+                                @else
+                                    <span class="fw-bold fs-7 {{ $isIn ? 'text-success' : 'text-danger' }}">
+                                        {{ $isIn ? '+' : '-' }} {{ number_format($tx->amount, 0, ',', ' ') }} FCFA
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    @if(!$isCancelled)
+                                        <a href="{{ route('caissier.receipt.print', $tx->id) }}" target="_blank" class="btn btn-light border text-dark" title="Imprimer le Reçu">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-light border text-danger" title="Extourner avec PIN Superviseur" onclick="triggerReversal('{{ $tx->transaction_reference }}', '{{ number_format($tx->amount, 0, ',', ' ') }}')">
+                                            <i class="fas fa-rotate-left"></i>
+                                        </button>
+                                    @else
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fs-8" title="{{ $tx->description }}">
+                                            <i class="fas fa-ban me-1"></i> Extourné
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <div class="py-4">
+                                    <i class="fas fa-receipt fa-3x mb-3 text-secondary opacity-50"></i>
+                                    <h6 class="fw-bold text-dark mb-1">Aucune transaction enregistrée pour cette période</h6>
+                                    <p class="fs-8 text-muted mb-0">Les flux enregistrés au guichet apparaîtront automatiquement en temps réel.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if($recentTransactions->hasPages())
+            <div class="p-3 border-top bg-light d-flex justify-content-end">
+                {{ $recentTransactions->appends(request()->query())->links() }}
+            </div>
+        @endif
     </div>
 </div>
-
-<!-- Pagination -->
-@if($recentTransactions->hasPages())
-<div class="d-flex justify-content-center mt-4">
-    {{ $recentTransactions->appends(request()->query())->links() }}
-</div>
-@endif
-
 @endsection

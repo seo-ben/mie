@@ -132,7 +132,7 @@
                         <td>
                             @if($activeCycle)
                                 <div class="flex flex-col">
-                                    <span class="text-[10px] font-bold text-emerald-600 uppercase">Cycle #{{ $activeCycle->cycle_number }} Actif</span>
+                                    <span class="text-[10px] font-bold text-emerald-600 uppercase">Cycle {{ $activeCycle->cycle_number }} Actif</span>
                                     <span class="text-[9px] text-slate-400 font-medium">{{ $activeCycle->start_date->format('d M') }} → {{ $activeCycle->end_date->format('d M') }}</span>
                                 </div>
                             @else

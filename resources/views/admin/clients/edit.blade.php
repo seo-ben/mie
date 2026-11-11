@@ -196,7 +196,19 @@
                     </label>
                 </div>
 
-
+                <div class="p-4 bg-white rounded-xl border border-slate-200">
+                    <label class="text-[10px] font-black text-slate-700 uppercase tracking-widest block mb-1">
+                        <i class="fas fa-layer-group text-purple-600 mr-1"></i> Plafond Comptes Tontine Autorisés *
+                    </label>
+                    <div class="flex items-center gap-3 mt-2">
+                        <input type="number" name="max_tontine_accounts" min="1" max="10" 
+                               value="{{ old('max_tontine_accounts', $client->max_tontine_accounts ?? 1) }}" 
+                               class="bank-input font-black text-center text-purple-700 text-sm w-24">
+                        <p class="text-[10px] text-slate-500 leading-tight">
+                            <strong>Défaut : 1 compte</strong>. Seul l'administrateur peut accorder 2, 3 ou plus pour ce client.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 

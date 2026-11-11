@@ -1,116 +1,114 @@
 @extends('layouts.cashier')
 
 @section('title', 'Journal d\'Activité Caissier')
-@section('page-title', 'Mes Opérations')
-@section('page-subtitle', 'Historique personnel des actions effectuées')
-
-@push('styles')
-<style>
-    .log-container {
-        background: #1a2332;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        overflow: hidden;
-    }
-
-    .log-table {
-        margin-bottom: 0;
-    }
-
-    .log-table td {
-        padding: 18px 20px;
-        color: #e2e8f0; /* Off-white for better visibility */
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        vertical-align: middle;
-        font-size: 0.9rem;
-        background: transparent;
-    }
-
-    .log-table th {
-        background: rgba(0, 0, 0, 0.2) !important;
-        color: #00d1b2 !important; /* Teal for header visibility */
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        padding: 15px 20px;
-        border: none;
-    }
-
-    .action-badge {
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-    .action-deposit { background: rgba(0, 209, 178, 0.1); color: #00d1b2; }
-    .action-withdrawal { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-    .action-loan_disbursement { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-    .action-session_open { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-    .action-session_close { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
-
-    .ip-address {
-        font-family: 'Courier New', monospace;
-        color: rgba(225, 232, 237, 0.3);
-        font-size: 0.8rem;
-    }
-</style>
-@endpush
+@section('page-title', 'Journal des Flux')
+@section('page-subtitle', 'Historique d\'audit des écritures et transactions enregistrées au guichet')
 
 @section('content')
+<div class="space-y-4">
 
-<div class="log-container">
-    <div class="table-responsive">
-        <table class="table log-table">
-            <thead>
-                <tr>
-                    <th>Date & Heure</th>
-                    <th>Action</th>
-                    <th>Description</th>
-                    <th>Identité Client / Entité</th>
-                    <th>Adresse IP</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($logs as $log)
-                <tr>
-                    <td>
-                        <span class="d-block text-white">{{ $log->created_at->format('d/m/Y') }}</span>
-                        <span class="text-white-50 small">{{ $log->created_at->format('H:i:s') }}</span>
-                    </td>
-                    <td>
-                        <span class="action-badge action-{{ $log->action }}">
-                            {{ strtoupper(str_replace('_', ' ', $log->action)) }}
-                        </span>
-                    </td>
-                    <td class="text-white-50">
-                        {{ $log->description }}
-                    </td>
-                    <td>
-                        <small class="text-white-50 d-block">{{ str_replace('App\\Models\\', '', $log->entity_type) }}</small>
-                        <span class="fw-bold">ID: {{ $log->entity_id }}</span>
-                    </td>
-                    <td>
-                        <span class="ip-address">{{ $log->ip_address }}</span>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="5" class="text-center py-5 text-white-50">
-                        <i class="fas fa-history fa-3x mb-3 opacity-25"></i>
-                        <p>Aucune action enregistrée pour le moment.</p>
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <!-- EN-TÊTE DE PAGE & ACTIONS -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1 fs-4">Journal d'Audit & Flux de Caisse</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 fs-8">
+                    <li class="breadcrumb-item"><a href="{{ route('caissier.dashboard') }}" class="text-decoration-none text-muted">Dashboard</a></li>
+                    <li class="breadcrumb-item active text-emerald-600 fw-semibold" aria-current="page">Journal des Écritures</li>
+                </ol>
+            </nav>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('caissier.terminal') }}" class="btn btn-sm btn-light border fw-bold rounded-3 px-3 py-2 text-dark">
+                <i class="fas fa-cash-register me-1 text-primary"></i> Terminal de Caisse
+            </a>
+            <a href="{{ route('caissier.reports') }}" class="btn btn-sm btn-light border fw-bold rounded-3 px-3 py-2 text-dark">
+                <i class="fas fa-chart-pie me-1 text-emerald-600"></i> Rapports Financiers
+            </a>
+        </div>
+    </div>
+
+    <!-- TABLEAU D'AUDIT CORPORATIF BLANC -->
+    <div class="white-card p-0 overflow-hidden">
+        <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="fas fa-clock-rotate-left text-primary"></i>
+                Historique des Actions et Mouvements
+            </h6>
+            <span class="badge bg-light text-dark border px-2 py-1 rounded-2 fs-8 font-monospace">
+                Audit Trail Sécurisé
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table-corporate mb-0">
+                <thead>
+                    <tr>
+                        <th>Date & Heure</th>
+                        <th>Type d'Action</th>
+                        <th>Description de l'Événement</th>
+                        <th>Entité Concernée</th>
+                        <th>Adresse IP / Empreinte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($logs as $log)
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark fs-8">{{ $log->created_at->format('d/m/Y') }}</div>
+                            <small class="text-muted fs-8 font-monospace">{{ $log->created_at->format('H:i:s') }}</small>
+                        </td>
+                        <td>
+                            @php
+                                $actionName = strtolower($log->action);
+                                $badgeClass = 'bg-secondary-subtle text-secondary';
+                                if (str_contains($actionName, 'deposit') || str_contains($actionName, 'supply') || str_contains($actionName, 'open')) {
+                                    $badgeClass = 'bg-success-subtle text-success border border-success-subtle';
+                                } elseif (str_contains($actionName, 'withdraw') || str_contains($actionName, 'discharge') || str_contains($actionName, 'reversal')) {
+                                    $badgeClass = 'bg-danger-subtle text-danger border border-danger-subtle';
+                                } elseif (str_contains($actionName, 'transfer') || str_contains($actionName, 'loan')) {
+                                    $badgeClass = 'bg-primary-subtle text-primary border border-primary-subtle';
+                                } elseif (str_contains($actionName, 'close')) {
+                                    $badgeClass = 'bg-warning-subtle text-warning border border-warning-subtle';
+                                }
+                            @endphp
+                            <span class="badge {{ $badgeClass }} px-2 py-1 rounded-pill fs-8 fw-bold">
+                                {{ strtoupper(str_replace('_', ' ', $log->action)) }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="text-dark fs-8">{{ $log->description }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border px-2 py-1 rounded-2 fs-8">
+                                {{ str_replace('App\\Models\\', '', $log->entity_type) }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted font-monospace fs-8">{{ $log->ip_address ?? '127.0.0.1' }}</span>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <div class="py-4">
+                                <i class="fas fa-clock-rotate-left fa-3x mb-3 text-secondary opacity-50"></i>
+                                <h6 class="fw-bold text-dark mb-1">Aucune action enregistrée pour le moment</h6>
+                                <p class="fs-8 text-muted mb-0">Toutes les opérations de caisse et événements guichet seront consignés ici.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if(method_exists($logs, 'hasPages') && $logs->hasPages())
+            <div class="p-3 border-top bg-light d-flex justify-content-end">
+                {{ $logs->links() }}
+            </div>
+        @endif
     </div>
 </div>
-
-<div class="mt-4 d-flex justify-content-center">
-    {{ $logs->links() }}
-</div>
-
 @endsection

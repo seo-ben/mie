@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>RAPPORT DE CAISSE - SESSION #{{ $session->id }}</title>
+    <title>RAPPORT DE CAISSE - SESSION {{ $session->id }}</title>
     <style>
         body { font-family: 'Courier New', Courier, monospace; color: #1a1a1a; margin: 40px; font-size: 13px; line-height: 1.4; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 15px; }
@@ -38,10 +38,10 @@
     </div>
 
     <div class="header">
-        <div class="institution-name">MIE YAYRA - MICROFINANCE</div>
+        <div class="institution-name">FSD YAYRA - MICROFINANCE</div>
         <div style="font-size: 10px; margin-bottom: 10px;">Agence : {{ $session->agency->name }} | Code : {{ $session->agency->code }}</div>
         <div class="report-title">RAPPORT JOURNALIER DE CAISSE (SOULIGNEMENT)</div>
-        <div>Session #{{ $session->id }} | Date : {{ $session->opened_at->format('d/m/Y') }}</div>
+        <div>Session {{ $session->id }} | Date : {{ $session->opened_at->format('d/m/Y') }}</div>
     </div>
 
     <div class="meta-info">

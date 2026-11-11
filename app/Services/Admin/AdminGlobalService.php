@@ -169,7 +169,7 @@ class AdminGlobalService
                 'balance_before' => $account->balance,
                 'balance_after' => $account->balance - $transaction->amount,
                 'payment_method' => 'system',
-                'description' => "Annulation transaction #{$transaction->id} - Raison: {$reason}",
+                'description' => "Annulation transaction {$transaction->id} - Raison: {$reason}",
                 'status' => 'completed',
                 'processed_by' => $adminId,
                 'transaction_date' => now()

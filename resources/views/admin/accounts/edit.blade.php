@@ -18,16 +18,32 @@
         </div>
     </div>
 
-    <!-- Alerte Critique -->
-    <div class="bank-card !bg-amber-50 !border-amber-200 p-6 flex items-start gap-4 shadow-lg shadow-amber-500/5">
-        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
-            <i class="fas fa-shield-alert text-lg"></i>
+    <!-- Alerte Institutionnelle & Règle des 31 Jours -->
+    @if(!empty($isTontineCycleLocked))
+    <div class="bank-card !bg-amber-50 !border-amber-300 p-6 flex items-start gap-4 shadow-lg shadow-amber-500/10">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-lock text-lg"></i>
         </div>
         <div>
-            <h3 class="text-xs font-black text-amber-900 uppercase tracking-widest mb-1">Avis de Supervision</h3>
-            <p class="text-[11px] font-bold text-amber-800 leading-relaxed uppercase tracking-tight">La modification des paramètres structurels est strictement restreinte aux comptes sous protocole de suspension.</p>
+            <h3 class="text-xs font-black text-amber-900 uppercase tracking-widest mb-1">Règle des 31 Jours — Mise Verrouillée</h3>
+            <p class="text-[11px] font-bold text-amber-900 leading-relaxed uppercase tracking-tight">
+                {{ $tontineCycleLockReason }}
+            </p>
         </div>
     </div>
+    @else
+    <div class="bank-card !bg-blue-50 !border-blue-200 p-6 flex items-start gap-4 shadow-lg shadow-blue-500/5">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-circle-info text-lg"></i>
+        </div>
+        <div>
+            <h3 class="text-xs font-black text-blue-900 uppercase tracking-widest mb-1">Protocole Institutionnel de Mise à Jour</h3>
+            <p class="text-[11px] font-bold text-blue-800 leading-relaxed uppercase tracking-tight">
+                Pour un compte tontine, l'ajustement de la mise quotidienne (ex: passage de 200 F à 1 000 F) est autorisé entre deux cycles ou avant la première cotisation.
+            </p>
+        </div>
+    </div>
+    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Signalétique de l'Entité -->
@@ -160,11 +176,27 @@
                     <div class="p-8 space-y-8">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Volume de Cotisation (XOF) *</label>
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center justify-between">
+                                    <span>Mise Unitaire de Cotisation (XOF) *</span>
+                                    @if(!empty($isTontineCycleLocked))
+                                        <span class="text-[9px] text-amber-600 font-bold"><i class="fas fa-lock mr-1"></i> Verrouillé (Cycle en cours)</span>
+                                    @else
+                                        <span class="text-[9px] text-emerald-600 font-bold"><i class="fas fa-unlock mr-1"></i> Modifiable</span>
+                                    @endif
+                                </label>
                                 <div class="relative">
-                                    <input type="number" name="tontine_amount" id="tontine_amount" value="{{ old('tontine_amount', $account->tontineAccount->tontine_amount) }}" min="200" class="bank-input font-black text-purple-600 text-lg @error('tontine_amount') border-rose-500 @enderror">
+                                    <input type="number" name="tontine_amount" id="tontine_amount" 
+                                           value="{{ old('tontine_amount', $account->tontineAccount->tontine_amount) }}" 
+                                           min="50" step="50"
+                                           {{ !empty($isTontineCycleLocked) ? 'readonly' : '' }}
+                                           class="bank-input font-black text-purple-600 text-lg {{ !empty($isTontineCycleLocked) ? 'bg-slate-100 cursor-not-allowed opacity-80' : '' }} @error('tontine_amount') border-rose-500 @enderror">
                                     <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">XOF</span>
                                 </div>
+                                @if(!empty($isTontineCycleLocked))
+                                    <p class="text-[9px] font-bold text-amber-700 uppercase mt-1">
+                                        <i class="fas fa-info-circle mr-1"></i> Le client doit finir ses 31 jours avant de passer à une autre mise.
+                                    </p>
+                                @endif
                                 @error('tontine_amount') <p class="text-[9px] font-bold text-rose-500 uppercase mt-1">{{ $message }}</p> @enderror
                             </div>
 

@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
                 'region' => 'Maritime',
                 'phone' => '+228 90 00 00 01',
                 'cash_limit' => 50000000.00,
-                'vault_balance' => 0.00,
+                'vault_balance' => 50000000.00,
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
                 'region' => 'Maritime',
                 'phone' => '+228 90 00 00 02',
                 'cash_limit' => 20000000.00,
-                'vault_balance' => 0.00,
+                'vault_balance' => 20000000.00,
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -265,6 +265,162 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->command->info('✅ Paramètres système initialisés avec succès.');
+
+        // ---------------------------------------------------------------------
+        // 4. SEEDERS ASSOCIÉS (Frais, Taux, Utilisateur Caissier)
+        // ---------------------------------------------------------------------
+        $this->call([
+            BankingFeesSeeder::class,
+            LoanInterestRatesSeeder::class,
+            CashierUserSeeder::class,
+        ]);
+
+        // ---------------------------------------------------------------------
+        // 5. CRÉATION D'ADHÉRENTS (CLIENTS) ET COMPTES TESTS SI ABSENTS
+        // ---------------------------------------------------------------------
+        if (DB::table('clients')->count() === 0) {
+            $this->command->info('👤 Initialisation des clients de test avec comptes actifs...');
+
+            $adminUser = DB::table('users')->where('email', 'Mieadmin360@gmail.com')->first();
+            $adminId = $adminUser ? $adminUser->id : 1;
+
+            $sampleClients = [
+                [
+                    'client_number' => 'CLT-AGO-001',
+                    'first_name' => 'Koffi',
+                    'last_name' => 'MENSAH',
+                    'phone' => '+228 90 11 22 33',
+                    'email' => 'koffi.mensah@gmail.com',
+                    'profession' => 'Commerçant',
+                    'gender' => 'M',
+                    'city' => 'Lomé',
+                    'savings_balance' => 25000,
+                    'tontine_amount' => 1000,
+                ],
+                [
+                    'client_number' => 'CLT-AGO-002',
+                    'first_name' => 'Afi',
+                    'last_name' => 'KOUDOSSOU',
+                    'phone' => '+228 91 22 33 44',
+                    'email' => 'afi.koudossou@gmail.com',
+                    'profession' => 'Couturière',
+                    'gender' => 'F',
+                    'city' => 'Lomé',
+                    'savings_balance' => 15000,
+                    'tontine_amount' => 500,
+                ],
+                [
+                    'client_number' => 'CLT-AGO-003',
+                    'first_name' => 'Yao',
+                    'last_name' => 'ADOTEVI',
+                    'phone' => '+228 92 33 44 55',
+                    'email' => 'yao.adotevi@gmail.com',
+                    'profession' => 'Chauffeur',
+                    'gender' => 'M',
+                    'city' => 'Lomé',
+                    'savings_balance' => 50000,
+                    'tontine_amount' => 2000,
+                ],
+            ];
+
+            foreach ($sampleClients as $c) {
+                $clientId = DB::table('clients')->insertGetId([
+                    'client_number' => $c['client_number'],
+                    'first_name' => $c['first_name'],
+                    'last_name' => $c['last_name'],
+                    'phone' => $c['phone'],
+                    'email' => $c['email'],
+                    'profession' => $c['profession'],
+                    'gender' => $c['gender'],
+                    'city' => $c['city'],
+                    'password' => Hash::make('password'),
+                    'is_active' => true,
+                    'kyc_status' => 'approved',
+                    'kyc_approved_at' => now(),
+                    'kyc_approved_by' => $adminId,
+                    'registration_channel' => 'agent_assisted',
+                    'registration_type' => 'agency',
+                    'registration_status' => 'approved',
+                    'agency_id' => 1,
+                    'registered_by' => $adminId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // 1. Compte Épargne
+                $savingsAccountId = DB::table('accounts')->insertGetId([
+                    'client_id' => $clientId,
+                    'account_number' => 'SAV-' . rand(100000, 999999),
+                    'account_type' => 'savings',
+                    'status' => 'active',
+                    'balance' => $c['savings_balance'],
+                    'activation_fee' => 7000.00,
+                    'activation_fee_paid' => true,
+                    'activated_at' => now(),
+                    'activated_by' => $adminId,
+                    'created_by' => $adminId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('savings_accounts')->insert([
+                    'account_id' => $savingsAccountId,
+                    'interest_rate' => 2.0,
+                    'minimum_balance' => 1000.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // 2. Compte Tontine
+                $tontineAccountId = DB::table('accounts')->insertGetId([
+                    'client_id' => $clientId,
+                    'account_number' => 'TNT-' . rand(100000, 999999),
+                    'account_type' => 'tontine',
+                    'status' => 'active',
+                    'balance' => 0.00,
+                    'activation_fee' => 1000.00,
+                    'activation_fee_paid' => true,
+                    'activated_at' => now(),
+                    'activated_by' => $adminId,
+                    'created_by' => $adminId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $totalExpected = $c['tontine_amount'] * 31;
+                $tontineSubId = DB::table('tontine_accounts')->insertGetId([
+                    'account_id' => $tontineAccountId,
+                    'tontine_amount' => $c['tontine_amount'],
+                    'cycle_duration_months' => 1,
+                    'payment_frequency' => 'daily',
+                    'expected_monthly_payment' => $totalExpected,
+                    'total_expected' => $totalExpected,
+                    'total_paid' => 0.00,
+                    'payments_made' => 0,
+                    'current_cycle' => 1,
+                    'cycle_start_date' => now()->toDateString(),
+                    'cycle_end_date' => now()->addDays(31)->toDateString(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('tontine_cycles')->insert([
+                    'tontine_account_id' => $tontineSubId,
+                    'cycle_number' => 1,
+                    'start_date' => now()->toDateString(),
+                    'end_date' => now()->addDays(31)->toDateString(),
+                    'target_amount' => $totalExpected,
+                    'collected_amount' => 0.00,
+                    'payout_amount' => 0.00,
+                    'status' => 'active',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $this->command->info('✅ 3 Clients de test avec comptes Épargne et Tontine configurés avec succès.');
+        }
+
         $this->command->info('🎉 [YAYRA SEEDER TERMINÉ] Plateforme prête !');
     }
 }

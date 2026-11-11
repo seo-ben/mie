@@ -52,16 +52,18 @@ class Client extends Authenticatable
         'credit_score',
         'validated_at',
         'is_leader_or_elected',
+        'max_tontine_accounts',
     ];
 
     protected $casts = [
-        'date_of_birth'      => 'date',
-        'id_expiry_date'     => 'date',
-        'monthly_income'     => 'decimal:2',
-        'credit_score'       => 'decimal:2',
-        'kyc_approved_at'    => 'datetime',
-        'validated_at'       => 'datetime',
-        'is_active'          => 'boolean',
+        'date_of_birth'        => 'date',
+        'id_expiry_date'       => 'date',
+        'monthly_income'       => 'decimal:2',
+        'credit_score'         => 'decimal:2',
+        'kyc_approved_at'      => 'datetime',
+        'validated_at'         => 'datetime',
+        'is_active'            => 'boolean',
+        'max_tontine_accounts' => 'integer',
     ];
 
     /*
@@ -152,6 +154,72 @@ class Client extends Authenticatable
     public function getFullNameAttribute()
     {
         return "{$this->first_name} {$this->last_name}";
+    }
+
+    /**
+     * Normalisation automatique du numéro de téléphone (format local à 8 chiffres au Togo)
+     */
+    public static function normalizePhone(?string $phone): string
+    {
+        if (empty($phone)) {
+            return '';
+        }
+
+        $digits = preg_replace('/[^0-9]/', '', $phone);
+
+        if (str_starts_with($digits, '00228') && strlen($digits) > 8) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '228') && strlen($digits) > 8) {
+            $digits = substr($digits, 3);
+        }
+
+        return $digits;
+    }
+
+    public function setPhoneAttribute($value): void
+    {
+        $this->attributes['phone'] = self::normalizePhone($value);
+    }
+
+    /**
+     * Vérifie si le client peut ouvrir un nouveau compte Tontine
+     * (Par défaut max 1, sauf autorisation explicite de l'Admin)
+     */
+    public function canOpenTontineAccount(): bool
+    {
+        $maxAllowed = (int) ($this->max_tontine_accounts ?? 1);
+        $activeCount = $this->tontineAccounts()->where('status', 'active')->count();
+        return $activeCount < $maxAllowed;
+    }
+
+    /**
+     * Vérifie si le client a un cycle de tontine de 31 jours en cours de cotisation non achevé.
+     * Tant que le cycle de 31 jours n'est pas terminé, le client ne peut pas changer de mise ni passer à un autre carnet.
+     */
+    public function hasActiveUnfinishedTontineCycle(): bool
+    {
+        $accounts = $this->tontineAccounts()
+            ->where('status', 'active')
+            ->with(['tontineAccount.activeCycle'])
+            ->get();
+
+        foreach ($accounts as $acc) {
+            $cycle = $acc->tontineAccount?->activeCycle;
+            if ($cycle && $cycle->status === 'active' && $cycle->collected_amount > 0 && $cycle->collected_amount < $cycle->target_amount) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifie si le client peut ouvrir un compte Épargne (strictement 1 seul compte actif)
+     */
+    public function canOpenSavingsAccount(): bool
+    {
+        $activeCount = $this->savingsAccounts()->where('status', 'active')->count();
+        return $activeCount < 1;
     }
 
     public function getTotalSavingsAttribute()

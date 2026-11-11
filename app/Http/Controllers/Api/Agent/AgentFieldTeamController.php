@@ -14,21 +14,68 @@ use Illuminate\Support\Facades\DB;
 class AgentFieldTeamController extends Controller
 {
     /**
-     * Liste des agents de terrain de l'agence avec résumé de collecte par jour
+     * Helper pour extraire l'intervalle de date
+     */
+    private function resolveDateRange(Request $request): array
+    {
+        $startDateStr = $request->get('date_start', $request->get('start_date', $request->get('from_date')));
+        $endDateStr = $request->get('date_end', $request->get('end_date', $request->get('to_date')));
+        $period = $request->get('period');
+
+        if ($startDateStr && $endDateStr) {
+            try {
+                $start = Carbon::parse($startDateStr)->startOfDay();
+                $end = Carbon::parse($endDateStr)->endOfDay();
+                $label = $start->format('d/m/Y') . ' - ' . $end->format('d/m/Y');
+                return [$start, $end, $label];
+            } catch (\Exception $e) {}
+        }
+
+        if ($startDateStr && !$endDateStr) {
+            try {
+                $start = Carbon::parse($startDateStr)->startOfDay();
+                $end = $start->copy()->endOfDay();
+                return [$start, $end, $start->format('d/m/Y')];
+            } catch (\Exception $e) {}
+        }
+
+        if ($request->filled('date')) {
+            try {
+                $d = Carbon::parse($request->get('date'));
+                return [$d->copy()->startOfDay(), $d->copy()->endOfDay(), $d->format('d/m/Y')];
+            } catch (\Exception $e) {}
+        }
+
+        if ($period) {
+            switch ($period) {
+                case 'yesterday':
+                    $y = Carbon::yesterday();
+                    return [$y->copy()->startOfDay(), $y->copy()->endOfDay(), 'Hier (' . $y->format('d/m') . ')'];
+                case 'week':
+                    return [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek(), 'Cette semaine'];
+                case 'month':
+                    return [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth(), 'Ce mois'];
+                case 'all':
+                    return [Carbon::createFromTimestamp(0), Carbon::now()->endOfDay(), 'Tout l\'historique'];
+                case 'today':
+                default:
+                    $t = Carbon::today();
+                    return [$t->copy()->startOfDay(), $t->copy()->endOfDay(), 'Aujourd\'hui (' . $t->format('d/m') . ')'];
+            }
+        }
+
+        $today = Carbon::today();
+        return [$today->copy()->startOfDay(), $today->copy()->endOfDay(), $today->format('d/m/Y')];
+    }
+
+    /**
+     * Liste des agents de terrain de l'agence avec résumé de collecte par jour ou par intervalle
      */
     public function index(Request $request)
     {
         $user = auth()->user();
-        $dateStr = $request->get('date', Carbon::today()->toDateString());
+        [$startDate, $endDate, $dateLabel] = $this->resolveDateRange($request);
         $search = $request->get('search');
-
-        try {
-            $date = Carbon::parse($dateStr);
-        } catch (\Exception $e) {
-            $date = Carbon::today();
-            $dateStr = $date->toDateString();
-        }
-
         $agencyId = $user->agency_id;
 
         // Requête des agents de terrain rattachés à l'agence
@@ -61,20 +108,20 @@ class AgentFieldTeamController extends Controller
         $globalTotalOperations = 0;
         $activeAgentsCount = 0;
 
-        $agentsList = $agents->map(function ($agent) use ($date, $dateStr, $inflowTypes, &$globalTotalCollected, &$globalTotalOperations, &$activeAgentsCount) {
+        $agentsList = $agents->map(function ($agent) use ($startDate, $endDate, $dateLabel, $inflowTypes, &$globalTotalCollected, &$globalTotalOperations, &$activeAgentsCount) {
             // Nombre de clients enregistrés par l'agent
             $clientsCount = Client::where('registered_by', $agent->id)
                 ->whereIn('registration_status', ['approved', 'pending'])
                 ->count();
 
-            // Transactions réalisées par cet agent à la date sélectionnée
+            // Transactions réalisées par cet agent dans l'intervalle sélectionné
             $dayTransactions = Transaction::query()
                 ->where('processed_by', $agent->id)
-                ->where(function ($q) use ($date) {
-                    $q->whereDate('transaction_date', $date)
-                      ->orWhere(function ($sub) use ($date) {
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('transaction_date', [$startDate->toDateString(), $endDate->toDateString()])
+                      ->orWhere(function ($sub) use ($startDate, $endDate) {
                           $sub->whereNull('transaction_date')
-                              ->whereDate('created_at', $date);
+                              ->whereBetween('created_at', [$startDate, $endDate]);
                       });
                 })
                 ->where('status', 'completed')
@@ -129,7 +176,9 @@ class AgentFieldTeamController extends Controller
                 'is_active' => (bool) $agent->is_active,
                 'total_clients' => $clientsCount,
                 'collections' => [
-                    'date' => $dateStr,
+                    'date' => $dateLabel,
+                    'start_date' => $startDate->toDateString(),
+                    'end_date' => $endDate->toDateString(),
                     'total_collected' => round($totalCollected, 2),
                     'total_withdrawals' => round($totalWithdrawals, 2),
                     'net_collected' => round($totalCollected - $totalWithdrawals, 2),
@@ -143,7 +192,9 @@ class AgentFieldTeamController extends Controller
 
         return response()->json([
             'success' => true,
-            'date' => $dateStr,
+            'date' => $dateLabel,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
             'summary' => [
                 'total_agents' => $agents->count(),
                 'active_agents' => $activeAgentsCount,
@@ -160,15 +211,7 @@ class AgentFieldTeamController extends Controller
     public function show($agentId, Request $request)
     {
         $user = auth()->user();
-        $dateStr = $request->get('date', Carbon::today()->toDateString());
-
-        try {
-            $date = Carbon::parse($dateStr);
-        } catch (\Exception $e) {
-            $date = Carbon::today();
-            $dateStr = $date->toDateString();
-        }
-
+        [$startDate, $endDate, $dateLabel] = $this->resolveDateRange($request);
         $agencyId = $user->agency_id;
 
         $agent = User::where('id', $agentId)
@@ -210,15 +253,15 @@ class AgentFieldTeamController extends Controller
                 ];
             });
 
-        // 2. Collectes / Transactions de la date sélectionnée
+        // 2. Collectes / Transactions de la période sélectionnée
         $inflowTypes = ['deposit', 'depot', 'credit', 'tontine_deposit', 'loan_repayment'];
 
         $transactions = Transaction::where('processed_by', $agentId)
-            ->where(function ($q) use ($date) {
-                $q->whereDate('transaction_date', $date)
-                  ->orWhere(function ($sub) use ($date) {
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('transaction_date', [$startDate->toDateString(), $endDate->toDateString()])
+                  ->orWhere(function ($sub) use ($startDate, $endDate) {
                       $sub->whereNull('transaction_date')
-                          ->whereDate('created_at', $date);
+                          ->whereBetween('created_at', [$startDate, $endDate]);
                   });
             })
             ->where('status', 'completed')
@@ -238,6 +281,7 @@ class AgentFieldTeamController extends Controller
                     'client_name' => $client ? trim($client->first_name . ' ' . $client->last_name) : 'Client Inconnu',
                     'client_phone' => $client ? $client->phone : 'N/A',
                     'time' => $tx->created_at ? $tx->created_at->format('H:i') : '--:--',
+                    'date' => $tx->transaction_date ?? ($tx->created_at ? $tx->created_at->format('d/m/Y') : null),
                     'created_at' => $tx->created_at ? $tx->created_at->toISOString() : null,
                     'payment_method' => $tx->payment_method ?? 'cash',
                     'description' => $tx->description,
@@ -259,7 +303,9 @@ class AgentFieldTeamController extends Controller
 
         return response()->json([
             'success' => true,
-            'date' => $dateStr,
+            'date' => $dateLabel,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
             'agent' => [
                 'id' => $agent->id,
                 'full_name' => trim($agent->first_name . ' ' . $agent->last_name),

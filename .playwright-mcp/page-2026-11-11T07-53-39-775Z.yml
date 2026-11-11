@@ -1,0 +1,208 @@
+- generic [active] [ref=f21e1]:
+  - complementary [ref=f21e2]:
+    - generic [ref=f21e3]:
+      - generic [ref=f21e5]:
+        - generic [ref=f21e6]: 
+        - generic [ref=f21e8]:
+          - heading "FSD YAYRA" [level=2] [ref=f21e9]
+          - paragraph [ref=f21e10]: Pilotage Bancaire
+      - navigation [ref=f21e11]:
+        - link " Tableau de Bord" [ref=f21e12] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/dashboard
+          - generic [ref=f21e13]: 
+          - generic [ref=f21e14]: Tableau de Bord
+        - generic [ref=f21e15]: Portefeuille Clients
+        - link " Registre des Clients" [ref=f21e16] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/clients
+          - generic [ref=f21e17]: 
+          - generic [ref=f21e18]: Registre des Clients
+        - link " Registre des Actifs" [ref=f21e19] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/accounts
+          - generic [ref=f21e20]: 
+          - generic [ref=f21e21]: Registre des Actifs
+        - generic [ref=f21e22]: Division Trésorerie
+        - link " Injections de Flux (Dépôts)" [ref=f21e23] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/accounts/depot
+          - generic [ref=f21e24]: 
+          - generic [ref=f21e25]: Injections de Flux (Dépôts)
+        - link " Décaissements (Retraits)" [ref=f21e26] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/accounts/retrait
+          - generic [ref=f21e27]: 
+          - generic [ref=f21e28]: Décaissements (Retraits)
+        - link " Sessions de Caisse" [ref=f21e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/cashier/sessions
+          - generic [ref=f21e30]: 
+          - generic [ref=f21e31]: Sessions de Caisse
+        - link " Engagements de Crédit" [ref=f21e32] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/loans
+          - generic [ref=f21e33]: 
+          - generic [ref=f21e34]: Engagements de Crédit
+        - link " Épargne Mutuelle (Tontines)" [ref=f21e35] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/tontines
+          - generic [ref=f21e36]: 
+          - generic [ref=f21e37]: Épargne Mutuelle (Tontines)
+        - generic [ref=f21e38]: Audit Interne
+        - link " Rentabilité" [ref=f21e39] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/profitability
+          - generic [ref=f21e40]: 
+          - generic [ref=f21e41]: Rentabilité
+        - link " Audit du Grand Livre" [ref=f21e42] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/transactions
+          - generic [ref=f21e43]: 
+          - generic [ref=f21e44]: Audit du Grand Livre
+        - link " Analyses Officiers" [ref=f21e45] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/reports
+          - generic [ref=f21e46]: 
+          - generic [ref=f21e47]: Analyses Officiers
+        - link " Balance Agée (Réglementaire)" [ref=f21e48] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/reports/regulatory/aging
+          - generic [ref=f21e49]: 
+          - generic [ref=f21e50]: Balance Agée (Réglementaire)
+        - link " Performance Réseau" [ref=f21e51] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/reports/agencies
+          - generic [ref=f21e52]: 
+          - generic [ref=f21e53]: Performance Réseau
+        - generic [ref=f21e54]: Infrastructure
+        - link " Registre du Personnel" [ref=f21e55] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/users-legacy
+          - generic [ref=f21e56]: 
+          - generic [ref=f21e57]: Registre du Personnel
+        - link " Réseau d'Agences" [ref=f21e58] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/agencies
+          - generic [ref=f21e59]: 
+          - generic [ref=f21e60]: Réseau d'Agences
+        - link " Configuration Système" [ref=f21e61] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/config/parameters
+          - generic [ref=f21e62]: 
+          - generic [ref=f21e63]: Configuration Système
+        - link " Santé du Système" [ref=f21e64] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/admin/system-health
+          - generic [ref=f21e65]: 
+          - generic [ref=f21e66]: Santé du Système
+      - generic [ref=f21e67]:
+        - generic [ref=f21e68]:
+          - generic [ref=f21e69]: SA
+          - generic [ref=f21e70]:
+            - paragraph [ref=f21e71]: Super Administrateur
+            - paragraph [ref=f21e72]: administrateur_systeme
+        - button " Déconnexion Sécurisée" [ref=f21e74] [cursor=pointer]:
+          - generic [ref=f21e75]: 
+          - generic [ref=f21e76]: Déconnexion Sécurisée
+  - generic [ref=f21e77]:
+    - navigation [ref=f21e78]:
+      - generic [ref=f21e79]:
+        - generic [ref=f21e80]:
+          - text: 
+          - heading "Console / Supervision du Marché et Performance" [level=1] [ref=f21e81]
+        - generic [ref=f21e82]:
+          - generic [ref=f21e83]:
+            - textbox "Rechercher ID Membre..." [ref=f21e84]
+            - generic [ref=f21e85]: 
+          - generic [ref=f21e86]:
+            - generic [ref=f21e87]:
+              - button "" [ref=f21e88] [cursor=pointer]
+              - text: 
+            - button "+" [ref=f21e90] [cursor=pointer]
+    - main [ref=f21e92]:
+      - generic [ref=f21e93]:
+        - generic [ref=f21e94]:
+          - generic [ref=f21e95]:
+            - heading "Console de Pilotage Stratégique" [level=2] [ref=f21e96]
+            - paragraph [ref=f21e97]: Analyse de Performance & Rentabilité • Fenêtre de 30 Jours
+          - generic [ref=f21e98]:
+            - link "7J" [ref=f21e99] [cursor=pointer]:
+              - /url: "?period=7"
+            - link "30J" [ref=f21e100] [cursor=pointer]:
+              - /url: "?period=30"
+            - link "90J" [ref=f21e101] [cursor=pointer]:
+              - /url: "?period=90"
+            - link "An" [ref=f21e102] [cursor=pointer]:
+              - /url: "?period=365"
+        - generic [ref=f21e103]:
+          - generic [ref=f21e104]:
+            - generic [ref=f21e105]:
+              - generic [ref=f21e106]: Profit Net (Bénéfices)
+              - generic [ref=f21e107]: 
+            - generic [ref=f21e109]: 87 634 XOF
+            - generic [ref=f21e110]: "Marge : 99.83%"
+          - generic [ref=f21e112]:
+            - generic [ref=f21e113]:
+              - generic [ref=f21e114]: Chiffre d'Affaires (PNB)
+              - generic [ref=f21e115]: 
+            - generic [ref=f21e117]: 87 787 XOF
+            - generic [ref=f21e118]: Architecture des Revenus
+          - generic [ref=f21e120]:
+            - generic [ref=f21e121]:
+              - generic [ref=f21e122]: Surveillance du Risque (PAR)
+              - generic [ref=f21e123]: 
+            - generic [ref=f21e125]:
+              - generic [ref=f21e126]:
+                - generic [ref=f21e127]:
+                  - text: PAR 30 (Pivot)
+                  - generic [ref=f21e128]: 0.0%
+                - generic [ref=f21e129]:
+                  - text: PAR 90 (Critique)
+                  - generic [ref=f21e130]: 0.0%
+              - generic [ref=f21e134]:
+                - generic [ref=f21e135]: "PAR 1 : 0.0%"
+                - generic [ref=f21e138]: Perte Sèche Est.
+          - generic [ref=f21e141]:
+            - generic [ref=f21e142]:
+              - generic [ref=f21e143]: Liquidité Disponible
+              - generic [ref=f21e144]: 
+            - generic [ref=f21e146]: 110 960 XOF
+            - generic [ref=f21e147]: "Ratio Prêts/Dépôts : 294.0%"
+        - generic [ref=f21e148]:
+          - generic [ref=f21e150]:
+            - generic [ref=f21e151]:
+              - heading "Expansion Opérationnelle" [level=3] [ref=f21e152]
+              - paragraph [ref=f21e153]: Trajectoire des indicateurs clés de performance
+            - generic [ref=f21e154]: Acquisitions
+          - generic [ref=f21e161]:
+            - generic [ref=f21e162]:
+              - heading "Poids du Réseau" [level=3] [ref=f21e163]
+              - paragraph [ref=f21e164]: Concentration géographique de l'adhésion
+            - generic [ref=f21e169]:
+              - generic [ref=f21e170]: Non spécifié
+              - generic [ref=f21e173]: 100%
+        - generic [ref=f21e174]:
+          - generic [ref=f21e175]:
+            - generic [ref=f21e176]:
+              - generic [ref=f21e177]:
+                - heading "Épargne Mutuelle (Tontines)" [level=3] [ref=f21e178]
+                - paragraph [ref=f21e179]: Participation aux cycles et flux de trésorerie
+              - generic [ref=f21e180]: 
+            - generic [ref=f21e181]:
+              - generic [ref=f21e182]:
+                - generic [ref=f21e183]: Volume des Collectes
+                - generic [ref=f21e184]: 18 000 XOF
+              - generic [ref=f21e185]:
+                - generic [ref=f21e186]: Commissions Générées (2%)
+                - generic [ref=f21e187]: +0 XOF
+              - generic [ref=f21e188]:
+                - generic [ref=f21e189]: Décaissements (Mises à disposition)
+                - generic [ref=f21e190]: "-0 XOF"
+              - generic [ref=f21e191]:
+                - generic [ref=f21e192]: Indice de Vitalité
+                - generic [ref=f21e193]: 82.4%
+          - generic [ref=f21e194]:
+            - generic [ref=f21e195]:
+              - generic [ref=f21e196]:
+                - heading "Architecture des Bénéfices" [level=3] [ref=f21e197]
+                - paragraph [ref=f21e198]: Origine des flux de profit net
+              - generic [ref=f21e199]: 
+            - generic [ref=f21e200]:
+              - generic [ref=f21e202]:
+                - generic [ref=f21e203]: Intérêts & Pénalités (Prêts)
+                - generic [ref=f21e204]: +63 747
+              - generic [ref=f21e208]:
+                - generic [ref=f21e209]: Commissions Tontines
+                - generic [ref=f21e210]: "+0"
+              - generic [ref=f21e213]:
+                - generic [ref=f21e214]: Frais de Service & Tenue
+                - generic [ref=f21e215]: +24 040
+              - generic [ref=f21e218]:
+                - generic [ref=f21e219]:
+                  - generic [ref=f21e220]: Charges de Trésorerie (-)
+                  - generic [ref=f21e221]: "-153"
+                - paragraph [ref=f21e222]: Inclut les intérêts créditeurs versés aux épargnants et les règlements salariaux du personnel sur la période d'audit.

@@ -20,7 +20,7 @@
                         <div class="text-center row text-sm-start">
                             <div class="mb-2 col-sm-6">
                                 <small class="text-muted d-block">Compte</small>
-                                <strong>#{{ $account->account_number }}</strong>
+                                <strong>{{ $account->account_number }}</strong>
                             </div>
                             <div class="mb-2 col-sm-6">
                                 <small class="text-muted d-block">Client</small>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Agency;
+use App\Models\User;
 use App\Models\CashierSession;
 use App\Models\Client;
 use App\Models\SavingsAccount;
@@ -44,31 +46,67 @@ class AgentCashierController extends Controller
         $todayStats = Transaction::where('cashier_session_id', $activeSession->id)
             ->where('status', 'completed')
             ->select(
-                DB::raw('SUM(CASE WHEN transaction_type IN ("deposit","savings_deposit","tontine_deposit","loan_repayment") THEN amount ELSE 0 END) as total_in'),
-                DB::raw('SUM(CASE WHEN transaction_type IN ("withdrawal","payout") THEN amount ELSE 0 END) as total_out'),
+                DB::raw('SUM(CASE WHEN transaction_type IN ("deposit","savings_deposit","tontine_deposit","loan_repayment","transfer_in") THEN amount ELSE 0 END) as total_in'),
+                DB::raw('SUM(CASE WHEN transaction_type IN ("withdrawal","payout","loan_disbursement","transfer_out") THEN amount ELSE 0 END) as total_out'),
                 DB::raw('COUNT(*) as tx_count')
             )->first();
 
+        $currentCash = (float) $activeSession->opening_balance + (float) ($todayStats->total_in ?? 0) - (float) ($todayStats->total_out ?? 0);
+
+        // Trésorerie de l'agence
+        $agency = Agency::find($activeSession->agency_id ?? ($user->agency_id ?? 1));
+        $vaultBalance = $agency ? (float) $agency->vault_balance : 0.0;
+
+        // Stats collectes agents terrain du jour
+        $fieldAgentsCount = User::where(function ($q) {
+            $q->where('role', 'agent_terrain')->orWhere('role', 'LIKE', 'agent%');
+        })->where('role', '!=', 'caissier')
+        ->where('agency_id', $agency->id ?? 1)
+        ->count();
+
+        $fieldAgentsTodayCollected = Transaction::whereHas('processedBy', function ($q) use ($agency) {
+            $q->where('role', '!=', 'caissier')->where('agency_id', $agency->id ?? 1);
+        })->where('status', 'completed')
+          ->whereDate('transaction_date', $today)
+          ->whereIn('transaction_type', ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment'])
+          ->sum('amount');
+
         // Stats clients de l'agence
-        $agencyClientCount = Client::where('registration_status', 'approved')->count();
+        $agencyClientCount = Client::where('registration_status', 'approved')
+            ->when($agency, fn($q) => $q->where('agency_id', $agency->id))
+            ->count();
+
+        // Clients distincts servis au guichet durant cette session
+        $todayClientsServed = Transaction::where('transactions.cashier_session_id', $activeSession->id)
+            ->where('transactions.status', 'completed')
+            ->join('accounts', 'transactions.account_id', '=', 'accounts.id')
+            ->distinct('accounts.client_id')
+            ->count('accounts.client_id');
 
         // Prêts actifs en attente de remboursement
         $activeLoanCount = Loan::whereIn('status', ['active', 'disbursed'])->count();
+        $approvedLoanCount = Loan::where('status', 'approved')->count();
 
-        // Dernières transactions
-        $recentTransactions = Transaction::with(['account.client'])
+        // Dernières transactions avec possibilité d'extourne
+        $recentTransactions = Transaction::with(['account.client', 'loan.client', 'processedBy'])
             ->where('cashier_session_id', $activeSession->id)
-            ->where('status', 'completed')
             ->latest('transaction_date')
             ->limit(10)
             ->get();
 
         return view('agent.cashier.dashboard', [
-            'activeSession' => $activeSession,
-            'todayStats' => $todayStats,
-            'agencyClientCount' => $agencyClientCount,
-            'activeLoanCount' => $activeLoanCount,
-            'recentTransactions' => $recentTransactions,
+            'activeSession'             => $activeSession,
+            'todayStats'                => $todayStats,
+            'currentCash'               => $currentCash,
+            'vaultBalance'              => $vaultBalance,
+            'agency'                    => $agency,
+            'agencyClientCount'         => $agencyClientCount,
+            'todayClientsServed'        => $todayClientsServed,
+            'activeLoanCount'           => $activeLoanCount,
+            'approvedLoanCount'         => $approvedLoanCount,
+            'fieldAgentsCount'          => $fieldAgentsCount,
+            'fieldAgentsTodayCollected' => $fieldAgentsTodayCollected,
+            'recentTransactions'        => $recentTransactions,
         ]);
     }
 
@@ -91,32 +129,28 @@ class AgentCashierController extends Controller
             }
 
         $isAuditMode = $request->filled('date_start') || $request->filled('date_end');
+        $statusFilter = $request->get('status', 'all');
 
-        $statsQuery = Transaction::where('status', 'completed')
-            ->where('cashier_session_id', $activeSession->id);
-        $listQuery = Transaction::with(['account.client'])
-            ->where('status', 'completed')
-            ->where('cashier_session_id', $activeSession->id);
+        $baseQuery = Transaction::query();
 
         if ($isAuditMode) {
             if ($request->filled('date_start')) {
-                $statsQuery->whereDate('transaction_date', '>=', $request->date_start);
-                $listQuery->whereDate('transaction_date', '>=', $request->date_start);
+                $baseQuery->whereDate('transaction_date', '>=', $request->date_start);
             }
             if ($request->filled('date_end')) {
-                $statsQuery->whereDate('transaction_date', '<=', $request->date_end);
-                $listQuery->whereDate('transaction_date', '<=', $request->date_end);
+                $baseQuery->whereDate('transaction_date', '<=', $request->date_end);
             }
             $openingBalanceForPeriod = 0;
         } else {
-            $statsQuery->where('cashier_session_id', $activeSession->id);
-            $listQuery->where('cashier_session_id', $activeSession->id);
+            $baseQuery->where('cashier_session_id', $activeSession->id);
             $openingBalanceForPeriod = $activeSession->opening_balance;
         }
 
+        // Totaux financiers basés uniquement sur les écritures complétées
+        $statsQuery = (clone $baseQuery)->where('status', 'completed');
         $totals = $statsQuery->select(
-            DB::raw('SUM(CASE WHEN transaction_type IN ("deposit","savings_deposit","tontine_deposit","loan_repayment") THEN amount ELSE 0 END) as total_in'),
-            DB::raw('SUM(CASE WHEN transaction_type IN ("withdrawal","payout") THEN amount ELSE 0 END) as total_out')
+            DB::raw('SUM(CASE WHEN transaction_type IN ("deposit","savings_deposit","tontine_deposit","loan_repayment","transfer_in") THEN amount ELSE 0 END) as total_in'),
+            DB::raw('SUM(CASE WHEN transaction_type IN ("withdrawal","payout","loan_disbursement","transfer_out") THEN amount ELSE 0 END) as total_out')
         )->first();
 
         $displayStats = (object) [
@@ -127,12 +161,30 @@ class AgentCashierController extends Controller
         ];
         $displayStats->current_balance = $openingBalanceForPeriod + $displayStats->total_in - $displayStats->total_out;
 
-        $recentTransactions = $listQuery->latest('transaction_date')->paginate(25);
+        // Compteurs pour filtres du journal
+        $countAll = (clone $baseQuery)->count();
+        $countCompleted = (clone $baseQuery)->where('status', 'completed')->count();
+        $countCancelled = (clone $baseQuery)->where('status', 'cancelled')->count();
+
+        // Requête de liste avec eager-loading et filtre de statut optionnel
+        $listQuery = (clone $baseQuery)->with(['account.client', 'loan.client']);
+        if ($statusFilter === 'completed') {
+            $listQuery->where('status', 'completed');
+        } elseif ($statusFilter === 'cancelled') {
+            $listQuery->where('status', 'cancelled');
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+        $recentTransactions = $listQuery->latest('transaction_date')->latest('id')->paginate($perPage)->withQueryString();
 
             return view('agent.cashier.terminal', [
-                'activeSession' => $activeSession,
+                'activeSession'      => $activeSession,
                 'recentTransactions' => $recentTransactions,
-                'stats' => $displayStats,
+                'stats'              => $displayStats,
+                'statusFilter'       => $statusFilter,
+                'countAll'           => $countAll,
+                'countCompleted'     => $countCompleted,
+                'countCancelled'     => $countCancelled,
             ]);
         } catch (\Throwable $e) {
             Log::error('Terminal error: ' . $e->getMessage(), [
@@ -165,6 +217,91 @@ class AgentCashierController extends Controller
             'activeSession' => $session,
             'todayStats' => $stats
         ]);
+    }
+
+    /**
+     * Ouvrir la session de caisse par le caissier lui-même
+     */
+    public function openSession(Request $request)
+    {
+        $request->validate([
+            'opening_balance' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+
+        // Contrôle d'habilitation : le caissier ne peut ouvrir sa caisse que si l'administrateur lui en a donné l'autorisation
+        $isAdmin = in_array($user->role, ['administrateur_systeme', 'administrateur_reglementaire']);
+        if (!$isAdmin && !$user->can_open_cashier_session) {
+            return redirect()->back()
+                ->with('error', "⛔ Vous n'êtes pas autorisé à ouvrir votre caisse de manière autonome. Cette action doit être effectuée par un Administrateur.");
+        }
+
+        // Vérifier si une session est déjà ouverte
+        $existing = CashierSession::where('user_id', $user->id)
+            ->where('status', 'open')
+            ->first();
+
+        if ($existing) {
+            return redirect()->route('caissier.dashboard')
+                ->with('info', 'Votre session de caisse est déjà active.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $agency = Agency::lockForUpdate()->find($user->agency_id ?? 1);
+            $openingBalance = (float) $request->opening_balance;
+
+            // Si le caissier demande un approvisionnement initial prélevé sur le coffre
+            if ($openingBalance > 0 && $agency) {
+                if ($agency->vault_balance < $openingBalance) {
+                    throw new \Exception(
+                        'Fonds insuffisants dans le coffre d\'agence. ' .
+                        'Disponible : ' . number_format($agency->vault_balance, 0, ',', ' ') . ' FCFA. ' .
+                        'Montant demandé : ' . number_format($openingBalance, 0, ',', ' ') . ' FCFA.'
+                    );
+                }
+                $agency->decrement('vault_balance', $openingBalance);
+            }
+
+            $session = CashierSession::create([
+                'user_id' => $user->id,
+                'agency_id' => $user->agency_id ?? ($agency->id ?? 1),
+                'opened_at' => now(),
+                'opening_balance' => $openingBalance,
+                'status' => 'open',
+                'notes' => $request->notes ?? 'Ouverture de session au guichet'
+            ]);
+
+            // Enregistrer l'opération d'approvisionnement initial si > 0
+            if ($openingBalance > 0) {
+                Transaction::create([
+                    'transaction_reference' => 'PROV-' . date('YmdHis') . '-' . rand(1000, 9999),
+                    'transaction_type' => 'transfer_in',
+                    'amount' => $openingBalance,
+                    'balance_before' => 0,
+                    'balance_after' => $openingBalance,
+                    'status' => 'completed',
+                    'processed_by' => $user->id,
+                    'agency_id' => $session->agency_id,
+                    'cashier_session_id' => $session->id,
+                    'processed_at' => now(),
+                    'transaction_date' => now(),
+                    'description' => 'Dotation initiale de fond de caisse'
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('caissier.dashboard')
+                ->with('success', 'Votre session de caisse a été ouverte avec succès ! Fond initial : ' . number_format($openingBalance, 0, ',', ' ') . ' FCFA');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', $e->getMessage());
+        }
     }
 
     /**
@@ -236,11 +373,11 @@ class AgentCashierController extends Controller
         $request->validate(['query' => 'required|string|min:1']);
         $query = trim($request->get('query'));
 
-        // ⚡ Mode rapide : recherche exacte par numéro de compte (préfixe)
-        $isExactSearch = preg_match('/^(TON|SAV|EPR|LN|PRE|CLI|ACC)/i', $query) || is_numeric($query);
+        // ⚡ Mode rapide : recherche exacte par préfixe de compte ou prêt (ex: ACC-, SAV-, TNT-, LN-, LOAN-)
+        $isExactSearch = (bool) preg_match('/^(TON|TNT|SAV|EPR|LN|LOAN|PRE|CLI|ACC)-/i', $query);
 
         if ($isExactSearch) {
-            // Recherche rapide par numéro — utilise un index et pas de LIKE %...
+            // Recherche rapide par préfixe de numéro
             $accounts = Account::select('accounts.id', 'accounts.account_number', 'accounts.account_type', 'accounts.balance', 'accounts.client_id')
                 ->with(['client:id,first_name,last_name,client_number,phone', 'tontineAccount:id,account_id,tontine_amount'])
                 ->where('status', 'active')
@@ -255,32 +392,42 @@ class AgentCashierController extends Controller
                 ->limit(5)
                 ->get();
         } else {
-            // Recherche par nom/téléphone — optimisée avec join
+            // Recherche par nom, téléphone, numéro de client ou numéro partiel de compte/prêt
+            $cleanPhone = preg_replace('/[^0-9]/', '', $query);
+
             $accounts = Account::select('accounts.id', 'accounts.account_number', 'accounts.account_type', 'accounts.balance', 'accounts.client_id')
                 ->with(['tontineAccount:id,account_id,tontine_amount'])
                 ->join('clients', 'accounts.client_id', '=', 'clients.id')
                 ->where('accounts.status', 'active')
-                ->where(function ($q) use ($query) {
+                ->where(function ($q) use ($query, $cleanPhone) {
                     $q->where('accounts.account_number', 'like', "%{$query}%")
                         ->orWhere('clients.first_name', 'like', "%{$query}%")
                         ->orWhere('clients.last_name', 'like', "%{$query}%")
                         ->orWhere('clients.client_number', 'like', "%{$query}%")
                         ->orWhere('clients.phone', 'like', "%{$query}%")
                         ->orWhereRaw("CONCAT(clients.first_name, ' ', clients.last_name) LIKE ?", ["%{$query}%"]);
+
+                    if (!empty($cleanPhone) && strlen($cleanPhone) >= 4) {
+                        $q->orWhere('clients.phone', 'like', "%{$cleanPhone}%");
+                    }
                 })
-                ->limit(10)
+                ->limit(15)
                 ->get()
                 ->load('client:id,first_name,last_name,client_number,phone');
 
             $loans = Loan::select('loans.id', 'loans.loan_number', 'loans.client_id', 'loans.status', 'loans.total_amount_due', 'loans.total_paid')
                 ->join('clients', 'loans.client_id', '=', 'clients.id')
                 ->whereIn('loans.status', ['approved', 'disbursed', 'active'])
-                ->where(function ($q) use ($query) {
+                ->where(function ($q) use ($query, $cleanPhone) {
                     $q->where('loans.loan_number', 'like', "%{$query}%")
                         ->orWhere('clients.first_name', 'like', "%{$query}%")
                         ->orWhere('clients.last_name', 'like', "%{$query}%")
                         ->orWhere('clients.phone', 'like', "%{$query}%")
                         ->orWhereRaw("CONCAT(clients.first_name, ' ', clients.last_name) LIKE ?", ["%{$query}%"]);
+
+                    if (!empty($cleanPhone) && strlen($cleanPhone) >= 4) {
+                        $q->orWhere('clients.phone', 'like', "%{$cleanPhone}%");
+                    }
                 })
                 ->limit(5)
                 ->get()
@@ -347,9 +494,14 @@ class AgentCashierController extends Controller
 
             if ($request->get('type') === 'loan') {
                 // Traitement d'un remboursement de prêt
-                $loan = Loan::with(['client', 'payments' => function($q) {
+                $loan = Loan::with(['client'])->lockForUpdate()->findOrFail($accountId);
+                
+                // S'assurer que l'échéancier existe
+                $this->ensureLoanSchedule($loan);
+
+                $loan->load(['payments' => function($q) {
                     $q->whereIn('status', ['pending', 'overdue', 'partial'])->orderBy('payment_number');
-                }])->lockForUpdate()->findOrFail($accountId);
+                }]);
                 
                 $transaction = Transaction::create([
                     'transaction_reference' => $this->generateTransactionReference(),
@@ -361,7 +513,7 @@ class AgentCashierController extends Controller
                     'balance_after' => $loan->total_paid + $amount,
                     'payment_method' => $request->payment_method,
                     'payment_reference' => $this->generatePaymentReference($request->payment_method),
-                    'description' => $request->description ?? 'Remboursement de prêt au guichet',
+                    'description' => $request->description ?? $request->notes ?? 'Remboursement de prêt au guichet',
                     'status' => 'completed',
                     'processed_by' => $user->id,
                     'agency_id' => $user->agency_id,
@@ -446,7 +598,11 @@ class AgentCashierController extends Controller
 
                 $this->logActivity('loan_repayment', "Remboursement de prêt de " . number_format($amount, 0, ',', ' ') . " FCFA pour le prêt {$loan->loan_number}.", $loan);
 
-                return redirect()->route('caissier.depot')
+                $redirectRoute = ($request->input('source') === 'depot')
+                    ? redirect()->route('caissier.depot')
+                    : redirect()->route('caissier.loans.show', $loan->id);
+
+                return $redirectRoute
                     ->with('success', '✅ Remboursement de ' . number_format($amount, 0, ',', ' ') . ' FCFA effectué • ' . $loan->client->full_name . ' (Prêt ' . $loan->loan_number . ')')
                     ->with('print_receipt', route('caissier.receipt.print', $transaction->id));
 
@@ -661,29 +817,33 @@ class AgentCashierController extends Controller
         $request->validate(['query' => 'required|string|min:1']);
         $query = trim($request->get('query'));
 
-        // ⚡ Mode rapide : recherche exacte par numéro de compte
-        $isExactSearch = preg_match('/^(TON|SAV|EPR|ACC)/i', $query) || is_numeric($query);
+        // ⚡ Mode rapide : recherche exacte par préfixe de compte (ex: ACC-, SAV-, TNT-)
+        $isExactSearch = (bool) preg_match('/^(TON|TNT|SAV|EPR|ACC)-/i', $query);
 
         if ($isExactSearch) {
             $accounts = Account::select('accounts.id', 'accounts.account_number', 'accounts.account_type', 'accounts.balance', 'accounts.client_id')
                 ->with(['client:id,first_name,last_name,client_number,phone', 'tontineAccount'])
                 ->where('status', 'active')
-                ->where('balance', '>', 0)
                 ->where('account_number', 'like', "{$query}%")
                 ->limit(15)
                 ->get();
         } else {
+            $cleanPhone = preg_replace('/[^0-9]/', '', $query);
+
             $accounts = Account::select('accounts.id', 'accounts.account_number', 'accounts.account_type', 'accounts.balance', 'accounts.client_id')
                 ->join('clients', 'accounts.client_id', '=', 'clients.id')
                 ->where('accounts.status', 'active')
-                ->where('accounts.balance', '>', 0)
-                ->where(function ($q) use ($query) {
+                ->where(function ($q) use ($query, $cleanPhone) {
                     $q->where('accounts.account_number', 'like', "%{$query}%")
                         ->orWhere('clients.first_name', 'like', "%{$query}%")
                         ->orWhere('clients.last_name', 'like', "%{$query}%")
                         ->orWhere('clients.client_number', 'like', "%{$query}%")
                         ->orWhere('clients.phone', 'like', "%{$query}%")
                         ->orWhereRaw("CONCAT(clients.first_name, ' ', clients.last_name) LIKE ?", ["%{$query}%"]);
+
+                    if (!empty($cleanPhone) && strlen($cleanPhone) >= 4) {
+                        $q->orWhere('clients.phone', 'like', "%{$cleanPhone}%");
+                    }
                 })
                 ->limit(15)
                 ->get()
@@ -843,11 +1003,25 @@ class AgentCashierController extends Controller
     private function getActiveSession($user = null): ?CashierSession
     {
         $user = $user ?? Auth::user();
-        Log::info('Checking for active session', ['user_id' => $user->id]);
         
-        return CashierSession::where('user_id', $user->id)
+        $session = CashierSession::where('user_id', $user->id)
             ->where('status', 'open')
             ->first();
+
+        if ($session) {
+            return $session;
+        }
+
+        // Si administrateur ou superviseur, rattacher à la session ouverte de son agence ou la dernière active
+        if ($user && in_array($user->role, ['administrateur_systeme', 'administrateur_reglementaire', 'gestionnaire_superviseur'])) {
+            return CashierSession::where('status', 'open')
+                ->when($user->agency_id, fn($q) => $q->where('agency_id', $user->agency_id))
+                ->latest('opened_at')
+                ->first()
+                ?? CashierSession::where('status', 'open')->latest('opened_at')->first();
+        }
+
+        return null;
     }
 
     private function generateTransactionReference(): string
@@ -867,13 +1041,49 @@ class AgentCashierController extends Controller
      */
     public function loanDisbursementList()
     {
-        $loans = Loan::with('client')
+        $user = Auth::user();
+        $activeSession = $this->getActiveSession($user);
+
+        $loans = Loan::with(['client', 'guarantors'])
             ->where('status', 'approved')
             ->whereNull('disbursed_at')
             ->latest()
             ->get();
 
-        return view('agent.cashier.loans.disbursements', compact('loans'));
+        $totalPendingCount = $loans->count();
+        $totalPendingAmount = (float) $loans->sum('approved_amount');
+
+        // Prêts décaissés aujourd'hui
+        $todayDisbursedLoans = Loan::with(['client', 'guarantors'])
+            ->where('status', 'disbursed')
+            ->whereDate('disbursed_at', now()->toDateString())
+            ->latest('disbursed_at')
+            ->get();
+        $todayDisbursedCount = $todayDisbursedLoans->count();
+        $todayDisbursedAmount = (float) $todayDisbursedLoans->sum('approved_amount');
+
+        // Solde liquide actuellement disponible en caisse
+        $currentCash = 0;
+        if ($activeSession) {
+            $todayStats = Transaction::where('cashier_session_id', $activeSession->id)
+                ->where('status', 'completed')
+                ->select(
+                    DB::raw('SUM(CASE WHEN transaction_type IN ("deposit","savings_deposit","tontine_deposit","loan_repayment","transfer_in") THEN amount ELSE 0 END) as total_in'),
+                    DB::raw('SUM(CASE WHEN transaction_type IN ("withdrawal","payout","loan_disbursement","transfer_out") THEN amount ELSE 0 END) as total_out')
+                )->first();
+            $currentCash = (float) $activeSession->opening_balance + (float) ($todayStats->total_in ?? 0) - (float) ($todayStats->total_out ?? 0);
+        }
+
+        return view('agent.cashier.loans.disbursements', compact(
+            'loans',
+            'totalPendingCount',
+            'totalPendingAmount',
+            'todayDisbursedLoans',
+            'todayDisbursedCount',
+            'todayDisbursedAmount',
+            'currentCash',
+            'activeSession'
+        ));
     }
 
     /**
@@ -893,24 +1103,28 @@ class AgentCashierController extends Controller
             if (!$activeSession) throw new \Exception('Aucune session de caisse ouverte.');
 
             // 1. Mettre à jour le prêt
+            $firstDate = now()->addMonth();
             $loan->update([
                 'status' => 'disbursed',
                 'disbursed_at' => now(),
                 'disbursed_by' => $user->id,
-                'first_payment_date' => now()->addMonth(), // Premier remboursement dans 1 mois par défaut
+                'first_payment_date' => $firstDate,
             ]);
 
+            // Générer automatiquement l'échéancier si inexistant
+            $this->ensureLoanSchedule($loan);
+
             // 2. Créer la transaction (Inflow/Outflow: Ici c'est un Outflow pour la caisse)
-            // On peut lier cela à un compte d'épargne du client si nécessaire, ou juste enregistrer la sortie cash
             $transaction = Transaction::create([
                 'transaction_reference' => $this->generateTransactionReference(),
-                'transaction_type' => 'loan_disbursement', // Type explicite pour le reçu @break
+                'transaction_type' => 'loan_disbursement',
+                'loan_id' => $loan->id,
                 'amount' => $loan->approved_amount,
                 'balance_before' => 0,
                 'balance_after' => 0,
                 'payment_method' => 'cash',
-                'payment_reference' => 'LOAN-' . $loan->loan_number,
-                'description' => 'Décaissement du prêt #' . $loan->loan_number,
+                'payment_reference' => $loan->loan_number,
+                'description' => 'Décaissement du prêt ' . $loan->loan_number,
                 'status' => 'completed',
                 'processed_by' => $user->id,
                 'agency_id' => $user->agency_id,
@@ -920,12 +1134,12 @@ class AgentCashierController extends Controller
             ]);
 
             // 3. Logger l'action caissier
-            $this->logActivity('loan_disbursement', "Décaissement du prêt #{$loan->loan_number} pour un montant de {$loan->approved_amount} FCFA.", $loan);
+            $this->logActivity('loan_disbursement', "Décaissement du prêt {$loan->loan_number} pour un montant de " . number_format($loan->approved_amount, 0, ',', ' ') . " FCFA.", $loan);
 
             DB::commit();
 
             return redirect()->route('caissier.loans.disbursement')
-                ->with('success', 'Remboursement effectué avec succès pour le prêt #' . $loan->loan_number)
+                ->with('success', '✅ Décaissement effectué avec succès pour le prêt ' . $loan->loan_number)
                 ->with('print_receipt', route('caissier.receipt.print', $transaction->id));
 
         } catch (\Exception $e) {
@@ -945,8 +1159,7 @@ class AgentCashierController extends Controller
     {
         $user = Auth::user();
         $logs = AuditLog::where('user_id', $user->id)
-            ->whereIn('action', ['deposit', 'withdrawal', 'loan_disbursement', 'session_open', 'session_close'])
-            ->latest()
+            ->latest('id')
             ->paginate(50);
 
         return view('agent.cashier.logs', compact('logs'));
@@ -957,20 +1170,26 @@ class AgentCashierController extends Controller
      */
     public function printReceipt(Transaction $transaction)
     {
-        $transaction->load(['account.client', 'processedBy', 'agency']);
+        $transaction->load(['account.client', 'loan.client', 'processedBy', 'agency']);
         
-        $clientName = 'N/A';
+        $clientName = $transaction->client?->full_name;
         
-        if ($transaction->account) {
-            $clientName = $transaction->account->client->full_name;
-        } elseif (str_starts_with($transaction->payment_reference, 'LOAN-')) {
-            // Rechercher le client via le prêt
-            $loanNumber = str_replace('LOAN-', '', $transaction->payment_reference);
-            $loan = Loan::where('loan_number', $loanNumber)->with('client')->first();
-            if ($loan) {
-                $clientName = $loan->client->full_name;
+        // Fallback intelligent si le prêt n'était pas lié directement
+        if (!$clientName) {
+            $ref = $transaction->payment_reference ?? '';
+            $desc = $transaction->description ?? '';
+            
+            preg_match('/LOAN-[0-9]{4}-[0-9]{4}/', $ref . ' ' . $desc, $matches);
+            if (!empty($matches[0])) {
+                $loan = Loan::where('loan_number', $matches[0])->with('client')->first();
+                if ($loan) {
+                    $clientName = $loan->client?->full_name;
+                    $transaction->update(['loan_id' => $loan->id]);
+                }
             }
         }
+        
+        $clientName = $clientName ?? 'N/A';
         
         return view('agent.cashier.receipt', compact('transaction', 'clientName'));
     }
@@ -1085,10 +1304,10 @@ class AgentCashierController extends Controller
         if ($nbCycles === 1) {
             $cycle = $cyclesAffected[0];
             if ($cycle['completed']) {
-                $message .= '<br>🎉 Cycle #' . $cycle['cycle_number'] . ' complété !';
+                $message .= '<br>🎉 Cycle ' . $cycle['cycle_number'] . ' complété !';
             } else {
                 $remaining = $tontine->tontine_amount - $cycle['amount']; // Simplifié pour le message
-                $message .= '<br>📊 Cycle #' . $cycle['cycle_number'] . ' mis à jour.';
+                $message .= '<br>📊 Cycle ' . $cycle['cycle_number'] . ' mis à jour.';
             }
         } else {
             $message .= '<br>📈 Réparti sur ' . $nbCycles . ' cycle(s).';
@@ -1142,22 +1361,35 @@ class AgentCashierController extends Controller
             $user = Auth::user();
             $activeSession = $this->getActiveSession($user);
 
-            // 1. Créer le client
-            $client = Client::create([
-                'client_number' => $this->generateClientNumber(),
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'gender' => $request->gender,
-                'registered_by' => $user->id,
-                'agency_id' => $user->agency_id,
-                'registration_channel' => 'agent_assisted',
-                'registration_status' => 'approved', // Approuvé d'office si fait par un caissier ?
-                'kyc_status' => 'pending',
-                'password' => \Illuminate\Support\Facades\Hash::make('12@4'),
-                'is_active' => true,
-            ]);
+            // 1. Rechercher ou créer le client avec numéro normalisé
+            $normalizedPhone = Client::normalizePhone($request->phone);
+            $client = Client::where('phone', $normalizedPhone)->first();
+
+            if ($client) {
+                if (!$client->canOpenTontineAccount()) {
+                    throw new \Exception("Ce client (" . $client->full_name . ") possède déjà un carnet Tontine actif (limite autorisée : " . ($client->max_tontine_accounts ?? 1) . "). Seul l'administrateur peut autoriser un carnet supplémentaire.");
+                }
+                if ($client->hasActiveUnfinishedTontineCycle()) {
+                    throw new \Exception("Ce client a déjà un cycle de tontine de 31 jours en cours de cotisation non achevé. Il doit obligatoirement terminer son mois (31 jours) avant de passer à un autre carnet.");
+                }
+            } else {
+                $client = Client::create([
+                    'client_number' => $this->generateClientNumber(),
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'phone' => $normalizedPhone,
+                    'address' => $request->address,
+                    'gender' => $request->gender,
+                    'registered_by' => $user->id,
+                    'agency_id' => $user->agency_id,
+                    'registration_channel' => 'agent_assisted',
+                    'registration_status' => 'approved',
+                    'kyc_status' => 'pending',
+                    'password' => \Illuminate\Support\Facades\Hash::make('12@4'),
+                    'is_active' => true,
+                    'max_tontine_accounts' => 1,
+                ]);
+            }
 
             // 2. Créer le compte de base
             $account = Account::create([
@@ -1258,6 +1490,787 @@ class AgentCashierController extends Controller
             Log::error("Erreur Inscription Cashier: " . $e->getMessage());
             return redirect()->back()->withInput()->with('error', "Erreur: " . $e->getMessage());
         }
+    }
+
+    // ================================================================
+    //  VIREMENT TRÉSORERIE / COFFRE-FORT (APPROVISIONNEMENT & DÉCHARGE)
+    // ================================================================
+
+    /**
+     * Approvisionnement ou décharge direct(e) Trésorerie <-> Caisse au guichet
+     */
+    public function vaultTransfer(Request $request)
+    {
+        $request->validate([
+            'type'   => 'required|in:supply,discharge,in,out', // supply=coffre->caisse, discharge=caisse->coffre
+            'amount' => 'required|numeric|min:100',
+            'notes'  => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $session = $this->getActiveSession($user);
+
+        if (!$session) {
+            return back()->with('error', 'Opération refusée : Aucune session de caisse ouverte.');
+        }
+
+        $agency = Agency::lockForUpdate()->findOrFail($session->agency_id ?? ($user->agency_id ?? 1));
+        $amount = (float) $request->amount;
+        $type = in_array($request->type, ['supply', 'in']) ? 'supply' : 'discharge';
+
+        // Calculer solde physique actuel de la session
+        $totals = Transaction::where('cashier_session_id', $session->id)
+            ->where('status', 'completed')
+            ->select(
+                DB::raw('SUM(CASE WHEN transaction_type IN ("deposit", "savings_deposit", "tontine_deposit", "loan_repayment", "transfer_in") THEN amount ELSE 0 END) as total_in'),
+                DB::raw('SUM(CASE WHEN transaction_type IN ("withdrawal", "payout", "loan_disbursement", "transfer_out") THEN amount ELSE 0 END) as total_out')
+            )->first();
+        $currentCash = (float) $session->opening_balance + (float) ($totals->total_in ?? 0) - (float) ($totals->total_out ?? 0);
+
+        try {
+            DB::beginTransaction();
+
+            if ($type === 'supply') {
+                // Approvisionnement : Coffre-fort -> Caisse
+                if ($agency->vault_balance < $amount) {
+                    throw new \Exception('Fonds insuffisants dans la Trésorerie de l\'agence. Solde disponible : ' . number_format($agency->vault_balance, 0, ',', ' ') . ' FCFA.');
+                }
+                $agency->decrement('vault_balance', $amount);
+                $txType = 'transfer_in';
+                $desc = $request->notes ?? 'Approvisionnement caisse depuis le coffre-fort';
+                $successMsg = '✅ Approvisionnement de ' . number_format($amount, 0, ',', ' ') . ' FCFA reçu du coffre avec succès.';
+            } else {
+                // Décharge : Caisse -> Coffre-fort
+                if ($currentCash < $amount) {
+                    throw new \Exception('Solde de caisse insuffisant pour effectuer cette décharge. Solde disponible : ' . number_format($currentCash, 0, ',', ' ') . ' FCFA.');
+                }
+                $agency->increment('vault_balance', $amount);
+                $txType = 'transfer_out';
+                $desc = $request->notes ?? 'Décharge de caisse vers le coffre-fort';
+                $successMsg = '✅ Décharge de ' . number_format($amount, 0, ',', ' ') . ' FCFA versée au coffre-fort avec succès.';
+            }
+
+            $tx = Transaction::create([
+                'transaction_reference' => $this->generateTransactionReference(),
+                'transaction_type'      => $txType,
+                'amount'                => $amount,
+                'balance_before'        => $currentCash,
+                'balance_after'         => ($type === 'supply') ? ($currentCash + $amount) : ($currentCash - $amount),
+                'payment_method'        => 'cash',
+                'description'           => $desc,
+                'status'                => 'completed',
+                'processed_by'          => $user->id,
+                'agency_id'             => $agency->id,
+                'cashier_session_id'    => $session->id,
+                'processed_at'          => now(),
+                'transaction_date'      => now(),
+            ]);
+
+            $this->logActivity('vault_transfer', $desc . ' (' . number_format($amount, 0, ',', ' ') . ' FCFA)');
+
+            DB::commit();
+
+            return back()->with('success', $successMsg);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    // ================================================================
+    //  EXTOURNE / ANNULATION DE TRANSACTION AVEC PIN SUPERVISEUR
+    // ================================================================
+
+    /**
+     * Annuler une transaction au guichet sous contrôle d'un PIN superviseur
+     */
+    public function reverseTransaction(Request $request, $transactionId = null)
+    {
+        $refOrId = $transactionId ?: $request->input('transaction_reference') ?: $request->input('transaction_id');
+
+        $request->validate([
+            'supervisor_pin' => 'required|string',
+            'reason'         => 'required|string|min:4|max:500',
+        ]);
+
+        if (empty($refOrId)) {
+            return back()->with('error', 'Veuillez préciser le numéro de référence de la transaction à extourner.');
+        }
+
+        $user = Auth::user();
+        $validPins = ['1234', '0000', '9999', '2026', '3600'];
+
+        if (!in_array($request->supervisor_pin, $validPins) && !in_array($user->role, ['gestionnaire_superviseur', 'administrateur_systeme'])) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Code PIN Superviseur incorrect.'], 403);
+            }
+            return back()->with('error', 'Code PIN Superviseur incorrect.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $transaction = Transaction::with(['account.client'])
+                ->where('transaction_reference', trim($refOrId))
+                ->orWhere('payment_reference', trim($refOrId))
+                ->when(is_numeric($refOrId), function($q) use ($refOrId) {
+                    $q->orWhere('id', $refOrId);
+                })
+                ->first();
+
+            if (!$transaction) {
+                throw new \Exception("Aucune transaction trouvée avec la référence « {$refOrId} ».");
+            }
+
+            if ($transaction->status !== 'completed') {
+                throw new \Exception('Seules les transactions complétées peuvent être extournées.');
+            }
+
+            $amount = (float) $transaction->amount;
+            $type = strtolower($transaction->transaction_type);
+            $account = $transaction->account;
+
+            // Inversion comptable des soldes
+            if (str_contains($type, 'deposit') || str_contains($type, 'tontine_deposit') || str_contains($type, 'savings_deposit')) {
+                if ($account) {
+                    if ($account->balance < $amount) {
+                        throw new \Exception('Impossible d\'extourner : le solde actuel du compte (' . number_format($account->balance, 0, ',', ' ') . ' FCFA) est inférieur au montant déposé.');
+                    }
+                    $account->decrement('balance', $amount);
+
+                    // Rectification du carnet tontine en cas d'extourne d'une cotisation
+                    if ($account->account_type === 'tontine' && $account->tontineAccount) {
+                        $tontine = $account->tontineAccount;
+                        $tontine->decrement('total_paid', min((float)$tontine->total_paid, $amount));
+                        $activeCycle = $tontine->activeCycle ?? $tontine->cycles()->latest('cycle_number')->first();
+                        if ($activeCycle) {
+                            $activeCycle->decrement('collected_amount', min((float)$activeCycle->collected_amount, $amount));
+                        }
+                    }
+                }
+            } elseif (str_contains($type, 'withdrawal') || str_contains($type, 'payout')) {
+                if ($account) {
+                    $account->increment('balance', $amount);
+                }
+            } elseif (str_contains($type, 'transfer')) {
+                if ($account && $transaction->related_account_id) {
+                    $destAccount = Account::find($transaction->related_account_id);
+                    if ($destAccount && $destAccount->balance < $amount) {
+                        throw new \Exception('Impossible d\'extourner le virement : le compte destinataire n\'a pas assez de fonds.');
+                    }
+                    if ($destAccount) $destAccount->decrement('balance', $amount);
+                    $account->increment('balance', $amount);
+                }
+            }
+
+            // Marquer la transaction annulée
+            $transaction->update([
+                'status' => 'cancelled',
+                'description' => $transaction->description . ' [EXTOURNE: ' . $request->reason . ' - PIN validé]',
+            ]);
+
+            // Tracer dans l'audit log
+            $this->logActivity('reversal', "Extourne de la transaction {$transaction->transaction_reference} pour {$amount} FCFA. Motif: {$request->reason}", $transaction);
+
+            DB::commit();
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => "Transaction {$transaction->transaction_reference} annulée avec succès."]);
+            }
+
+            return back()->with('success', "✅ Transaction {$transaction->transaction_reference} annulée avec succès. Les soldes ont été rectifiés.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+            return back()->with('error', 'Erreur lors de l\'annulation : ' . $e->getMessage());
+        }
+    }
+
+    // ================================================================
+    //  VIREMENT DE COMPTE À COMPTE CLIENT
+    // ================================================================
+
+    /**
+     * Formulaire de virement entre comptes
+     */
+    public function transferForm(Request $request)
+    {
+        $user = Auth::user();
+        $activeSession = $this->getActiveSession($user);
+
+        if (!$activeSession) {
+            return view('agent.cashier.session_required');
+        }
+
+        $accounts = Account::with('client')
+            ->where('status', 'active')
+            ->when($user->agency_id && $user->role === 'caissier', function ($q) use ($user) {
+                $q->whereHas('client', fn($cq) => $cq->where('agency_id', $user->agency_id));
+            })
+            ->orderBy('account_number')
+            ->get();
+
+        return view('agent.cashier.transfer', compact('accounts', 'activeSession'));
+    }
+
+    /**
+     * Traiter le virement entre deux comptes clients
+     */
+    public function processTransfer(Request $request)
+    {
+        $request->validate([
+            'source_account_id'      => 'required|exists:accounts,id|different:destination_account_id',
+            'destination_account_id' => 'required|exists:accounts,id',
+            'amount'                 => 'required|numeric|min:100',
+            'description'            => 'nullable|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $activeSession = $this->getActiveSession($user);
+
+        if (!$activeSession) {
+            return back()->with('error', 'Aucune session de caisse ouverte.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $source = Account::with('client')->lockForUpdate()->findOrFail($request->source_account_id);
+            $destination = Account::with('client')->lockForUpdate()->findOrFail($request->destination_account_id);
+            $amount = (float) $request->amount;
+
+            if ($source->balance < $amount) {
+                throw new \Exception('Solde insuffisant sur le compte source (' . number_format($source->balance, 0, ',', ' ') . ' FCFA).');
+            }
+
+            // Débit source
+            $sourceBefore = $source->balance;
+            $source->decrement('balance', $amount);
+
+            // Crédit destination
+            $destBefore = $destination->balance;
+            $destination->increment('balance', $amount);
+
+            $ref = $this->generateTransactionReference();
+            $desc = $request->description ?? ("Virement de " . $source->client->full_name . " vers " . $destination->client->full_name);
+
+            // Transaction débit
+            $txOut = Transaction::create([
+                'transaction_reference' => $ref . '-OUT',
+                'account_id'            => $source->id,
+                'related_account_id'    => $destination->id,
+                'transaction_type'      => 'transfer_out',
+                'amount'                => $amount,
+                'balance_before'        => $sourceBefore,
+                'balance_after'         => $sourceBefore - $amount,
+                'payment_method'        => 'internal_transfer',
+                'description'           => $desc,
+                'status'                => 'completed',
+                'processed_by'          => $user->id,
+                'agency_id'             => $user->agency_id ?? 1,
+                'cashier_session_id'    => $activeSession->id,
+                'processed_at'          => now(),
+                'transaction_date'      => now(),
+            ]);
+
+            // Transaction crédit
+            Transaction::create([
+                'transaction_reference' => $ref . '-IN',
+                'account_id'            => $destination->id,
+                'related_account_id'    => $source->id,
+                'transaction_type'      => 'transfer_in',
+                'amount'                => $amount,
+                'balance_before'        => $destBefore,
+                'balance_after'         => $destBefore + $amount,
+                'payment_method'        => 'internal_transfer',
+                'description'           => $desc,
+                'status'                => 'completed',
+                'processed_by'          => $user->id,
+                'agency_id'             => $user->agency_id ?? 1,
+                'cashier_session_id'    => $activeSession->id,
+                'processed_at'          => now(),
+                'transaction_date'      => now(),
+            ]);
+
+            $this->logActivity('transfer', $desc, $source);
+
+            DB::commit();
+
+            return redirect()->route('caissier.transfer')
+                ->with('success', '✅ Virement de ' . number_format($amount, 0, ',', ' ') . ' FCFA exécuté avec succès.')
+                ->with('print_receipt', route('caissier.receipt.print', $txOut->id));
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    // ================================================================
+    //  SUPERVISION DES AGENTS DE TERRAIN
+    // ================================================================
+
+    /**
+     * Liste et suivi en temps réel des agents de terrain de l'agence
+     */
+    public function fieldAgents(Request $request)
+    {
+        $user = Auth::user();
+        $agencyId = $user->agency_id ?? 1;
+
+        $agentsQuery = User::where(function ($q) {
+            $q->where('role', 'agent_terrain')
+              ->orWhere('role', 'LIKE', 'agent%');
+        })->where('role', '!=', 'caissier');
+
+        if ($user->role !== 'administrateur_systeme') {
+            $agentsQuery->where('agency_id', $agencyId);
+        }
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $agentsQuery->where(function ($q) use ($s) {
+                $q->where('first_name', 'like', "%{$s}%")
+                  ->orWhere('last_name', 'like', "%{$s}%")
+                  ->orWhere('phone', 'like', "%{$s}%");
+            });
+        }
+
+        $agents = $agentsQuery->orderBy('first_name')->get();
+
+        // Calcul des métriques journalières pour chaque agent
+        $today = Carbon::today();
+        $summary = [
+            'total_agents'     => $agents->count(),
+            'active_today'     => 0,
+            'total_collected'  => 0,
+            'total_operations' => 0,
+        ];
+
+        $agentsData = $agents->map(function ($agent) use ($today, &$summary) {
+            $txQuery = Transaction::where('processed_by', $agent->id)
+                ->where('status', 'completed')
+                ->whereDate('transaction_date', $today);
+
+            $inflows = (clone $txQuery)->whereIn('transaction_type', ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment'])
+                ->sum('amount');
+            $count = (clone $txQuery)->count();
+            $clientsCount = Client::where('registered_by', $agent->id)->count();
+
+            if ($count > 0) {
+                $summary['active_today']++;
+            }
+            $summary['total_collected'] += $inflows;
+            $summary['total_operations'] += $count;
+
+            return (object) [
+                'agent'            => $agent,
+                'today_collected'  => $inflows,
+                'today_count'      => $count,
+                'today_ops_count'  => $count,
+                'clients_count'    => $clientsCount,
+                'cash_limit'       => 500000,
+                'is_active_today'  => $count > 0,
+            ];
+        });
+
+        return view('agent.cashier.field_agents.index', [
+            'agents'  => $agentsData,
+            'summary' => (object) $summary,
+            'date'    => $today,
+        ]);
+    }
+
+    /**
+     * Détails et journal des collectes d'un agent de terrain
+     */
+    public function fieldAgentDetails(Request $request, $agentId)
+    {
+        $agent = User::findOrFail($agentId);
+        $clients = Client::where('registered_by', $agent->id)->with('accounts')->latest()->paginate(15);
+        $transactions = Transaction::where('processed_by', $agent->id)
+            ->with(['account.client'])
+            ->latest('transaction_date')
+            ->paginate(25);
+
+        $todayCollected = Transaction::where('processed_by', $agent->id)
+            ->whereDate('transaction_date', Carbon::today())
+            ->where('status', 'completed')
+            ->whereIn('transaction_type', ['deposit', 'savings_deposit', 'tontine_deposit', 'loan_repayment'])
+            ->sum('amount');
+
+        return view('agent.cashier.field_agents.show', compact('agent', 'clients', 'transactions', 'todayCollected'));
+    }
+
+    // ================================================================
+    //  MODULE CRÉDITS & PRÊTS AU GUICHET
+    // ================================================================
+
+    /**
+     * Portefeuille des prêts de l'agence
+     */
+    public function loansIndex(Request $request)
+    {
+        $user = Auth::user();
+        $status = $request->get('status', 'all');
+
+        $query = Loan::with(['client', 'approvedBy', 'disbursedBy']);
+
+        if ($user->agency_id && $user->role !== 'administrateur_systeme') {
+            $query->whereHas('client', fn($q) => $q->where('agency_id', $user->agency_id));
+        }
+
+        if ($status !== 'all' && !empty($status)) {
+            $query->where('status', $status);
+        }
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('loan_number', 'like', "%{$s}%")
+                  ->orWhereHas('client', fn($cq) => $cq->where('first_name', 'like', "%{$s}%")->orWhere('last_name', 'like', "%{$s}%"));
+            });
+        }
+
+        $loans = $query->latest()->paginate(20);
+
+        $metrics = (object) [
+            'total'     => Loan::count(),
+            'approved'  => Loan::where('status', 'approved')->count(),
+            'disbursed' => Loan::whereIn('status', ['disbursed', 'active'])->count(),
+            'completed' => Loan::where('status', 'completed')->count(),
+        ];
+
+        return view('agent.cashier.loans.index', compact('loans', 'metrics', 'status'));
+    }
+
+    /**
+     * Formulaire de montage de dossier de prêt au guichet
+     */
+    public function loanApplyForm(Request $request)
+    {
+        $user = Auth::user();
+        $preselectedClient = $request->client_id ? Client::find($request->client_id) : null;
+        $clients = Client::when($user->agency_id && $user->role === 'caissier', fn($q) => $q->where('agency_id', $user->agency_id))
+            ->orderBy('first_name')
+            ->get();
+
+        return view('agent.cashier.loans.apply', compact('clients', 'preselectedClient'));
+    }
+
+    /**
+     * Test d'éligibilité AJAX au guichet avec scoring de risque avancé et conseiller IA
+     */
+    public function checkEligibility(Request $request, $clientId)
+    {
+        $client = Client::with(['accounts.tontineAccount', 'loans'])->findOrFail($clientId);
+
+        $requestedAmount = (float) $request->input('requested_amount', 200000);
+        $durationMonths = (int) $request->input('duration_months', 6);
+        $interestRate = (float) $request->input('interest_rate', 17.0);
+
+        $scoringService = new \App\Services\CreditScoringService();
+        $analysis = $scoringService->analyze($client, $requestedAmount, $durationMonths, $interestRate);
+
+        return response()->json($analysis);
+    }
+
+    /**
+     * Simulateur de crédit AJAX
+     */
+    public function simulateLoan(Request $request)
+    {
+        $request->validate([
+            'amount'          => 'required|numeric|min:10000',
+            'duration_months' => 'required|integer|min:1|max:36',
+            'interest_rate'   => 'nullable|numeric|min:1|max:50',
+        ]);
+
+        $amount = (float) $request->amount;
+        $months = (int) $request->duration_months;
+        $annualRate = (float) ($request->interest_rate ?? 17.0);
+
+        $totalInterest = $amount * ($annualRate / 100) * ($months / 12);
+        $totalDue = $amount + $totalInterest;
+        $monthlyPayment = $totalDue / $months;
+
+        return response()->json([
+            'success'         => true,
+            'amount'          => $amount,
+            'interest_rate'   => $annualRate,
+            'total_interest'  => round($totalInterest),
+            'total_due'       => round($totalDue),
+            'monthly_payment' => round($monthlyPayment),
+        ]);
+    }
+
+    /**
+     * Enregistrer une nouvelle demande de prêt au guichet
+     */
+    public function processLoanApply(Request $request)
+    {
+        $request->validate([
+            'client_id'              => 'required|exists:clients,id',
+            'requested_amount'       => 'required|numeric|min:10000',
+            'duration_months'        => 'required|integer|min:1|max:36',
+            'purpose'                => 'required|string|max:255',
+            'collateral_description' => 'nullable|string|max:500',
+            'interest_rate'          => 'nullable|numeric|min:1|max:50',
+            'guarantors'             => 'nullable|array',
+            'verifications'          => 'nullable|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $annualRate = (float) ($request->interest_rate ?? 17.0);
+            $amount = (float) $request->requested_amount;
+            $months = (int) $request->duration_months;
+            $totalInterest = $amount * ($annualRate / 100) * ($months / 12);
+
+            $loanNumber = 'LN-' . date('Ym') . '-' . rand(1000, 9999);
+
+            // Traitement des vérifications cochées
+            $verifications = [];
+            $submittedVerifs = $request->input('verifications', []);
+            foreach (Loan::VERIFICATION_ITEMS as $key => $item) {
+                $verifications[$key] = !empty($submittedVerifs[$key]);
+            }
+
+            $loan = Loan::create([
+                'loan_number'            => $loanNumber,
+                'client_id'              => $request->client_id,
+                'requested_amount'       => $amount,
+                'approved_amount'        => $amount,
+                'duration_months'        => $months,
+                'interest_rate'          => $annualRate,
+                'total_interest'         => $totalInterest,
+                'total_amount_due'       => $amount + $totalInterest,
+                'monthly_payment'        => ($amount + $totalInterest) / $months,
+                'status'                 => 'pending',
+                'purpose'                => $request->purpose,
+                'collateral_description' => $request->collateral_description,
+                'verifications'          => $verifications,
+                'guarantors_count'       => 0,
+                'created_by'             => Auth::id(),
+            ]);
+
+            // Enregistrer jusqu'à 3 cautionnaires solidaires
+            $guarantorsData = $request->input('guarantors', []);
+            $savedGuarantorsCount = 0;
+
+            if (is_array($guarantorsData)) {
+                foreach ($guarantorsData as $order => $gData) {
+                    if (!empty($gData['full_name']) && !empty($gData['phone'])) {
+                        \App\Models\LoanGuarantor::create([
+                            'loan_id'                => $loan->id,
+                            'guarantor_order'        => (int) ($order ?: ($savedGuarantorsCount + 1)),
+                            'full_name'              => $gData['full_name'],
+                            'phone'                  => $gData['phone'],
+                            'id_card_number'         => $gData['id_card_number'] ?? null,
+                            'relationship'           => $gData['relationship'] ?? null,
+                            'profession'             => $gData['profession'] ?? null,
+                            'address'                => $gData['address'] ?? null,
+                            'collateral_value'       => !empty($gData['collateral_value']) ? (float)$gData['collateral_value'] : null,
+                            'collateral_description' => $gData['collateral_description'] ?? null,
+                            'is_verified'            => !empty($gData['is_verified']),
+                        ]);
+                        $savedGuarantorsCount++;
+                    }
+                }
+            }
+
+            $loan->update(['guarantors_count' => $savedGuarantorsCount]);
+
+            DB::commit();
+
+            return redirect()->route('caissier.loans.index')
+                ->with('success', "✅ Dossier de prêt {$loan->loan_number} enregistré avec {$savedGuarantorsCount} cautionnaire(s) et vérifications.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Erreur lors de la demande : ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Détails complets d'un prêt avec son échéancier
+     */
+    public function loanDetails(Request $request, $id)
+    {
+        $loan = Loan::with(['client', 'approvedBy', 'disbursedBy', 'guarantors', 'payments' => fn($q) => $q->orderBy('payment_number')])
+            ->findOrFail($id);
+
+        return view('agent.cashier.loans.show', compact('loan'));
+    }
+
+    /**
+     * Mettre à jour les vérifications et cautions d'un prêt
+     */
+    public function updateLoanVerifications(Request $request, $id)
+    {
+        $loan = Loan::with('guarantors')->findOrFail($id);
+
+        $submittedVerifs = $request->input('verifications', []);
+        $verifications = [];
+        foreach (Loan::VERIFICATION_ITEMS as $key => $item) {
+            $verifications[$key] = !empty($submittedVerifs[$key]);
+        }
+        $loan->verifications = $verifications;
+        $loan->save();
+
+        // Mettre à jour l'état vérifié des cautionnaires
+        $guarantorVerified = $request->input('guarantor_verified', []);
+        foreach ($loan->guarantors as $g) {
+            $g->is_verified = !empty($guarantorVerified[$g->id]);
+            $g->save();
+        }
+
+        return redirect()->back()->with('success', '✅ Grille d\'audit et vérifications des cautionnaires mises à jour avec succès.');
+    }
+
+    /**
+     * Encaisser le remboursement d'un prêt au guichet
+     */
+    public function processLoanRepay(Request $request, $loanId)
+    {
+        $request->validate([
+            'amount'         => 'required|numeric|min:100',
+            'payment_method' => 'required|in:cash,mobile_money,bank_transfer',
+            'notes'          => 'nullable|string|max:500',
+        ]);
+
+        $request->merge([
+            'type'        => 'loan',
+            'description' => $request->notes ?? 'Remboursement de prêt au guichet',
+            'source'      => 'loan_show',
+        ]);
+        return $this->processDeposit($request, $loanId);
+    }
+
+    /**
+     * Générer automatiquement l'échéancier si manquant pour un prêt
+     */
+    private function ensureLoanSchedule(Loan $loan): void
+    {
+        if ($loan->payments()->count() > 0) {
+            return;
+        }
+
+        $amount = (float) ($loan->approved_amount ?? $loan->requested_amount ?? 100000);
+        $duration = max(1, (int) ($loan->duration_months ?? 12));
+        $rate = (float) ($loan->interest_rate ?? 17.0);
+
+        $totalInterest = $amount * ($rate / 100) * ($duration / 12);
+        $totalDue = $amount + $totalInterest;
+        $monthlyPayment = round($totalDue / $duration, 2);
+
+        $firstDate = $loan->first_payment_date ? \Carbon\Carbon::parse($loan->first_payment_date) : \Carbon\Carbon::now()->addMonth();
+
+        $runningPrincipal = $amount;
+        $runningInterest = $totalInterest;
+
+        for ($i = 1; $i <= $duration; $i++) {
+            $interestPart = round($totalInterest / $duration, 2);
+            $principalPart = round($amount / $duration, 2);
+
+            if ($i === $duration) {
+                $principalPart = $runningPrincipal;
+                $interestPart = $runningInterest;
+                $expected = $principalPart + $interestPart;
+            } else {
+                $expected = $monthlyPayment;
+                $runningPrincipal -= $principalPart;
+                $runningInterest -= $interestPart;
+            }
+
+            LoanPayment::create([
+                'loan_id' => $loan->id,
+                'payment_number' => $i,
+                'due_date' => (clone $firstDate)->addMonths($i - 1)->format('Y-m-d'),
+                'expected_amount' => $expected,
+                'principal_amount' => $principalPart,
+                'interest_amount' => $interestPart,
+                'paid_amount' => 0,
+                'status' => 'pending',
+            ]);
+        }
+
+        $loan->update([
+            'monthly_payment' => $monthlyPayment,
+            'total_amount_due' => $totalDue,
+            'outstanding_principal' => $amount,
+            'outstanding_interest' => $totalInterest,
+        ]);
+    }
+
+    // ================================================================
+    //  VALIDATION KYC RAPIDE AU GUICHET
+    // ================================================================
+
+    /**
+     * Valider expressément le statut KYC d'un client au guichet
+     */
+    public function approveClientKyc(Request $request, $clientId)
+    {
+        try {
+            $client = Client::findOrFail($clientId);
+            $client->update([
+                'kyc_status'      => 'approved',
+                'kyc_approved_at' => now(),
+                'kyc_approved_by' => Auth::id(),
+                'is_active'       => true,
+            ]);
+
+            $this->logActivity('kyc_approval', "Validation KYC au guichet pour {$client->full_name}.", $client);
+
+            return back()->with('success', "✅ Statut KYC de {$client->full_name} validé avec succès.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erreur validation KYC : ' . $e->getMessage());
+        }
+    }
+
+    // ================================================================
+    //  RAPPORTS & STATISTIQUES AVANCÉES DE CAISSE
+    // ================================================================
+
+    /**
+     * Page de rapports détaillés et analyse des flux de caisse
+     */
+    public function reports(Request $request)
+    {
+        $user = Auth::user();
+        $activeSession = $this->getActiveSession($user);
+
+        $startDate = $request->get('date_start', Carbon::today()->startOfMonth()->toDateString());
+        $endDate = $request->get('date_end', Carbon::today()->toDateString());
+
+        $query = Transaction::where('status', 'completed')
+            ->whereDate('transaction_date', '>=', $startDate)
+            ->whereDate('transaction_date', '<=', $endDate);
+
+        if ($user->role === 'caissier') {
+            $query->where('agency_id', $user->agency_id ?? 1);
+        }
+
+        $transactions = (clone $query)->latest('transaction_date')->paginate(30);
+
+        $totals = (clone $query)->select(
+            DB::raw('SUM(CASE WHEN transaction_type IN ("deposit", "savings_deposit", "tontine_deposit", "loan_repayment", "transfer_in") THEN amount ELSE 0 END) as total_in'),
+            DB::raw('SUM(CASE WHEN transaction_type IN ("withdrawal", "payout", "loan_disbursement", "transfer_out") THEN amount ELSE 0 END) as total_out'),
+            DB::raw('COUNT(*) as total_count')
+        )->first();
+
+        // Répartition par mode de paiement
+        $byMethod = (clone $query)->select('payment_method', DB::raw('SUM(amount) as sum_amount'), DB::raw('COUNT(*) as count'))
+            ->groupBy('payment_method')
+            ->get();
+
+        return view('agent.cashier.reports', compact('transactions', 'totals', 'byMethod', 'startDate', 'endDate', 'activeSession'));
     }
 
     private function generateClientNumber(): string

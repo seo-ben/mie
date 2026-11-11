@@ -151,10 +151,18 @@ class AdminUserController extends Controller
             'phone' => ['string', Rule::unique('users')->ignore($user->id)],
             'role' => 'string',
             'agency_id' => 'nullable|exists:agencies,id',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
+            'can_open_cashier_session' => 'nullable|boolean',
         ]);
 
-        $user->update(array_filter($validated));
+        $user->fill($validated);
+        if ($request->has('is_active')) {
+            $user->is_active = $request->boolean('is_active');
+        }
+        if ($request->has('can_open_cashier_session')) {
+            $user->can_open_cashier_session = $request->boolean('can_open_cashier_session');
+        }
+        $user->save();
 
         return redirect()->route('admin.users.index')
             ->with('success', 'Utilisateur mis à jour avec succès.');
@@ -276,6 +284,34 @@ class AdminUserController extends Controller
         ]);
         return redirect()->route('admin.users.index')
             ->with('success', 'Statut de l\'utilisateur mis à jour avec succès.');
+    }
+
+    /**
+     * Basculer l'autorisation d'ouverture autonome de caisse pour un caissier
+     */
+    public function toggleCashierOpenPermission($userId)
+    {
+        $user = User::findOrFail($userId);
+
+        $user->can_open_cashier_session = !$user->can_open_cashier_session;
+        $user->save();
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => $user->can_open_cashier_session ? 'GRANT_CASHIER_OPEN_PERMISSION' : 'REVOKE_CASHIER_OPEN_PERMISSION',
+            'table_name' => 'users',
+            'record_id' => $user->id,
+            'additional_data' => [
+                'user' => $user->first_name . ' ' . $user->last_name,
+                'can_open_cashier_session' => $user->can_open_cashier_session
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
+        ]);
+
+        $etat = $user->can_open_cashier_session ? 'accordée avec succès' : 'révoquée';
+        return redirect()->back()
+            ->with('success', "Autorisation d'ouverture autonome de caisse {$etat} pour {$user->first_name} {$user->last_name}.");
     }
 
     /**

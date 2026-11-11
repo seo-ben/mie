@@ -33,7 +33,7 @@
         <div class="bank-card overflow-hidden border-l-4 border-purple-600 shadow-xl shadow-purple-500/5">
             <div class="px-8 py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                 <h3 class="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                    <i class="fas fa-rotate text-purple-600"></i> Analyse du Protocole Actif : Cycle #{{ $activeCycle->cycle_number }}
+                    <i class="fas fa-rotate text-purple-600"></i> Analyse du Protocole Actif : Cycle {{ $activeCycle->cycle_number }}
                 </h3>
                 <span class="bank-badge badge-secondary !text-[8px] uppercase font-black">
                     Fréquence : {{ __($account->tontineAccount->payment_frequency) }}
@@ -288,7 +288,7 @@
                             </div>
                             <div id="completionMessage" class="hidden p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl animate-pulse text-center">
                                 <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                                    <i class="fas fa-check-double mr-2"></i> Saturation de l'Objectif de Cycle #{{ $activeCycle->cycle_number }} !
+                                    <i class="fas fa-check-double mr-2"></i> Saturation de l'Objectif de Cycle {{ $activeCycle->cycle_number }} !
                                 </p>
                             </div>
                         </div>

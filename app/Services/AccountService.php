@@ -15,6 +15,14 @@ class AccountService
     {
         DB::beginTransaction();
         try {
+            $client = \App\Models\Client::findOrFail($clientId);
+            if ($data['account_type'] === 'savings' && !$client->canOpenSavingsAccount()) {
+                throw new \Exception('Ce client possède déjà un compte épargne actif (limite de 1).');
+            }
+            if ($data['account_type'] === 'tontine' && !$client->canOpenTontineAccount()) {
+                throw new \Exception('Ce client a atteint sa limite autorisée de comptes Tontine (' . ($client->max_tontine_accounts ?? 1) . ').');
+            }
+
             // Récupérer les frais d'activation
             $activationFee = $this->getActivationFee($data['account_type'], $data['tontine_amount'] ?? null);
 

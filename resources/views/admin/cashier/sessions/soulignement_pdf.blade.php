@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Soulignement de Caisse - Session #{{ $session->id }}</title>
+    <title>Soulignement de Caisse - Session {{ $session->id }}</title>
     <style>
         body { font-family: 'Helvetica', sans-serif; font-size: 11pt; color: #333; margin: 0; padding: 20px; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1E40AF; padding-bottom: 10px; }
@@ -34,8 +34,8 @@
 <body>
     <div class="header">
         <div class="title">Soulignement de Caisse</div>
-        <div class="subtitle">Microfinance Institutionnelle - MIE YAYRA</div>
-        <div style="margin-top: 10px; font-weight: bold;">Rapport de Clôture de Session #{{ $session->id }}</div>
+        <div class="subtitle">Microfinance Institutionnelle - FSD YAYRA</div>
+        <div style="margin-top: 10px; font-weight: bold;">Rapport de Clôture de Session {{ $session->id }}</div>
     </div>
 
     <div class="session-info">
@@ -150,7 +150,7 @@
             </tr>
         </table>
         <div style="margin-top: 40px; text-align: center; font-size: 8pt; color: #999;">
-            Document généré le {{ now()->format('d/m/Y à H:i:s') }} par le système de pilotage MIE YAYRA.
+            Document généré le {{ now()->format('d/m/Y à H:i:s') }} par le système de pilotage FSD YAYRA.
         </div>
     </div>
 </body>

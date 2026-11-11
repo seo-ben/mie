@@ -166,34 +166,141 @@
             </div>
         </div>
 
-        <!-- Informations du garant (optionnel) -->
-        <div class="p-6 mb-6 bg-white rounded-lg shadow-sm">
-            <h3 class="mb-4 text-lg font-semibold text-gray-900">Informations du Garant (Optionnel)</h3>
-
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Nom du Garant</label>
-                    <input type="text" name="guarantor_name"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Nom complet"
-                           value="{{ old('guarantor_name') }}">
+        <!-- Section des 3 Cautionnaires Solidaires -->
+        <div class="p-6 mb-6 bg-white rounded-lg shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 flex-wrap gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                        <i class="fas fa-users-viewfinder"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Cautionnaires Solidaires (Jusqu'à 3 Cautions)</h3>
+                        <p class="text-xs text-gray-500">Saisie des garanties personnelles et actes de cautionnement</p>
+                    </div>
                 </div>
+                <span class="inline-flex items-center px-3 py-1 text-xs font-semibold text-purple-700 bg-purple-50 rounded-full border border-purple-200">
+                    <i class="mr-1 fas fa-shield-halved"></i> 3 Cautions Requises
+                </span>
+            </div>
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Téléphone du Garant</label>
-                    <input type="text" name="guarantor_phone"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="+228 XX XX XX XX"
-                           value="{{ old('guarantor_phone') }}">
-                </div>
+            <div class="space-y-6">
+                @for($i = 1; $i <= 3; $i++)
+                <div class="p-4 rounded-xl border border-gray-200 bg-gray-50/50">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="inline-flex items-center px-3 py-1 text-xs font-bold rounded-full bg-slate-900 text-white">
+                            Cautionnaire {{ $i }} {{ $i === 1 ? '(Obligatoire)' : '(Recommandé)' }}
+                        </span>
+                        <label class="inline-flex items-center gap-2 text-xs font-semibold text-emerald-700 cursor-pointer">
+                            <input type="checkbox" name="guarantors[{{ $i }}][is_verified]" value="1" checked class="w-4 h-4 text-emerald-600 rounded">
+                            <span>Identité & Accord vérifiés</span>
+                        </label>
+                    </div>
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Relation</label>
-                    <input type="text" name="guarantor_relationship"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Ex: Frère, Ami, Collègue"
-                           value="{{ old('guarantor_relationship') }}">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div>
+                            <label class="block mb-1 text-xs font-medium text-gray-700">Nom & Prénoms {{ $i === 1 ? '*' : '' }}</label>
+                            <input type="text" name="guarantors[{{ $i }}][full_name]"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Nom complet"
+                                   value="{{ old("guarantors.$i.full_name") }}" {{ $i === 1 ? 'required' : '' }}>
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 text-xs font-medium text-gray-700">Téléphone {{ $i === 1 ? '*' : '' }}</label>
+                            <input type="text" name="guarantors[{{ $i }}][phone]"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500"
+                                   placeholder="90123456"
+                                   value="{{ old("guarantors.$i.phone") }}" {{ $i === 1 ? 'required' : '' }}>
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 text-xs font-medium text-gray-700">N° CNI / Passeport</label>
+                            <input type="text" name="guarantors[{{ $i }}][id_card_number]"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500"
+                                   placeholder="TG-LOM-1990-..."
+                                   value="{{ old("guarantors.$i.id_card_number") }}">
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 text-xs font-medium text-gray-700">Lien de Parenté / Relation</label>
+                            <select name="guarantors[{{ $i }}][relationship]" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="Frère / Sœur">Frère / Sœur</option>
+                                <option value="Conjoint(e)">Conjoint(e)</option>
+                                <option value="Parent (Père / Mère)">Parent (Père / Mère)</option>
+                                <option value="Collègue de travail">Collègue de travail</option>
+                                <option value="Partenaire d'affaires">Partenaire d'affaires</option>
+                                <option value="Autre caution solidaire">Autre caution solidaire</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 text-xs font-medium text-gray-700">Profession / Activité</label>
+                            <input type="text" name="guarantors[{{ $i }}][profession]"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Commerçant, artisan..."
+                                   value="{{ old("guarantors.$i.profession") }}">
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 text-xs font-medium text-gray-700">Adresse / Domicile</label>
+                            <input type="text" name="guarantors[{{ $i }}][address]"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Quartier, Ville"
+                                   value="{{ old("guarantors.$i.address") }}">
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 text-xs font-medium text-gray-700">Valeur de l'Engagement (FCFA)</label>
+                            <input type="number" name="guarantors[{{ $i }}][collateral_value]"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Ex: 250000" step="10000"
+                                   value="{{ old("guarantors.$i.collateral_value") }}">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 text-xs font-medium text-gray-700">Nature du Gage / Caution</label>
+                            <input type="text" name="guarantors[{{ $i }}][collateral_description]"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Nantissement stock, gage moto/véhicule, engagement solidaire sur salaire"
+                                   value="{{ old("guarantors.$i.collateral_description") }}">
+                        </div>
+                    </div>
                 </div>
+                @endfor
+            </div>
+        </div>
+
+        <!-- Section Grille d'Audit & Contrôles Prêt (Checklist à cocher) -->
+        <div class="p-6 mb-6 bg-white rounded-lg shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 flex-wrap gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Grille d'Audit & Contrôles Réglementaires Obligatoires</h3>
+                        <p class="text-xs text-gray-500">Cochez les vérifications effectuées pour ce dossier de prêt</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">
+                    9 Contrôles Réglementaires
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @foreach(\App\Models\Loan::VERIFICATION_ITEMS as $k => $item)
+                <div class="p-3 rounded-xl border border-gray-200 bg-gray-50/50 flex items-center justify-between gap-3">
+                    <label class="flex items-center gap-3 cursor-pointer select-none mb-0">
+                        <input type="checkbox" name="verifications[{{ $k }}]" value="1" checked class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
+                        <div>
+                            <span class="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+                                <i class="fas {{ $item['icon'] }} text-gray-400"></i> {{ $item['label'] }}
+                            </span>
+                            <span class="text-[10px] text-gray-400 block mt-0.5">{{ $item['category'] }}</span>
+                        </div>
+                    </label>
+                </div>
+                @endforeach
             </div>
         </div>
 

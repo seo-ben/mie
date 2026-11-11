@@ -153,6 +153,21 @@ class AgentAccountController extends Controller
                 ], 201);
             }
 
+            // Vérifications quota Tontine et règle des 31 jours
+            if (!$client->canOpenTontineAccount()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ce client a atteint sa limite autorisée de comptes Tontine (' . ($client->max_tontine_accounts ?? 1) . '). Seul un administrateur peut autoriser l\'ouverture d\'un compte supplémentaire.',
+                ], 422);
+            }
+
+            if ($client->hasActiveUnfinishedTontineCycle()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ce client a un cycle de tontine de 31 jours en cours de cotisation non achevé. Selon la règle institutionnelle, il doit terminer son cycle avant d\'ouvrir un autre carnet.',
+                ], 422);
+            }
+
             // 1. Créer le compte tontine de base - Directement actif avec carnet validé
             $account = Account::create([
                 'client_id' => $clientId,
@@ -1238,7 +1253,7 @@ class AgentAccountController extends Controller
         if ($nbCycles === 1) {
             $cycle = $cyclesAffected[0];
             if ($cycle['completed']) {
-                $message .= ' | 🎉 Cycle #' . $cycle['cycle_number'] . ' complété !';
+                $message .= ' | 🎉 Cycle ' . $cycle['cycle_number'] . ' complété !';
             }
         } else {
             $message .= ' | 📈 Réparti sur ' . $nbCycles . ' cycle(s)';

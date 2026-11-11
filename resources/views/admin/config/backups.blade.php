@@ -1,5 +1,19 @@
 @extends('layouts.app_admin')
 
+@php
+if (!function_exists('formatBytes')) {
+    function formatBytes($bytes, $precision = 2) {
+        if (!$bytes) return '0 o';
+        $bytes = floatval($bytes);
+        $units = ['o', 'Ko', 'Mo', 'Go'];
+        $pow = floor(log($bytes, 1024));
+        $pow = max(0, min($pow, count($units) - 1));
+        $bytes /= pow(1024, $pow);
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+}
+@endphp
+
 @section('title', 'Services de Récupération du Registre')
 @section('page-title', 'Protocole / Récupération du Cœur')
 
@@ -40,7 +54,7 @@
                 <span class="kpi-label">Poids du Registre</span>
                 <i class="fas fa-hdd text-emerald-500 text-xs"></i>
             </div>
-            <div class="kpi-value mt-1">{{ formatBytes(array_sum(array_column($backupsList, 'size'))) }}</div>
+            <div class="kpi-value mt-1">{{ formatBytes(array_sum(array_column($backupsList, 'size_bytes') ?: [0])) }}</div>
             <p class="text-[8px] font-black text-slate-400 uppercase mt-4">Taille Cumulée du Stockage</p>
         </div>
 
@@ -91,7 +105,7 @@
                         </td>
                         <td class="text-[10px] font-bold text-slate-600 uppercase">{{ $backup['created_at'] }}</td>
                         <td>
-                            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-black rounded-lg">{{ formatBytes($backup['size']) }}</span>
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-black rounded-lg">{{ $backup['size'] }}</span>
                         </td>
                         <td class="text-xs text-slate-500 italic max-w-xs truncate">
                             {{ $backup['description'] ?? 'Sauvegarde Institutionnelle Automatisée' }}
@@ -171,18 +185,6 @@
         </div>
     </div>
 </div>
-
-@php
-function formatBytes($bytes, $precision = 2) {
-    if (!$bytes) return '0 o';
-    $bytes = floatval($bytes);
-    $units = ['o', 'Ko', 'Mo', 'Go'];
-    $pow = floor(log($bytes, 1024));
-    $pow = min($pow, count($units) - 1);
-    $bytes /= pow(1024, $pow);
-    return round($bytes, $precision) . ' ' . $units[$pow];
-}
-@endphp
 
 <script>
 function showCreateBackupModal() { document.getElementById('createBackupModal').classList.remove('hidden'); }

@@ -7,12 +7,12 @@
 @push('styles')
 <style>
     .search-container {
-        background: #1a2332;
-        border: 1px solid rgba(0, 209, 178, 0.15);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 16px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .search-input-group {
@@ -22,27 +22,28 @@
     }
 
     .search-input-group input {
-        background: #0f1923;
-        border: 1px solid rgba(0, 209, 178, 0.3);
-        color: white;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #0f172a;
         border-radius: 12px;
-        padding: 15px 50px 15px 45px;
-        font-size: 1.05rem;
+        padding: 14px 48px 14px 44px;
+        font-size: 1rem;
         width: 100%;
-        transition: all 0.3s;
+        transition: all 0.2s;
         font-weight: 500;
     }
 
     .search-input-group input:focus {
-        border-color: #00d1b2;
-        box-shadow: 0 0 0 4px rgba(0, 209, 178, 0.15);
+        background: #ffffff;
+        border-color: #0d9488;
+        box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
         outline: none;
     }
 
     .search-input-group .search-icon {
         position: absolute;
-        left: 18px;
-        color: #00d1b2;
+        left: 16px;
+        color: #0d9488;
         font-size: 1.1rem;
     }
 
@@ -51,7 +52,7 @@
         right: 15px;
         background: none;
         border: none;
-        color: rgba(225, 232, 237, 0.4);
+        color: #94a3b8;
         font-size: 1rem;
         cursor: pointer;
         display: none;
@@ -72,12 +73,13 @@
     }
 
     .shortcut-btn {
-        background: rgba(0, 209, 178, 0.08);
-        border: 1px solid rgba(0, 209, 178, 0.2);
-        color: rgba(225, 232, 237, 0.7);
+        background: #f0fdfa;
+        border: 1px solid #ccfbf1;
+        color: #0f766e;
         border-radius: 20px;
         padding: 5px 14px;
         font-size: 0.78rem;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
         display: flex;
@@ -86,9 +88,9 @@
     }
 
     .shortcut-btn:hover {
-        background: rgba(0, 209, 178, 0.15);
-        color: #00d1b2;
-        border-color: #00d1b2;
+        background: #0d9488;
+        color: #ffffff;
+        border-color: #0d9488;
     }
 
     .shortcut-btn i {
@@ -96,8 +98,8 @@
     }
 
     .keyboard-hint {
-        color: rgba(225, 232, 237, 0.3);
-        font-size: 0.72rem;
+        color: #94a3b8;
+        font-size: 0.75rem;
         margin-top: 10px;
         display: flex;
         align-items: center;
@@ -105,25 +107,27 @@
     }
 
     .keyboard-hint kbd {
-        background: rgba(0, 209, 178, 0.1);
-        border: 1px solid rgba(0, 209, 178, 0.2);
-        padding: 1px 6px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        padding: 2px 6px;
         border-radius: 4px;
         font-size: 0.7rem;
-        color: #00d1b2;
+        color: #475569;
+        font-weight: 600;
     }
 
     /* Résultats récents */
     .recent-section {
-        margin-top: 15px;
+        margin-top: 16px;
         display: none;
     }
 
     .recent-header {
-        color: rgba(225, 232, 237, 0.4);
-        font-size: 0.75rem;
+        color: #64748b;
+        font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
+        font-weight: 700;
         margin-bottom: 8px;
         display: flex;
         justify-content: space-between;
@@ -133,8 +137,8 @@
     .recent-header button {
         background: none;
         border: none;
-        color: rgba(225, 232, 237, 0.3);
-        font-size: 0.7rem;
+        color: #94a3b8;
+        font-size: 0.72rem;
         cursor: pointer;
     }
 
@@ -146,29 +150,29 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(0, 209, 178, 0.05);
-        border: 1px solid rgba(0, 209, 178, 0.1);
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
         padding: 6px 12px;
         margin: 0 6px 6px 0;
         cursor: pointer;
         transition: all 0.2s;
         font-size: 0.8rem;
-        color: rgba(225, 232, 237, 0.7);
+        color: #334155;
     }
 
     .recent-item:hover {
-        background: rgba(0, 209, 178, 0.12);
-        border-color: #00d1b2;
-        color: white;
+        background: #f0fdfa;
+        border-color: #0d9488;
+        color: #0f766e;
     }
 
     .recent-item .recent-name {
-        font-weight: 500;
+        font-weight: 600;
     }
 
     .recent-item .recent-num {
-        color: rgba(225, 232, 237, 0.4);
+        color: #64748b;
         font-size: 0.72rem;
     }
 
@@ -178,38 +182,34 @@
     }
 
     .client-card {
-        background: #1a2332;
-        border: 1px solid rgba(0, 209, 178, 0.1);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
-        padding: 15px;
+        padding: 16px;
         margin-bottom: 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: all 0.15s;
+        transition: all 0.15s ease;
         cursor: pointer;
-        animation: slideIn 0.2s ease-out;
-    }
-
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(-5px); }
-        to { opacity: 1; transform: translateY(0); }
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
 
     .client-card:hover {
-        border-color: #00d1b2;
-        background: rgba(0, 209, 178, 0.05);
-        transform: translateX(3px);
+        border-color: #0d9488;
+        background: #f0fdfa;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
     }
 
     .client-card.selected {
-        border-color: #00d1b2;
-        background: rgba(0, 209, 178, 0.1);
-        box-shadow: 0 0 0 2px rgba(0, 209, 178, 0.2);
+        border-color: #0d9488;
+        background: #f0fdfa;
+        box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
     }
 
-    .client-info h6 { color: white; margin-bottom: 3px; font-weight: 600; }
-    .client-info span { color: rgba(225, 232, 237, 0.5); font-size: 0.8rem; }
+    .client-info h6 { color: #0f172a; margin-bottom: 3px; font-weight: 700; }
+    .client-info span { color: #64748b; font-size: 0.82rem; }
 
     .account-badge {
         font-size: 0.7rem;
@@ -217,24 +217,25 @@
         border-radius: 6px;
         margin-left: 8px;
         text-transform: uppercase;
-        font-weight: 600;
+        font-weight: 700;
     }
 
-    .badge-savings { background: rgba(0, 180, 216, 0.15); color: #00b4d8; }
-    .badge-tontine { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-    .badge-loan { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+    .badge-savings { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; }
+    .badge-tontine { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-loan { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
 
     .fast-indicator {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 0.65rem;
-        color: #10b981;
+        font-size: 0.7rem;
+        color: #059669;
+        font-weight: 600;
         margin-left: 8px;
     }
 
     .fast-indicator i {
-        font-size: 0.55rem;
+        font-size: 0.65rem;
     }
 
     /* Compteur de résultats */
@@ -242,55 +243,65 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }
 
     .result-meta .result-time {
-        font-size: 0.7rem;
-        color: rgba(225, 232, 237, 0.3);
+        font-size: 0.72rem;
+        color: #94a3b8;
     }
 
     .deposit-modal-content {
-        background: #1a2332;
-        border: 1px solid rgba(0, 209, 178, 0.2);
-        color: white;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        color: #0f172a;
     }
 
-    .form-label { color: rgba(225, 232, 237, 0.6); font-size: 0.85rem; }
+    .form-label { color: #334155; font-size: 0.85rem; font-weight: 600; }
 
     .form-control, .form-select {
-        background: #0f1923;
-        border: 1px solid rgba(0, 209, 178, 0.2);
-        color: white;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #0f172a;
         border-radius: 8px;
         padding: 10px 12px;
     }
 
     .form-control:focus, .form-select:focus {
-        background: #0f1923;
-        color: white;
-        border-color: #00d1b2;
-        box-shadow: 0 0 0 3px rgba(0, 209, 178, 0.1);
+        background: #ffffff;
+        color: #0f172a;
+        border-color: #0d9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
     }
 
     .amount-input {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #00d1b2;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #0d9488;
         text-align: center;
+        background: #f0fdfa;
+        border-color: #99f6e4;
     }
 
     .btn-deposit {
-        background: linear-gradient(135deg, #00d1b2, #00b4d8);
+        background: linear-gradient(135deg, #0d9488, #059669);
         border: none;
         color: white;
         font-weight: 600;
-        padding: 12px;
-        border-radius: 10px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+    }
+    .btn-deposit:hover {
+        background: linear-gradient(135deg, #0f766e, #047857);
+        color: white;
     }
 
     .info-box {
-        background: rgba(0, 209, 178, 0.05);
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 10px;
         padding: 15px;
         margin-bottom: 20px;
@@ -303,17 +314,17 @@
         font-size: 0.85rem;
     }
 
-    .info-item span:first-child { color: rgba(225, 232, 237, 0.5); }
-    .info-item span:last-child { color: white; font-weight: 500; }
+    .info-item span:first-child { color: #64748b; font-weight: 500; }
+    .info-item span:last-child { color: #0f172a; font-weight: 700; }
 
     /* Quick actions dans les résultats */
     .quick-action-btn {
-        background: linear-gradient(135deg, #00d1b2, #00b4d8);
+        background: linear-gradient(135deg, #0d9488, #059669);
         border: none;
         color: white;
         border-radius: 8px;
-        padding: 6px 14px;
-        font-size: 0.78rem;
+        padding: 7px 16px;
+        font-size: 0.8rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
@@ -321,14 +332,14 @@
     }
 
     .quick-action-btn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 2px 8px rgba(0, 209, 178, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(13, 148, 136, 0.25);
     }
 
     /* Loading skeleton */
     .skeleton-card {
-        background: #1a2332;
-        border: 1px solid rgba(0, 209, 178, 0.05);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 10px;
@@ -336,7 +347,7 @@
     }
 
     .skeleton-line {
-        background: rgba(0, 209, 178, 0.08);
+        background: #e2e8f0;
         border-radius: 4px;
         height: 14px;
         margin-bottom: 8px;
@@ -348,7 +359,7 @@
 
     @keyframes skeleton-pulse {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+        50% { opacity: 0.4; }
     }
 </style>
 @endpush
@@ -357,8 +368,8 @@
 
 <div class="search-container">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="text-white mb-0">
-            <i class="fas fa-search-dollar me-2" style="color: #00d1b2;"></i>Rechercher un compte
+        <h5 class="text-slate-900 fw-bold mb-0">
+            <i class="fas fa-search-dollar me-2 text-emerald-600"></i>Rechercher un compte
         </h5>
         <div class="keyboard-hint d-none d-md-flex">
             <kbd>/</kbd> pour rechercher &bull; <kbd>Échap</kbd> pour effacer
@@ -392,7 +403,7 @@
     <!-- Recherches récentes -->
     <div id="recentSection" class="recent-section">
         <div class="recent-header">
-            <span><i class="fas fa-clock me-1"></i> Récemment utilisés</span>
+            <span><i class="fas fa-clock me-1 text-slate-400"></i> Récemment utilisés</span>
             <button onclick="clearRecentSearches()">Effacer</button>
         </div>
         <div id="recentList"></div>
@@ -402,8 +413,8 @@
     <div id="searchResults" class="results-container">
         <div class="result-meta">
             <div class="d-flex align-items-center gap-2">
-                <h6 class="text-white-50 mb-0">Résultats</h6>
-                <span id="resultCount" class="badge bg-secondary">0</span>
+                <h6 class="text-slate-700 fw-bold mb-0">Résultats</h6>
+                <span id="resultCount" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; border: 1px solid #cbd5e1;">0</span>
                 <span id="fastModeIndicator" class="fast-indicator" style="display:none;">
                     <i class="fas fa-bolt"></i> Recherche rapide
                 </span>
@@ -416,9 +427,9 @@
     </div>
 
     <!-- Empty and Loading states -->
-    <div id="searchPlaceholder" class="mt-4 text-center py-4 text-white-50">
-        <i class="fas fa-search-dollar fa-3x mb-3 d-block opacity-25"></i>
-        <p>Commencez à saisir pour rechercher un client ou compte...</p>
+    <div id="searchPlaceholder" class="mt-4 text-center py-4 text-slate-400">
+        <i class="fas fa-search-dollar fa-3x mb-3 d-block text-slate-300"></i>
+        <p class="mb-0 fw-medium">Commencez à saisir pour rechercher un client ou compte...</p>
     </div>
 
     <div id="searchLoading" class="mt-4" style="display:none;">
@@ -441,36 +452,43 @@
 <div class="modal fade" id="depositModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content deposit-modal-content">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Effectuer un Dépôt</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header border-bottom border-slate-100 px-4 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <h5 class="modal-title font-bold text-slate-900 mb-0" id="depositModalTitle">Effectuer un Dépôt</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="depositForm" method="POST">
                 @csrf
-                <div class="modal-body">
+                <input type="hidden" name="type" id="depositAccountType" value="">
+                <input type="hidden" name="source" value="depot">
+                <div class="modal-body p-4">
                     <div class="info-box">
                         <div class="info-item">
                             <span>Client</span>
-                            <span id="modalClientName">-</span>
+                            <span id="modalClientName" class="text-slate-900">-</span>
                         </div>
                         <div class="info-item">
-                            <span>Compte</span>
-                            <span id="modalAccountNumber">-</span>
+                            <span id="modalAccountLabel">Compte</span>
+                            <span id="modalAccountNumber" class="font-mono text-slate-800">-</span>
                         </div>
                         <div id="tontineInfo" style="display:none;">
                             <div class="info-item">
                                 <span>Mise Tontine</span>
-                                <span id="modalTontineAmount" class="text-warning">-</span>
+                                <span id="modalTontineAmount" class="text-amber-600 font-bold">-</span>
                             </div>
                         </div>
-                        <div class="info-item border-top border-secondary pt-2 mt-2">
-                            <span>Solde actuel</span>
-                            <span id="modalCurrentBalance">-</span>
+                        <div class="info-item border-top border-slate-200 pt-2 mt-2">
+                            <span id="modalBalanceLabel">Solde actuel</span>
+                            <span id="modalCurrentBalance" class="text-emerald-700 font-bold">-</span>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Montant du dépôt (FCFA)</label>
+                        <label class="form-label" id="modalAmountLabel">Montant du versement (FCFA)</label>
                         <input type="number" name="amount" id="depositAmount" class="form-control amount-input" placeholder="0" required min="100">
                     </div>
 
@@ -489,9 +507,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-deposit px-4">Confirmer le Dépôt</button>
+                <div class="modal-footer border-top border-slate-100 px-4 py-3 bg-slate-50">
+                    <button type="button" class="btn btn-outline-secondary rounded-lg" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-deposit px-4" id="btnConfirmDeposit">Confirmer le Dépôt</button>
                 </div>
             </form>
         </div>
@@ -502,6 +520,13 @@
 
 @push('scripts')
 <script>
+function formatNumber(num) {
+    if (num === null || num === undefined || num === '') return '0';
+    const val = parseFloat(num);
+    if (isNaN(val)) return '0';
+    return val.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+}
+
 $(document).ready(function() {
     let searchTimer;
     let lastQuery = '';
@@ -516,6 +541,12 @@ $(document).ready(function() {
     // Charger les recherches récentes
     loadRecentSearches();
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialQuery = urlParams.get('search') || urlParams.get('q');
+    if (initialQuery) {
+        $('#accountSearch').val(initialQuery).trigger('input');
+    }
+
     // ⚡ Raccourci clavier "/" pour focus
     $(document).on('keydown', function(e) {
         if (e.key === '/' && !$('#accountSearch').is(':focus') && !$('.modal').hasClass('show')) {
@@ -524,23 +555,26 @@ $(document).ready(function() {
         }
     });
 
-    // Échap pour effacer
+    // Raccourci clavier et navigation dans les résultats
     $('#accountSearch').on('keydown', function(e) {
         if (e.key === 'Escape') {
             clearSearchField();
-        }
-        // Navigation clavier dans les résultats
-        if (e.key === 'ArrowDown') {
+        } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             navigateResults(1);
-        }
-        if (e.key === 'ArrowUp') {
+        } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             navigateResults(-1);
-        }
-        if (e.key === 'Enter' && selectedIndex >= 0) {
+        } else if (e.key === 'Enter') {
             e.preventDefault();
-            $('.client-card').eq(selectedIndex).click();
+            clearTimeout(searchTimer);
+            if (selectedIndex >= 0) {
+                $('.client-card').eq(selectedIndex).click();
+            } else if ($('.client-card').length > 0) {
+                $('.client-card').first().click();
+            } else {
+                executeSearch($(this).val().trim());
+            }
         }
     });
 
@@ -557,7 +591,39 @@ $(document).ready(function() {
         loadRecentSearches();
     }
 
-    // Recherche principale
+    // Exécution directe de la recherche
+    function executeSearch(query) {
+        if (!query || query.length < 1) {
+            $('#searchResults').hide();
+            $('#searchPlaceholder').show();
+            $('#recentSection').show();
+            lastQuery = '';
+            return;
+        }
+
+        $('#recentSection').hide();
+        $('#searchPlaceholder').hide();
+        $('#searchLoading').show();
+
+        const startTime = performance.now();
+        lastQuery = query;
+
+        $.ajax({
+            url: "{{ route('caissier.depot.search') }}",
+            method: "GET",
+            data: { query: query },
+            success: function(response) {
+                const elapsed = Math.round(performance.now() - startTime);
+                renderResults(response.data, response.fast_mode, elapsed);
+            },
+            error: function() {
+                $('#searchLoading').hide();
+                $('#searchPlaceholder').html('<i class="fas fa-exclamation-triangle fa-3x mb-3 d-block text-warning opacity-50"></i><p>Erreur de connexion. Réessayez...</p>').show();
+            }
+        });
+    }
+
+    // Recherche automatique à la frappe (Debounce 150ms)
     $('#accountSearch').on('input', function() {
         clearTimeout(searchTimer);
         const query = $(this).val().trim();
@@ -573,51 +639,11 @@ $(document).ready(function() {
             return;
         }
 
-        $('#recentSection').hide();
-
-        // Éviter de refaire la même recherche
-        if (query === lastQuery) return;
-
-        // Vérifier le cache
-        const cached = searchCache[query];
-        if (cached && (Date.now() - cached.time < CACHE_DURATION)) {
-            renderResults(cached.data, cached.fastMode, cached.searchTime);
-            return;
-        }
-
-        // Déterminer le délai de debounce selon le type de recherche
         const isNumberSearch = /^(TON|SAV|EPR|LN|PRE|CLI|ACC|\d)/i.test(query);
-        const debounceTime = isNumberSearch ? DEBOUNCE_FAST : DEBOUNCE_NORMAL;
-
-        $('#searchPlaceholder').hide();
-        $('#searchLoading').show();
+        const debounceTime = isNumberSearch ? 80 : 150;
 
         searchTimer = setTimeout(() => {
-            const startTime = performance.now();
-            lastQuery = query;
-
-            $.ajax({
-                url: "{{ route('caissier.depot.search') }}",
-                method: "GET",
-                data: { query: query },
-                success: function(response) {
-                    const elapsed = Math.round(performance.now() - startTime);
-
-                    // Mettre en cache
-                    searchCache[query] = {
-                        data: response.data,
-                        fastMode: response.fast_mode,
-                        searchTime: elapsed,
-                        time: Date.now()
-                    };
-
-                    renderResults(response.data, response.fast_mode, elapsed);
-                },
-                error: function() {
-                    $('#searchLoading').hide();
-                    $('#searchPlaceholder').html('<i class="fas fa-exclamation-triangle fa-3x mb-3 d-block text-warning opacity-50"></i><p>Erreur de connexion. Réessayez...</p>').show();
-                }
-            });
+            executeSearch(query);
         }, debounceTime);
     });
 
@@ -649,18 +675,24 @@ $(document).ready(function() {
                     <div class="client-card" data-index="${index}" onclick="openDepositModal(${JSON.stringify(account).replace(/"/g, '&quot;')})">
                         <div class="client-info">
                             <h6>${account.client_name} <span class="account-badge ${badgeClass}">${badgeLabel}</span></h6>
-                            <span><i class="fas fa-barcode me-1"></i>${account.account_number} • <i class="fas fa-phone me-1"></i>${account.client_phone || 'N/A'}</span>
+                            <span><i class="fas fa-barcode me-1 text-slate-400"></i>${account.account_number} • <i class="fas fa-phone me-1 text-slate-400"></i>${account.client_phone || 'N/A'}</span>
                         </div>
                         <div class="d-flex align-items-center gap-3">
                             <div class="text-end">
-                                <div class="text-white fw-bold">${formatNumber(account.balance)} FCFA</div>
-                                <div class="text-muted small">${account.account_type === 'loan' ? 'Reste dû' : 'Solde'}</div>
+                                <div class="text-slate-900 fw-bold fs-6">${formatNumber(account.balance)} FCFA</div>
+                                <div class="text-slate-500 small">${account.account_type === 'loan' ? 'Reste dû' : 'Solde disponible'}</div>
                             </div>
                             <div class="d-flex gap-2">
-                                ${account.account_type === 'loan' ? `<a href="${account.schedule_url}" class="btn btn-sm btn-outline-light text-nowrap rounded-3"><i class="fas fa-file-contract"></i> Détail</a>` : ''}
-                                <button class="quick-action-btn text-nowrap" onclick="event.stopPropagation(); openDepositModal(${JSON.stringify(account).replace(/"/g, '&quot;')})">
-                                    <i class="fas fa-arrow-down me-1"></i> Dépôt
-                                </button>
+                                ${account.account_type === 'loan' ? `
+                                    <a href="/caissier/loans/${account.id}" class="btn btn-sm btn-outline-secondary text-nowrap rounded-3"><i class="fas fa-file-contract"></i> Échéancier</a>
+                                    <button class="btn btn-sm btn-success text-nowrap rounded-3 fw-bold" onclick="event.stopPropagation(); openDepositModal(${JSON.stringify(account).replace(/"/g, '&quot;')})">
+                                        <i class="fas fa-coins me-1"></i> Rembourser
+                                    </button>
+                                ` : `
+                                    <button class="quick-action-btn text-nowrap" onclick="event.stopPropagation(); openDepositModal(${JSON.stringify(account).replace(/"/g, '&quot;')})">
+                                        <i class="fas fa-arrow-down me-1"></i> Dépôt
+                                    </button>
+                                `}
                             </div>
                         </div>
                     </div>
@@ -693,11 +725,32 @@ $(document).ready(function() {
         $('#modalAccountNumber').text(account.account_number);
         $('#modalCurrentBalance').text(formatNumber(account.balance) + " FCFA");
 
-        if (account.account_type === 'tontine') {
+        if (account.account_type === 'loan') {
+            $('#depositAccountType').val('loan');
+            $('#depositModalTitle').html('<i class="fas fa-coins text-warning me-2"></i>Remboursement de Prêt');
+            $('#modalAccountLabel').text('Dossier Prêt');
+            $('#modalBalanceLabel').text('Reste à Rembourser');
+            $('#modalAmountLabel').text('Montant du remboursement (FCFA)');
+            $('#btnConfirmDeposit').html('<i class="fas fa-check-circle me-1"></i> Valider le Remboursement');
+            $('#tontineInfo').hide();
+            $('#depositAmount').val('');
+        } else if (account.account_type === 'tontine') {
+            $('#depositAccountType').val('tontine');
+            $('#depositModalTitle').html('<i class="fas fa-piggy-bank text-emerald-600 me-2"></i>Versement Tontine');
+            $('#modalAccountLabel').text('Compte Tontine');
+            $('#modalBalanceLabel').text('Solde actuel');
+            $('#modalAmountLabel').text('Montant de la mise (FCFA)');
+            $('#btnConfirmDeposit').html('<i class="fas fa-check-circle me-1"></i> Confirmer la Cotisation');
             $('#tontineInfo').show();
             $('#modalTontineAmount').text(formatNumber(account.tontine_amount) + " FCFA / cycle");
             $('#depositAmount').val(account.tontine_amount);
         } else {
+            $('#depositAccountType').val('savings');
+            $('#depositModalTitle').html('<i class="fas fa-wallet text-emerald-600 me-2"></i>Dépôt sur Compte Épargne');
+            $('#modalAccountLabel').text('Compte');
+            $('#modalBalanceLabel').text('Solde disponible');
+            $('#modalAmountLabel').text('Montant du dépôt (FCFA)');
+            $('#btnConfirmDeposit').html('<i class="fas fa-check-circle me-1"></i> Confirmer le Dépôt');
             $('#tontineInfo').hide();
             $('#depositAmount').val('');
         }

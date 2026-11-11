@@ -23,8 +23,19 @@ class AgentClientController extends Controller
         $user = auth()->user();
 
         $query = Client::query()
-            ->with(['accounts', 'agency'])
-            ->where('registered_by', $user->id);
+            ->with(['accounts', 'agency']);
+
+        if ($user->role === 'caissier' || request()->routeIs('caissier.*')) {
+            if ($user->agency_id) {
+                $query->where(function($q) use ($user) {
+                    $q->where('agency_id', $user->agency_id)
+                      ->orWhere('registered_by', $user->id)
+                      ->orWhereNull('agency_id');
+                });
+            }
+        } else {
+            $query->where('registered_by', $user->id);
+        }
 
         // Recherche
         if ($request->filled('search')) {
@@ -33,7 +44,8 @@ class AgentClientController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('client_number', 'like', "%{$search}%");
+                  ->orWhere('client_number', 'like', "%{$search}%")
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
             });
         }
 
@@ -50,11 +62,24 @@ class AgentClientController extends Controller
         $clients = $query->latest()->paginate(20);
 
         // Statistiques rapides
+        $statQuery = Client::query();
+        if ($user->role === 'caissier' || request()->routeIs('caissier.*')) {
+            if ($user->agency_id) {
+                $statQuery->where(function($q) use ($user) {
+                    $q->where('agency_id', $user->agency_id)
+                      ->orWhere('registered_by', $user->id)
+                      ->orWhereNull('agency_id');
+                });
+            }
+        } else {
+            $statQuery->where('registered_by', $user->id);
+        }
+
         $stats = [
-            'total' => Client::where('registered_by', $user->id)->count(),
-            'pending_kyc' => Client::where('registered_by', $user->id)->where('kyc_status', 'pending')->count(),
-            'approved' => Client::where('registered_by', $user->id)->where('kyc_status', 'approved')->count(),
-            'today' => Client::where('registered_by', $user->id)->whereDate('created_at', today())->count(),
+            'total' => (clone $statQuery)->count(),
+            'pending_kyc' => (clone $statQuery)->where('kyc_status', 'pending')->count(),
+            'approved' => (clone $statQuery)->where('kyc_status', 'approved')->count(),
+            'today' => (clone $statQuery)->whereDate('created_at', today())->count(),
         ];
 
         if (request()->routeIs('caissier.*')) {
@@ -132,36 +157,56 @@ class AgentClientController extends Controller
     {
         $user = auth()->user();
 
-        // Charger le client avec ses relations
-        $client = Client::with([
+        // Charger le client avec ses relations complètes
+        $query = Client::with([
+            'accounts.tontineAccount.activeCycle',
             'accounts.transactions' => function($q) {
                 $q->latest()->limit(5);
             },
-            'loans',
+            'loans.payments',
             'documents',
             'agency',
             'registeredBy',
             'approvedBy'
-        ])
-        ->where('registered_by', $user->id)
-        ->findOrFail($clientId);
+        ]);
 
-        // Calcul du résumé financier
+        if ($user->role === 'caissier') {
+            if ($user->agency_id) {
+                $query->where(function($q) use ($user) {
+                    $q->where('agency_id', $user->agency_id)
+                      ->orWhere('registered_by', $user->id)
+                      ->orWhereNull('agency_id');
+                });
+            }
+        } else {
+            $query->where('registered_by', $user->id);
+        }
+
+        $client = $query->findOrFail($clientId);
+
+        // Calcul du résumé financier complet
         $totalSavings = $client->accounts->where('account_type', 'savings')->sum('balance');
         $totalTontine = $client->accounts->where('account_type', 'tontine')->sum('balance');
         $activeLoansAmount = $client->loans->whereIn('status', ['active', 'disbursed'])->sum('approved_amount');
+        $totalLoansDue = $client->loans->whereIn('status', ['active', 'disbursed'])->sum('total_amount_due');
+        $totalLoansPaid = $client->loans->whereIn('status', ['active', 'disbursed'])->sum('total_paid');
+        $totalLoansRemaining = max(0, $totalLoansDue - $totalLoansPaid);
         $totalAccounts = $client->accounts->count();
         $activeAccounts = $client->accounts->where('status', 'active')->count();
         $suspendedAccounts = $client->accounts->where('status', 'suspended')->count();
 
         $summary = [
-            'total_savings' => $totalSavings,
-            'total_tontine' => $totalTontine,
-            'total_balance' => $totalSavings + $totalTontine,
-            'active_loans_amount' => $activeLoansAmount,
-            'total_accounts' => $totalAccounts,
-            'active_accounts' => $activeAccounts,
-            'suspended_accounts' => $suspendedAccounts,
+            'total_savings'        => $totalSavings,
+            'total_tontine'        => $totalTontine,
+            'total_balance'        => $totalSavings + $totalTontine,
+            'active_loans_amount'  => $activeLoansAmount,
+            'total_loans_count'    => $client->loans->count(),
+            'total_loans_due'      => $totalLoansDue,
+            'total_loans_paid'     => $totalLoansPaid,
+            'total_loans_remaining'=> $totalLoansRemaining,
+            'total_accounts'       => $totalAccounts,
+            'active_accounts'      => $activeAccounts,
+            'suspended_accounts'   => $suspendedAccounts,
         ];
 
         // Transactions récentes

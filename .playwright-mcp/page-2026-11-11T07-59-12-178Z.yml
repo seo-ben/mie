@@ -1,0 +1,27 @@
+- generic [ref=f27e3]:
+  - generic [ref=f27e4]: 
+  - generic [ref=f27e6]:
+    - heading "Welcome back" [level=1] [ref=f27e7]
+    - paragraph [ref=f27e8]: Please enter your details to sign in.
+  - generic [ref=f27e9]:
+    - generic [ref=f27e10]:
+      - generic [ref=f27e11]: E-Mail Address
+      - textbox "E-Mail Address" [active] [ref=f27e13]:
+        - /placeholder: Enter your email...
+    - generic [ref=f27e14]:
+      - generic [ref=f27e15]: Password
+      - generic [ref=f27e16]:
+        - textbox "Password" [ref=f27e17]:
+          - /placeholder: ••••••••••••
+        - button "" [ref=f27e18] [cursor=pointer]
+    - generic [ref=f27e20]:
+      - generic [ref=f27e21] [cursor=pointer]:
+        - checkbox "Remember me" [ref=f27e22]
+        - generic [ref=f27e23]: Remember me
+      - link "Forgot password?" [ref=f27e24] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/forgot-password
+    - button "Sign in" [ref=f27e25] [cursor=pointer]
+    - generic [ref=f27e26]:
+      - text: Don't have an account yet?
+      - link "Sign up" [ref=f27e27] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/client/register

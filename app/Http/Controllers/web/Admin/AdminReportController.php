@@ -54,8 +54,8 @@ class AdminReportController extends Controller
                 'success' => true,
                 'data' => $report,
                 'export_links' => [
-                    'pdf' => route('api.admin.reports.regulatory.export', ['format' => 'pdf', 'type' => $reportType, 'date' => $date]),
-                    'excel' => route('api.admin.reports.regulatory.export', ['format' => 'excel', 'type' => $reportType, 'date' => $date])
+                    'pdf' => route('admin.reports.export', ['type' => 'regulatory', 'format' => 'pdf', 'date' => $date]),
+                    'excel' => route('admin.reports.export', ['type' => 'regulatory', 'format' => 'excel', 'date' => $date])
                 ]
             ]);
 
@@ -161,6 +161,22 @@ class AdminReportController extends Controller
             'success' => true,
             'data' => $quality
         ]);
+    }
+
+    /**
+     * Redirection vers les logs système
+     */
+    public function systemLogs(Request $request)
+    {
+        return redirect()->route('admin.config.logs');
+    }
+
+    /**
+     * Alias pour exportReport (compatible avec la route admin.reports.export)
+     */
+    public function export(Request $request, $type)
+    {
+        return $this->exportReport($request, $type);
     }
 
     /**

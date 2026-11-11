@@ -55,8 +55,14 @@ class AgentSyncController extends Controller
                 'transactions' => ['created' => [], 'updated' => [], 'deleted' => []],
             ];
 
-            // 1. Synchronisation des Clients
-            $clientsQuery = Client::where('registered_by', $agentId);
+            // 1. Synchronisation des Clients de l'agence (pour que tous les agents voient les clients existants)
+            $agent = auth()->user();
+            $agencyId = $agent->agency_id ?? 1;
+
+            $clientsQuery = Client::where(function($q) use ($agentId, $agencyId) {
+                $q->where('agency_id', $agencyId)
+                  ->orWhere('registered_by', $agentId);
+            });
             if ($lastSync) $clientsQuery->where('updated_at', '>', $lastSync);
 
             foreach ($clientsQuery->get() as $client) {
@@ -76,8 +82,11 @@ class AgentSyncController extends Controller
                 ];
             }
 
-            // 2. Synchronisation des Comptes (Solde serveur fait foi)
-            $clientIds = Client::where('registered_by', $agentId)->pluck('id');
+            // 2. Synchronisation des Comptes de l'agence (Solde serveur fait foi)
+            $clientIds = Client::where(function($q) use ($agentId, $agencyId) {
+                $q->where('agency_id', $agencyId)
+                  ->orWhere('registered_by', $agentId);
+            })->pluck('id');
             $accountsQuery = Account::with('tontineAccount')->whereIn('client_id', $clientIds);
             if ($lastSync) $accountsQuery->where('updated_at', '>', $lastSync);
 
@@ -188,7 +197,18 @@ class AgentSyncController extends Controller
     {
         foreach ($created as $item) {
             $mobileUuid = $item['id'];
-            $client = Client::where('phone', $item['phone'])->first();
+            $cleanPhone = Client::normalizePhone($item['phone'] ?? '');
+
+            // 1. Recherche par téléphone normalisé
+            $client = !empty($cleanPhone) ? Client::where('phone', $cleanPhone)->first() : null;
+
+            // 2. Anti-doublon intelligent : recherche par nom + prénom dans l'agence
+            if (!$client && !empty($item['first_name']) && !empty($item['last_name'])) {
+                $client = Client::where('agency_id', $agent->agency_id ?? 1)
+                    ->where('first_name', trim($item['first_name']))
+                    ->where('last_name', trim($item['last_name']))
+                    ->first();
+            }
 
             if (!$client) {
                 $rawGender = strtoupper((string)($item['gender'] ?? 'M'));
@@ -198,9 +218,9 @@ class AgentSyncController extends Controller
 
                 $client = Client::create([
                     'client_number'       => $this->generateClientNumber(),
-                    'first_name'          => $item['first_name'] ?? 'Inconnu',
-                    'last_name'           => $item['last_name']  ?? 'Inconnu',
-                    'phone'               => $item['phone'],
+                    'first_name'          => trim($item['first_name'] ?? 'Inconnu'),
+                    'last_name'           => trim($item['last_name']  ?? 'Inconnu'),
+                    'phone'               => $cleanPhone ?: ($item['phone'] ?? ''),
                     'email'               => $item['email']      ?? null,
                     'address'             => $item['address']    ?? null,
                     'gender'              => $gender,
@@ -231,7 +251,19 @@ class AgentSyncController extends Controller
 
             if (!$realClientId) continue;
 
+            $accountType = $item['account_type'] ?? 'tontine';
+
+            // 1. Vérification par numéro de compte existant
             $existing = Account::where('account_number', $item['account_number'] ?? 'IGNORE')->first();
+
+            // 2. Si non trouvé par numéro, rattacher au compte actif existant du même type pour éviter le dédoublement
+            if (!$existing) {
+                $existing = Account::where('client_id', $realClientId)
+                    ->where('account_type', $accountType)
+                    ->where('status', 'active')
+                    ->first();
+            }
+
             if ($existing) {
                 $this->idMapping['accounts'][$mobileAccountId] = $existing->id;
                 continue;
@@ -240,7 +272,7 @@ class AgentSyncController extends Controller
             $account = Account::create([
                 'client_id'      => $realClientId,
                 'account_number' => $item['account_number'] ?? 'ACC-' . strtoupper(Str::random(8)),
-                'account_type'   => $item['account_type']   ?? 'tontine',
+                'account_type'   => $accountType,
                 'balance'        => 0, 
                 'status'         => 'active',
                 'created_by'     => $agent->id,
@@ -732,7 +764,7 @@ class AgentSyncController extends Controller
                     $loan = Loan::with('client')->find($item['loan_id']);
                     if (!$loan) {
                         DB::rollBack();
-                        $errors[] = ['id' => $offlineIdStr, 'error' => 'Prêt #' . $item['loan_id'] . ' non trouvé'];
+                        $errors[] = ['id' => $offlineIdStr, 'error' => 'Prêt ' . $item['loan_id'] . ' non trouvé'];
                         continue;
                     }
 

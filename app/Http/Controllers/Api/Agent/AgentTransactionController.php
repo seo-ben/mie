@@ -47,15 +47,30 @@ class AgentTransactionController extends Controller
         }
 
         if ($request->filled('date')) {
-            $query->whereDate('created_at', $request->date);
+            $query->where(function ($q) use ($request) {
+                $q->whereDate('transaction_date', $request->date)
+                  ->orWhere(function ($sub) use ($request) {
+                      $sub->whereNull('transaction_date')->whereDate('created_at', $request->date);
+                  });
+            });
         }
 
         if ($request->filled('date_start')) {
-            $query->whereDate('created_at', '>=', $request->date_start);
+            $query->where(function ($q) use ($request) {
+                $q->whereDate('transaction_date', '>=', $request->date_start)
+                  ->orWhere(function ($sub) use ($request) {
+                      $sub->whereNull('transaction_date')->whereDate('created_at', '>=', $request->date_start);
+                  });
+            });
         }
 
         if ($request->filled('date_end')) {
-            $query->whereDate('created_at', '<=', $request->date_end);
+            $query->where(function ($q) use ($request) {
+                $q->whereDate('transaction_date', '<=', $request->date_end)
+                  ->orWhere(function ($sub) use ($request) {
+                      $sub->whereNull('transaction_date')->whereDate('created_at', '<=', $request->date_end);
+                  });
+            });
         }
 
         if ($request->filled('search')) {

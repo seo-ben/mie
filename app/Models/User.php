@@ -23,6 +23,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'can_open_cashier_session',
         'first_name',
         'last_name',
         'agency_id',
@@ -51,6 +52,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'last_login' => 'datetime',
         'is_active' => 'boolean',
+        'can_open_cashier_session' => 'boolean',
         'mfa_enabled' => 'boolean',
     ];
 
@@ -135,6 +137,14 @@ class User extends Authenticatable
     public function cashierSessions()
     {
         return $this->hasMany(CashierSession::class);
+    }
+
+    /**
+     * Session de caisse actuellement active.
+     */
+    public function activeCashierSession()
+    {
+        return $this->cashierSessions()->where('status', 'open')->latest('opened_at')->first();
     }
 
     /**

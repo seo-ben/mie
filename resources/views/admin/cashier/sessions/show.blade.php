@@ -21,7 +21,7 @@
             @if($prevSession)
                 <a href="{{ route('admin.cashier.sessions.show', $prevSession->id) }}" class="btn-bank btn-bank-outline !py-1 !px-3 !text-[10px] flex items-center gap-2">
                     <i class="fas fa-chevron-left"></i>
-                    <span>Session Précédente (#{{ $prevSession->id }})</span>
+                    <span>Session Précédente ({{ $prevSession->id }})</span>
                 </a>
             @else
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 border-l-2 border-slate-200">Origine du Registre</span>
@@ -38,7 +38,7 @@
         <div>
             @if($nextSession)
                 <a href="{{ route('admin.cashier.sessions.show', $nextSession->id) }}" class="btn-bank btn-bank-outline !py-1 !px-3 !text-[10px] flex items-center gap-2">
-                    <span>Session Suivante (#{{ $nextSession->id }})</span>
+                    <span>Session Suivante ({{ $nextSession->id }})</span>
                     <i class="fas fa-chevron-right"></i>
                 </a>
             @else
@@ -57,7 +57,7 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">
                         <li class="breadcrumb-item"><a href="{{ route('admin.cashier.sessions.index') }}" class="text-blue-600">Registre Central</a></li>
-                        <li class="breadcrumb-item active">Audit Session #{{ $session->id }}</li>
+                        <li class="breadcrumb-item active">Audit Session {{ $session->id }}</li>
                     </ol>
                 </nav>
                 <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Session de {{ $session->user->full_name }}</h2>
@@ -197,7 +197,7 @@
                                 </td>
                                 <td class="py-4">
                                     <div class="flex flex-col">
-                                        <span class="text-[10px] font-bold text-blue-600 mb-0.5 tracking-tight font-mono">REF#{{ $transaction->transaction_reference }}</span>
+                                        <span class="text-[10px] font-bold text-blue-600 mb-0.5 tracking-tight font-mono">REF{{ $transaction->transaction_reference }}</span>
                                         <div class="flex items-center gap-2">
                                             <span class="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{{ $transaction->account->account_number }}</span>
                                             <span class="text-[10px] font-bold text-slate-600 truncate max-w-[140px]">{{ $transaction->account->client->full_name }}</span>
@@ -258,7 +258,7 @@
                     </div>
                     <h3 class="text-lg font-bold text-slate-900 tracking-tight mb-2 uppercase">Clôture Définitive</h3>
                     <p class="text-xs text-slate-500 font-medium mb-6 px-4 leading-relaxed">
-                        Vous êtes sur le point de clôturer le registre de la session <span class="text-rose-600 font-bold">#{{ $session->id }}</span>. Cette action est irréversible et certifie les soldes pour la période.
+                        Vous êtes sur le point de clôturer le registre de la session <span class="text-rose-600 font-bold">{{ $session->id }}</span>. Cette action est irréversible et certifie les soldes pour la période.
                     </p>
                     
                     <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center gap-4 mb-8">

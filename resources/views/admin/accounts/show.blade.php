@@ -34,11 +34,22 @@
             @elseif($account->status === 'suspended')
                 <form method="POST" action="{{ route('admin.accounts.reactivate', $account->id) }}" class="inline">
                     @csrf
-                    <button type="submit" class="btn-bank btn-bank-success" onclick="return confirm('Confirmer la réactivation opérationnelle de ce compte ?')">
+                    <button type="button" class="btn-bank btn-bank-success"
+                            data-confirm="Confirmer la réactivation opérationnelle du compte <strong>{{ $account->account_number }}</strong> ?"
+                            data-confirm-title="Rétablissement de Compte"
+                            data-confirm-btn="Rétablir le Compte">
                         <i class="fas fa-check-double mr-2 text-[10px]"></i> Rétablir le Protocole
                     </button>
                 </form>
             @endif
+            @if($account->account_type === 'tontine' && $account->tontineAccount)
+                <a href="{{ route('admin.tontines.show', $account->tontineAccount->id) }}" class="btn-bank bg-purple-600 hover:bg-purple-700 text-white shadow-sm">
+                    <i class="fas fa-calendar-check mr-2 text-[10px]"></i> Carnet Tontine 1-31
+                </a>
+            @endif
+            <a href="{{ route('admin.accounts.edit', $account->id) }}" class="btn-bank btn-bank-outline">
+                <i class="fas fa-sliders mr-2 text-[10px]"></i> Paramètres / Mise
+            </a>
             <a href="{{ route('admin.accounts.transactions', $account->id) }}" class="btn-bank btn-bank-primary">
                 <i class="fas fa-list-ul mr-2 text-[10px]"></i> Historique des Flux
             </a>

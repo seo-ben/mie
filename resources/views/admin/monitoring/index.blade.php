@@ -45,14 +45,14 @@
             <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2">
                 <div>
                     <p class="text-[8px] font-black text-slate-400 uppercase">Utilisation CPU</p>
-                    <p class="text-xs font-black text-slate-800">{{ $overview['system_health']['cpu_usage'] ??'N/A' }}%</p>
+                    <p class="text-xs font-black text-slate-800">{{ is_array($overview['system_health']['cpu_usage'] ?? null) ? ($overview['system_health']['cpu_usage']['percent'] ?? ($overview['system_health']['cpu_usage']['message'] ?? 'N/A')) : ($overview['system_health']['cpu_usage'] ?? 'N/A') }}%</p>
                 </div>
                 <div>
                     <p class="text-[8px] font-black text-slate-400 uppercase">Mémoire RAM</p>
-                    <p class="text-xs font-black text-slate-800">{{ $overview['system_health']['memory_usage'] ??'N/A' }}%</p>
+                    <p class="text-xs font-black text-slate-800">{{ is_array($overview['system_health']['memory_usage'] ?? null) ? ($overview['system_health']['memory_usage']['percent'] ?? ($overview['system_health']['memory_usage']['message'] ?? 'N/A')) : ($overview['system_health']['memory_usage'] ?? 'N/A') }}%</p>
                 </div>
             </div>
-            <p class="text-[8px] font-bold text-slate-400 uppercase mt-3 italic">Moteur de Base de Données: {{ $overview['system_health']['database'] ?? 'inconnu' }}</p>
+            <p class="text-[8px] font-bold text-slate-400 uppercase mt-3 italic">Moteur de Base de Données: {{ is_array($overview['system_health']['database'] ?? null) ? ($overview['system_health']['database']['message'] ?? 'Connecté') : ($overview['system_health']['database'] ?? 'Connecté') }}</p>
         </div>
 
         {{-- Alertes d'Incidents --}}

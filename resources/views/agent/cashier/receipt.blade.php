@@ -130,12 +130,12 @@
 <body>
 
     <!-- Filigrane Professionnelle -->
-    <div class="watermark">YAYRA MIE</div>
-    <div class="watermark" style="top: 25%;">YAYRA MIE</div>
-    <div class="watermark" style="top: 75%;">YAYRA MIE</div>
+    <div class="watermark">FSD YAYRA</div>
+    <div class="watermark" style="top: 25%;">FSD YAYRA</div>
+    <div class="watermark" style="top: 75%;">FSD YAYRA</div>
 
     <div class="header">
-        <h1 class="brand">MIE YAYRA</h1>
+        <h1 class="brand">FSD YAYRA</h1>
         <div class="tagline">Confiance • Innovation • Excellence</div>
         <div class="agency-info">
             {{ strtoupper(auth()->user()->agency->name) }}<br>
@@ -179,9 +179,14 @@
         </div>
         <div class="info-row">
             <span class="info-label">Titulaire :</span>
-            <span class="info-value">{{ strtoupper($clientName) }}</span>
+            <span class="info-value">{{ strtoupper($clientName ?? $transaction->client?->full_name ?? 'N/A') }}</span>
         </div>
-        @if($transaction->account)
+        @if($transaction->loan)
+        <div class="info-row">
+            <span class="info-label">Dossier Prêt :</span>
+            <span class="info-value">{{ $transaction->loan->loan_number }}</span>
+        </div>
+        @elseif($transaction->account)
         <div class="info-row">
             <span class="info-label">Compte :</span>
             <span class="info-value">{{ $transaction->account->account_number }}</span>
@@ -229,7 +234,7 @@
     <div class="footer">
         <div style="font-weight: 900; margin-bottom: 5px;">* {{ $transaction->transaction_reference }} *</div>
         <p>
-            MIE YAYRA - Microfinance d'Innovation<br>
+            FSD YAYRA - Microfinance d'Innovation<br>
             Merci de votre confiance et à bientôt !<br>
             <span style="font-size: 8px; color: #888;">Imprimé par le Terminal Caissier {{ now()->format('H:i:s') }}</span>
         </p>

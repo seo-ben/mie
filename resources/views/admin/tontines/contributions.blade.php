@@ -56,7 +56,7 @@
                     <option value="">Tous les cycles</option>
                     @foreach($cycles as $cycle)
                         <option value="{{ $cycle->id }}" {{ request('cycle_id') == $cycle->id ? 'selected' : '' }}>
-                            Cycle #{{ $cycle->cycle_number }} ({{ $cycle->start_date->format('d/m/Y') }})
+                            Cycle {{ $cycle->cycle_number }} ({{ $cycle->start_date->format('d/m/Y') }})
                         </option>
                     @endforeach
                 </select>
@@ -212,7 +212,7 @@
                 @endphp
                 <div class="p-4 rounded-xl border border-slate-200 hover:border-purple-300 transition-all group {{ $cycle->status === 'active' ? 'bg-purple-50/30' : 'bg-white' }}">
                     <div class="flex items-center justify-between mb-3">
-                        <h6 class="text-xs font-black text-slate-800 uppercase">Cycle #{{ $cycle->cycle_number }}</h6>
+                        <h6 class="text-xs font-black text-slate-800 uppercase">Cycle {{ $cycle->cycle_number }}</h6>
                         @switch($cycle->status)
                             @case('active')
                                 <span class="text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Actif</span>

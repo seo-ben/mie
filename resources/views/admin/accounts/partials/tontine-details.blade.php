@@ -13,7 +13,17 @@
         @endphp
 
         @if($tontine)
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            @php
+                $activeCycle = $tontine->activeCycle ?? $tontine->cycles()->first();
+                $mise = (float) $tontine->tontine_amount;
+                $collected = $activeCycle ? (float) $activeCycle->collected_amount : (float) $tontine->total_paid;
+                $filledSlots = $mise > 0 ? min(31, (int) floor($collected / $mise)) : 0;
+                $remainingSlots = max(0, 31 - $filledSlots);
+                $commission = $mise;
+                $clientNet = max(0, 30 * $mise);
+            @endphp
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8">
                 <!-- Configuration du Cycle -->
                 <div class="space-y-6">
                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Configuration du Cycle</h4>
@@ -80,6 +90,77 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRILLE VISUELLE DU CALENDRIER 1-31 & CALCULS FINANCIERS -->
+            <div class="mt-8 pt-8 border-t border-slate-100 space-y-6">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                        <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-calendar-days text-purple-600"></i> Calendrier du Cycle (1 - 31 Mises)
+                        </h4>
+                        <p class="text-[10px] text-slate-400 font-medium mt-0.5">Règle du 1/31 &bull; Cycle {{ $activeCycle->cycle_number ?? 1 }}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-3 py-1 rounded-full uppercase">
+                            {{ $filledSlots }} / 31 Jours Cotisés
+                        </span>
+                        <a href="{{ route('admin.tontines.show', $tontine->id) }}" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-black uppercase transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-arrow-up-right-from-square"></i> Audit Tontine Approfondi
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 4 Indicateurs de Calcul (Règle 1/31) -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                        <span class="text-[8px] font-bold text-slate-400 uppercase block mb-1">Mise Journalière</span>
+                        <span class="text-sm font-black text-slate-900">{{ number_format($mise, 0, ',', ' ') }} XOF</span>
+                    </div>
+                    <div class="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-center">
+                        <span class="text-[8px] font-bold text-emerald-600 uppercase block mb-1">Cotisé ({{ $filledSlots }} j)</span>
+                        <span class="text-sm font-black text-emerald-700">{{ number_format($filledSlots * $mise, 0, ',', ' ') }} XOF</span>
+                    </div>
+                    <div class="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-center">
+                        <span class="text-[8px] font-bold text-amber-600 uppercase block mb-1">Reste ({{ $remainingSlots }} j)</span>
+                        <span class="text-sm font-black text-amber-700">{{ number_format($remainingAmount, 0, ',', ' ') }} XOF</span>
+                    </div>
+                    <div class="p-3 bg-purple-50/50 rounded-xl border border-purple-100 text-center">
+                        <span class="text-[8px] font-bold text-purple-600 uppercase block mb-1">Net Client (30 j)</span>
+                        <span class="text-sm font-black text-purple-700">{{ number_format($clientNet, 0, ',', ' ') }} XOF</span>
+                        <span class="text-[8px] text-slate-400 block mt-0.5">Commission 1/31 : {{ number_format($commission, 0, ',', ' ') }}</span>
+                    </div>
+                </div>
+
+                <!-- Grille des 31 cases -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Cases de Cotisation Journalière (1 à 31)</span>
+                        <div class="flex items-center gap-3 text-[9px] font-medium text-slate-400">
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span> Cotisé</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-200 inline-block"></span> En attente</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-purple-50 border border-purple-300 inline-block"></span> Case 31 (Frais 1/31)</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-7 sm:grid-cols-11 md:grid-cols-16 lg:grid-cols-31 gap-1.5">
+                        @for($d = 1; $d <= 31; $d++)
+                            @php
+                                $paid = ($d <= $filledSlots);
+                                $is31 = ($d === 31);
+                            @endphp
+                            <div class="h-9 rounded-lg border flex flex-col items-center justify-center font-bold text-[10px] transition-all relative group
+                                {{ $paid ? 'bg-emerald-500 border-emerald-600 text-white shadow-sm' : ($is31 ? 'bg-purple-50 border-purple-300 text-purple-700 border-dashed' : 'bg-slate-50 border-slate-200 text-slate-400') }}"
+                                title="Jour {{ $d }} : {{ $paid ? 'Cotisé (' . number_format($mise, 0, ',', ' ') . ' XOF)' : ($is31 ? '31e mise = Commission Microfinance (1/31)' : 'En attente (' . number_format($mise, 0, ',', ' ') . ' XOF)') }}">
+                                <span>{{ $d }}</span>
+                                @if($paid)
+                                    <i class="fas fa-check text-[7px] leading-none mt-0.5"></i>
+                                @elseif($is31)
+                                    <i class="fas fa-hand-holding-dollar text-[7px] opacity-75 leading-none mt-0.5"></i>
+                                @endif
+                            </div>
+                        @endfor
                     </div>
                 </div>
             </div>

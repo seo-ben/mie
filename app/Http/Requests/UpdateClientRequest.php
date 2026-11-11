@@ -12,24 +12,34 @@ class UpdateClientRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        if ($this->has('phone')) {
+            $this->merge([
+                'phone' => \App\Models\Client::normalizePhone($this->phone),
+            ]);
+        }
+    }
+
     public function rules()
     {
         return [
-            'first_name'       => 'required|string|max:255',
-            'last_name'        => 'required|string|max:255',
-            'phone'            => 'required|string|max:20',
-            'address'          => 'nullable|string|max:255',
-            'date_of_birth'    => 'nullable|date',
-            'gender'           => 'nullable|in:M,F,Other',
-            'profession'       => 'nullable|string|max:100',
-            'city'             => 'nullable|string|max:100',
-            'region'           => 'nullable|string|max:100',
-            'monthly_income'   => 'nullable|numeric|min:0',
-            'id_type'          => 'nullable|in:cni,passport,driving_license,other',
-            'id_number'        => 'nullable|string|max:50',
-            'id_expiry_date'   => 'nullable|date',
-            'profile_photo'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10048',
-            'is_active'        => 'sometimes|boolean',
+            'first_name'           => 'required|string|max:255',
+            'last_name'            => 'required|string|max:255',
+            'phone'                => 'required|string|max:20',
+            'address'              => 'nullable|string|max:255',
+            'date_of_birth'        => 'nullable|date',
+            'gender'               => 'nullable|in:M,F,Other',
+            'profession'           => 'nullable|string|max:100',
+            'city'                 => 'nullable|string|max:100',
+            'region'               => 'nullable|string|max:100',
+            'monthly_income'       => 'nullable|numeric|min:0',
+            'id_type'              => 'nullable|in:cni,passport,driving_license,other',
+            'id_number'            => 'nullable|string|max:50',
+            'id_expiry_date'       => 'nullable|date',
+            'profile_photo'        => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10048',
+            'is_active'            => 'sometimes|boolean',
+            'max_tontine_accounts' => 'nullable|integer|min:1|max:20',
         ];
     }
 }

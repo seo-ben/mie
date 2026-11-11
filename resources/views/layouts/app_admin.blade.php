@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'MIE YAYRA - Administration')</title>
+    <title>@yield('title', 'FSD YAYRA - Administration')</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -342,7 +342,7 @@
                         <i class="fas fa-shield-halved text-sm"></i>
                     </div>
                     <div>
-                        <h2 class="text-sm font-extrabold text-slate-900 tracking-tight">MIE YAYRA</h2>
+                        <h2 class="text-sm font-extrabold text-slate-900 tracking-tight">FSD YAYRA</h2>
                         <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Pilotage Bancaire</p>
                     </div>
                 </div>
@@ -660,7 +660,7 @@
             }, 250);
         });
 
-        console.log('🏦 MIE YAYRA - Console d\'Administration');
+        console.log('🏦 FSD YAYRA - Console d\'Administration');
         console.log('✅ Interface chargée avec succès');
         console.log('📱 Mode responsive activé');
         console.log('🔐 Connexion sécurisée établie');
@@ -819,6 +819,44 @@
 
         // Exposer la fonction globalement
         window.markNotificationRead = markNotificationRead;
+
+        // Interception automatique de tous les déclencheurs avec [data-confirm] dans l'administration
+        document.addEventListener('click', function(e) {
+            const trigger = e.target.closest('[data-confirm]');
+            if (!trigger) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const form = trigger.closest('form');
+            const message = trigger.getAttribute('data-confirm');
+            const title = trigger.getAttribute('data-confirm-title') || 'Confirmation Requise';
+            const confirmText = trigger.getAttribute('data-confirm-btn') || 'Confirmer';
+            const isDanger = (trigger.getAttribute('data-confirm-class') || '').includes('danger');
+
+            Swal.fire({
+                title: title,
+                html: message,
+                icon: isDanger ? 'warning' : 'question',
+                showCancelButton: true,
+                confirmButtonColor: isDanger ? '#ef4444' : '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: confirmText,
+                cancelButtonText: 'Annuler',
+                customClass: {
+                    popup: 'rounded-2xl shadow-2xl border-0'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (form) {
+                        form.removeAttribute('onsubmit');
+                        form.submit();
+                    } else if (trigger.tagName === 'A' && trigger.href && !trigger.href.startsWith('javascript:')) {
+                        window.location.href = trigger.href;
+                    }
+                }
+            });
+        });
     </script>
     @stack('scripts')
 </body>

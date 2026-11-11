@@ -13,7 +13,7 @@
             </a>
             <div>
                 <h2 class="text-2xl font-black text-slate-900 tracking-tight">{{ $user->full_name }}</h2>
-                <p class="text-slate-500 text-sm font-bold uppercase tracking-widest font-mono">MATRICULE #{{ str_pad($user->id, 5, '0', STR_PAD_LEFT) }} • {{ $user->username }}</p>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-widest font-mono">MATRICULE {{ str_pad($user->id, 5, '0', STR_PAD_LEFT) }} • {{ $user->username }}</p>
             </div>
         </div>
         <div class="flex items-center gap-2">

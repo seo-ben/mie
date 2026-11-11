@@ -103,8 +103,12 @@
                         </div>
 
                         <div class="relative group">
-                            <input type="radio" name="account_type" id="tontine" value="tontine" class="peer hidden" {{ $hasSavingsAccount ? 'checked' : '' }} required>
-                            <label for="tontine" class="block p-6 rounded-2xl border-2 border-slate-100 bg-slate-50/30 cursor-pointer peer-checked:border-purple-600 peer-checked:bg-purple-50/30 group-hover:border-purple-200 transition-all">
+                            @php
+                                $tontineBlocked = !$canOpenTontine || !empty($hasUnfinishedCycle);
+                                $tontineDefaultChecked = ($hasSavingsAccount && !$tontineBlocked);
+                            @endphp
+                            <input type="radio" name="account_type" id="tontine" value="tontine" class="peer hidden" {{ $tontineDefaultChecked ? 'checked' : '' }} {{ $tontineBlocked ? 'disabled' : '' }} required>
+                            <label for="tontine" class="block p-6 rounded-2xl border-2 {{ !$tontineBlocked ? 'border-slate-100 bg-slate-50/30 cursor-pointer peer-checked:border-purple-600 peer-checked:bg-purple-50/30 group-hover:border-purple-200' : 'border-slate-50 bg-slate-50/10 opacity-50 cursor-not-allowed' }} transition-all">
                                 <div class="flex items-center gap-4 mb-3">
                                     <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl">
                                         <i class="fas fa-rotate"></i>
@@ -118,6 +122,15 @@
                                 <div class="text-[10px] font-black text-purple-700 uppercase flex items-center gap-2">
                                     <i class="fas fa-tag"></i> Frais de Carnet : {{ number_format($tontineCarnetFee, 0, ',', ' ') }} XOF
                                 </div>
+                                @if(!$canOpenTontine)
+                                    <div class="mt-4 p-2 bg-rose-50 rounded-lg border border-rose-100 text-[8px] font-black text-rose-700 uppercase text-center">
+                                        Plafond Atteint (Max {{ $client->max_tontine_accounts ?? 1 }} compte) • Augmenter dans la fiche client
+                                    </div>
+                                @elseif(!empty($hasUnfinishedCycle))
+                                    <div class="mt-4 p-2 bg-amber-50 rounded-lg border border-amber-100 text-[8px] font-black text-amber-700 uppercase text-center">
+                                        Cycle de 31 jours en cours • Doit achever ses cotisations avant de changer
+                                    </div>
+                                @endif
                             </label>
                         </div>
                     </div>

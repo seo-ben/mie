@@ -463,7 +463,7 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <i class="fas fa-landmark"></i>
-            <h4>MIE YAYRA</h4>
+            <h4>FSD YAYRA</h4>
         </div>
 
         <ul class="sidebar-menu">

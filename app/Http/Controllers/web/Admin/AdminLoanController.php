@@ -125,9 +125,8 @@ class AdminLoanController extends Controller
             'loan_type' => 'required|string|max:100',
             'purpose' => 'required|string|max:500',
             'collateral_description' => 'nullable|string|max:1000',
-            'guarantor_name' => 'nullable|string|max:255',
-            'guarantor_phone' => 'nullable|string|max:20',
-            'guarantor_relationship' => 'nullable|string|max:100',
+            'guarantors' => 'nullable|array',
+            'verifications' => 'nullable|array',
         ]);
 
         try {
@@ -144,6 +143,13 @@ class AdminLoanController extends Controller
             // Taux d'intérêt selon le risque
             $interestRate = $this->getInterestRateByRisk($riskLevel);
 
+            // Traitement des vérifications cochées
+            $verifications = [];
+            $submittedVerifs = $request->input('verifications', []);
+            foreach (Loan::VERIFICATION_ITEMS as $key => $item) {
+                $verifications[$key] = !empty($submittedVerifs[$key]);
+            }
+
             // Créer le prêt
             $loan = Loan::create([
                 'loan_number' => $this->generateLoanNumber(),
@@ -154,9 +160,8 @@ class AdminLoanController extends Controller
                 'loan_type' => $request->loan_type,
                 'purpose' => $request->purpose,
                 'collateral_description' => $request->collateral_description,
-                'guarantor_name' => $request->guarantor_name,
-                'guarantor_phone' => $request->guarantor_phone,
-                'guarantor_relationship' => $request->guarantor_relationship,
+                'verifications' => $verifications,
+                'guarantors_count' => 0,
                 'status' => 'pending',
                 'risk_level' => $riskLevel,
                 'eligibility_score' => $eligibilityScore,
@@ -164,11 +169,38 @@ class AdminLoanController extends Controller
                 'submitted_by' => auth()->id(),
             ]);
 
+            // Enregistrer jusqu'à 3 cautionnaires solidaires
+            $guarantorsData = $request->input('guarantors', []);
+            $savedGuarantorsCount = 0;
+
+            if (is_array($guarantorsData)) {
+                foreach ($guarantorsData as $order => $gData) {
+                    if (!empty($gData['full_name']) && !empty($gData['phone'])) {
+                        \App\Models\LoanGuarantor::create([
+                            'loan_id'                => $loan->id,
+                            'guarantor_order'        => (int) ($order ?: ($savedGuarantorsCount + 1)),
+                            'full_name'              => $gData['full_name'],
+                            'phone'                  => $gData['phone'],
+                            'id_card_number'         => $gData['id_card_number'] ?? null,
+                            'relationship'           => $gData['relationship'] ?? null,
+                            'profession'             => $gData['profession'] ?? null,
+                            'address'                => $gData['address'] ?? null,
+                            'collateral_value'       => !empty($gData['collateral_value']) ? (float)$gData['collateral_value'] : null,
+                            'collateral_description' => $gData['collateral_description'] ?? null,
+                            'is_verified'            => !empty($gData['is_verified']),
+                        ]);
+                        $savedGuarantorsCount++;
+                    }
+                }
+            }
+
+            $loan->update(['guarantors_count' => $savedGuarantorsCount]);
+
             DB::commit();
 
             return redirect()
                 ->route('admin.loans.show', $loan->id)
-                ->with('success', 'Demande de prêt créée avec succès. Score d\'éligibilité: ' . round($eligibilityScore, 2) . '%');
+                ->with('success', 'Demande de prêt créée avec ' . $savedGuarantorsCount . ' cautionnaire(s) et vérifications. Score d\'éligibilité: ' . round($eligibilityScore, 2) . '%');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -189,6 +221,7 @@ class AdminLoanController extends Controller
             'client.accounts',
             'client.documents',
             'payments',
+            'guarantors',
             'approvedBy',
             'disbursedBy',
             'reviewedBy'
@@ -210,12 +243,38 @@ class AdminLoanController extends Controller
     }
 
     /**
+     * Mettre à jour les vérifications et le statut des cautions (Admin)
+     */
+    public function updateVerifications(Request $request, $loanId)
+    {
+        $loan = Loan::with('guarantors')->findOrFail($loanId);
+
+        $submittedVerifs = $request->input('verifications', []);
+        $verifications = [];
+        foreach (Loan::VERIFICATION_ITEMS as $key => $item) {
+            $verifications[$key] = !empty($submittedVerifs[$key]);
+        }
+        $loan->verifications = $verifications;
+        $loan->save();
+
+        // Mettre à jour l'état vérifié des cautionnaires
+        $guarantorVerified = $request->input('guarantor_verified', []);
+        foreach ($loan->guarantors as $g) {
+            $g->is_verified = !empty($guarantorVerified[$g->id]);
+            $g->save();
+        }
+
+        return redirect()->back()->with('success', '✅ Grille d\'audit et vérifications des cautions enregistrées.');
+    }
+
+    /**
      * Analyser une demande de prêt
      */
     public function analyze($loanId)
     {
         $loan = Loan::with([
             'client.accounts.transactions',
+            'guarantors',
             'client.loans' => function($q) {
                 $q->whereIn('status', ['active', 'disbursed', 'completed']);
             }
@@ -284,7 +343,7 @@ class AdminLoanController extends Controller
             // 📧 Notification Email (Approbation)
             if ($loan->client->email) {
                 try {
-                    $emailMessage = "Nous avons le plaisir de vous informer que votre demande de prêt #{$loan->loan_number} a été approuvée.\n\n" .
+                    $emailMessage = "Nous avons le plaisir de vous informer que votre demande de prêt {$loan->loan_number} a été approuvée.\n\n" .
                                    "Montant accordé : " . number_format($request->approved_amount, 0, ',', ' ') . " XOF\n" .
                                    "Taux d'intérêt : {$request->interest_rate}%\n" .
                                    "Durée : {$request->duration_months} mois\n\n" .
@@ -339,7 +398,7 @@ class AdminLoanController extends Controller
             // 📧 Notification Email (Rejet)
             if ($loan->client->email) {
                 try {
-                    $emailMessage = "Nous regrettons de vous informer que votre demande de prêt #{$loan->loan_number} n'a pas pu être retenue pour le motif suivant :\n\n" .
+                    $emailMessage = "Nous regrettons de vous informer que votre demande de prêt {$loan->loan_number} n'a pas pu être retenue pour le motif suivant :\n\n" .
                                    "Motif : {$request->rejection_reason}\n\n" .
                                    "Nous vous invitons à contacter votre conseiller pour plus d'informations.";
 

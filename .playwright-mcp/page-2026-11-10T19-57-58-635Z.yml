@@ -1,0 +1,298 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - generic [ref=e3]:
+      - link " FSD YAYRA Guichet & Caisse" [ref=e4] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/caissier/dashboard
+        - generic [ref=e5]: 
+        - generic [ref=e7]:
+          - heading "FSD YAYRA" [level=5] [ref=e8]
+          - generic [ref=e9]: Guichet & Caisse
+      - button "" [ref=e10] [cursor=pointer]
+      - text: 
+    - list [ref=e12]:
+      - generic [ref=e13]: Dashboard
+      - listitem [ref=e14]:
+        - link " Tableau de Bord" [ref=e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/dashboard
+          - generic [ref=e16]: 
+          - generic [ref=e17]: Tableau de Bord
+      - listitem [ref=e18]:
+        - link " Terminal de Caisse" [ref=e19] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/terminal
+          - generic [ref=e20]: 
+          - generic [ref=e21]: Terminal de Caisse
+      - generic [ref=e22]: Guichet & Opérations
+      - listitem [ref=e23]:
+        - button " Opérations Guichet " [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: 
+          - generic [ref=e26]: Opérations Guichet
+          - generic [ref=e27]: 
+        - text:     
+      - generic [ref=e28]: Crédits & Prêts
+      - listitem [ref=e29]:
+        - button " Gestion des Prêts " [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: 
+          - generic [ref=e32]: Gestion des Prêts
+          - generic [ref=e33]: 
+        - text:    
+      - generic [ref=e34]: Clients & Comptes
+      - listitem [ref=e35]:
+        - button " Dossiers Clients " [expanded] [ref=e36] [cursor=pointer]:
+          - generic [ref=e37]: 
+          - generic [ref=e38]: Dossiers Clients
+          - generic [ref=e39]: 
+        - list [ref=e41]:
+          - listitem [ref=e42]:
+            - link " Répertoire Clients" [ref=e43] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/clients
+              - generic [ref=e44]: 
+              - text: Répertoire Clients
+          - listitem [ref=e45]:
+            - link " Inscription Express" [ref=e46] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/clients/register-with-tontine
+              - generic [ref=e47]: 
+              - text: Inscription Express
+          - listitem [ref=e48]:
+            - link " Comptes Tontine & Épargne" [ref=e49] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/accounts
+              - generic [ref=e50]: 
+              - text: Comptes Tontine & Épargne
+      - generic [ref=e51]: Agents & Terrain
+      - listitem [ref=e52]:
+        - button " Collectes Terrain " [ref=e53] [cursor=pointer]:
+          - generic [ref=e54]: 
+          - generic [ref=e55]: Collectes Terrain
+          - generic [ref=e56]: 
+        - text: 
+      - generic [ref=e57]: Rapports & Audit
+      - listitem [ref=e58]:
+        - button " États & Clôture " [ref=e59] [cursor=pointer]:
+          - generic [ref=e60]: 
+          - generic [ref=e61]: États & Clôture
+          - generic [ref=e62]: 
+        - text:   
+  - generic [ref=e63]:
+    - banner [ref=e64]:
+      - generic [ref=e65]:
+        - text: 
+        - generic [ref=e66]:
+          - generic: 
+          - textbox "Rechercher un client, compte, prêt... (Entrée)" [ref=e67]
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - button "" [ref=e70] [cursor=pointer]
+          - text:  
+        - generic [ref=e73]:
+          - generic [ref=e74]: 
+          - generic [ref=e75]: Agence Agoè (Siège)
+        - generic [ref=e76]: Guichet Actif
+        - generic [ref=e79]:
+          - generic [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]:
+              - paragraph [ref=e82]: Kodzo GADZEKPO
+              - paragraph [ref=e83]: Caissier Guichet
+            - generic [ref=e84]: K
+            - generic [ref=e85]: 
+          - text:    
+    - main [ref=e86]:
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - heading "Répertoire des Clients" [level=2] [ref=e90]
+            - navigation "breadcrumb" [ref=e91]:
+              - list [ref=e92]:
+                - listitem [ref=e93]:
+                  - link "Dashboard" [ref=e94] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/caissier/dashboard
+                - listitem [ref=e95]: / Clients & Adhérents
+          - link " Nouveau Client Express" [ref=e97] [cursor=pointer]:
+            - /url: http://127.0.0.1:8000/caissier/clients/register-with-tontine
+            - generic [ref=e98]: 
+            - text: Nouveau Client Express
+        - generic [ref=e99]:
+          - generic [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]: 
+              - generic [ref=e105]:
+                - generic [ref=e106]: 
+                - text: Répertoire
+            - generic [ref=e107]:
+              - generic [ref=e108]: "5"
+              - generic [ref=e109]: Total Clients Agence
+          - generic [ref=e111]:
+            - generic [ref=e112]:
+              - generic [ref=e113]: 
+              - generic [ref=e115]:
+                - generic [ref=e116]: 
+                - text: À Valider
+            - generic [ref=e117]:
+              - generic [ref=e118]: "1"
+              - generic [ref=e119]: Dossiers KYC en Attente
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - generic [ref=e123]: 
+              - generic [ref=e125]: 100% Conforme
+            - generic [ref=e126]:
+              - generic [ref=e127]: "4"
+              - generic [ref=e128]: Clients KYC Validés
+          - generic [ref=e130]:
+            - generic [ref=e131]:
+              - generic [ref=e132]: 
+              - generic [ref=e134]:
+                - generic [ref=e135]: 
+                - text: Aujourd'hui
+            - generic [ref=e136]:
+              - generic [ref=e137]: "5"
+              - generic [ref=e138]: Inscriptions du Jour
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - generic [ref=e143]: Recherche de Client
+            - generic [ref=e144]:
+              - generic: 
+              - textbox "Nom, prénom, téléphone, n° client..." [ref=e145]
+          - generic [ref=e146]:
+            - generic [ref=e147]: Statut KYC
+            - combobox [ref=e148]:
+              - option "Tous les statuts KYC" [selected]
+              - option "En attente de validation"
+              - option "Conforme (Approuvé)"
+          - generic [ref=e149]:
+            - generic [ref=e150]: Adhésion
+            - combobox [ref=e151]:
+              - option "Tous statuts" [selected]
+              - option "En attente"
+              - option "Validé"
+          - button " Filtrer" [ref=e153] [cursor=pointer]:
+            - generic [ref=e154]: 
+            - text: Filtrer
+        - generic [ref=e155]:
+          - heading " Liste des Adhérents (5)" [level=6] [ref=e157]:
+            - generic [ref=e158]: 
+            - text: Liste des Adhérents (5)
+          - table [ref=e160]:
+            - rowgroup [ref=e161]:
+              - row [ref=e162]:
+                - columnheader "N° Client" [ref=e163]
+                - columnheader "Client & Enrôlement" [ref=e164]
+                - columnheader "Téléphone" [ref=e165]
+                - columnheader "Comptes Liés" [ref=e166]
+                - columnheader "Statut KYC" [ref=e167]
+                - columnheader "Actions Guichet" [ref=e168]
+            - rowgroup [ref=e169]:
+              - row [ref=e170]:
+                - cell "CLT-PAA-2611120" [ref=e171]
+                - cell "SJ Sewa jule Inscrit le 10/11/2026" [ref=e172]:
+                  - generic [ref=e173]:
+                    - generic [ref=e174]: SJ
+                    - generic [ref=e175]:
+                      - generic [ref=e176]: Sewa jule
+                      - text: Inscrit le 10/11/2026
+                - cell " 90090990" [ref=e177]:
+                  - generic [ref=e178]:
+                    - generic [ref=e179]: 
+                    - text: "90090990"
+                - cell "1 Compte(s)" [ref=e180]
+                - cell " En Attente" [ref=e182]:
+                  - generic [ref=e183]:
+                    - generic [ref=e184]: 
+                    - text: En Attente
+                - cell [ref=e185]:
+                  - generic [ref=e186]:
+                    - link "" [ref=e187] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/clients/6
+                    - link "+" [ref=e189] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/accounts/create/6
+                    - button "" [ref=e192] [cursor=pointer]
+              - row [ref=e194]:
+                - cell "CLT-CZK-2611941" [ref=e195]
+                - cell "SK Sewoda Komla Bernard Inscrit le 10/11/2026" [ref=e196]:
+                  - generic [ref=e197]:
+                    - generic [ref=e198]: SK
+                    - generic [ref=e199]:
+                      - generic [ref=e200]: Sewoda Komla Bernard
+                      - text: Inscrit le 10/11/2026
+                - cell " 96281671" [ref=e201]:
+                  - generic [ref=e202]:
+                    - generic [ref=e203]: 
+                    - text: "96281671"
+                - cell "1 Compte(s)" [ref=e204]
+                - cell " Conforme" [ref=e206]:
+                  - generic [ref=e207]:
+                    - generic [ref=e208]: 
+                    - text: Conforme
+                - cell [ref=e209]:
+                  - generic [ref=e210]:
+                    - link "" [ref=e211] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/clients/4
+                    - link "+" [ref=e213] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/accounts/create/4
+              - row [ref=e215]:
+                - cell "CLT-AGO-002" [ref=e216]
+                - cell "AK Afi KOUDOSSOU Inscrit le 10/11/2026" [ref=e217]:
+                  - generic [ref=e218]:
+                    - generic [ref=e219]: AK
+                    - generic [ref=e220]:
+                      - generic [ref=e221]: Afi KOUDOSSOU
+                      - text: Inscrit le 10/11/2026
+                - cell " 91223344" [ref=e222]:
+                  - generic [ref=e223]:
+                    - generic [ref=e224]: 
+                    - text: "91223344"
+                - cell "2 Compte(s)" [ref=e225]
+                - cell " Conforme" [ref=e227]:
+                  - generic [ref=e228]:
+                    - generic [ref=e229]: 
+                    - text: Conforme
+                - cell [ref=e230]:
+                  - generic [ref=e231]:
+                    - link "" [ref=e232] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/clients/2
+                    - link "+" [ref=e234] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/accounts/create/2
+              - row [ref=e236]:
+                - cell "CLT-AGO-003" [ref=e237]
+                - cell "YA Yao ADOTEVI Inscrit le 10/11/2026" [ref=e238]:
+                  - generic [ref=e239]:
+                    - generic [ref=e240]: YA
+                    - generic [ref=e241]:
+                      - generic [ref=e242]: Yao ADOTEVI
+                      - text: Inscrit le 10/11/2026
+                - cell " 92334455" [ref=e243]:
+                  - generic [ref=e244]:
+                    - generic [ref=e245]: 
+                    - text: "92334455"
+                - cell "2 Compte(s)" [ref=e246]
+                - cell " Conforme" [ref=e248]:
+                  - generic [ref=e249]:
+                    - generic [ref=e250]: 
+                    - text: Conforme
+                - cell [ref=e251]:
+                  - generic [ref=e252]:
+                    - link "" [ref=e253] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/clients/3
+                    - link "+" [ref=e255] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/accounts/create/3
+              - row [ref=e257]:
+                - cell "CLT-AGO-001" [ref=e258]
+                - cell "KM Koffi MENSAH Inscrit le 10/11/2026" [ref=e259]:
+                  - generic [ref=e260]:
+                    - generic [ref=e261]: KM
+                    - generic [ref=e262]:
+                      - generic [ref=e263]: Koffi MENSAH
+                      - text: Inscrit le 10/11/2026
+                - cell " 90112233" [ref=e264]:
+                  - generic [ref=e265]:
+                    - generic [ref=e266]: 
+                    - text: "90112233"
+                - cell "2 Compte(s)" [ref=e267]
+                - cell " Conforme" [ref=e269]:
+                  - generic [ref=e270]:
+                    - generic [ref=e271]: 
+                    - text: Conforme
+                - cell [ref=e272]:
+                  - generic [ref=e273]:
+                    - link "" [ref=e274] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/clients/1
+                    - link "+" [ref=e276] [cursor=pointer]:
+                      - /url: http://127.0.0.1:8000/caissier/accounts/create/1
+  - text:         

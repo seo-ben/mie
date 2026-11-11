@@ -12,6 +12,15 @@ class CreateClientRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        if ($this->has('phone')) {
+            $this->merge([
+                'phone' => \App\Models\Client::normalizePhone($this->phone)
+            ]);
+        }
+    }
+
     public function rules()
     {
         return [
@@ -32,6 +41,7 @@ class CreateClientRequest extends FormRequest
             'id_expiry_date'   => 'nullable|date',
             'profile_photo'    => 'nullable|image|max:10048',
             'is_leader_or_elected' => 'sometimes|boolean',
+            'max_tontine_accounts' => 'nullable|integer|min:1|max:20',
         ];
     }
 

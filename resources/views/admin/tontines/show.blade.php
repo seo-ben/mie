@@ -58,10 +58,12 @@
                         @endif
                     </div>
                 </div>
-                <form action="{{ route('admin.accounts.reactivate', $tontine->account->id) }}" method="POST" 
-                      onsubmit="return confirm('Êtes-vous sûr de vouloir réactiver ce compte ? Cette action permettra à nouveau les cotisations.');">
+                <form action="{{ route('admin.accounts.reactivate', $tontine->account->id) }}" method="POST">
                     @csrf
-                    <button type="submit" class="btn-bank btn-bank-primary whitespace-nowrap">
+                    <button type="button" class="btn-bank btn-bank-primary whitespace-nowrap"
+                            data-confirm="Êtes-vous sûr de vouloir réactiver ce compte ? Cette action permettra à nouveau les cotisations."
+                            data-confirm-title="Réactivation du Compte"
+                            data-confirm-btn="Réactiver">
                         <i class="fas fa-unlock mr-2 text-[10px]"></i>
                         <span>Réactiver le Compte</span>
                     </button>
@@ -114,9 +116,23 @@
     <!-- Protocole de Cotisation & Discipline -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div class="lg:col-span-3 bank-card p-6">
-            <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                <i class="fas fa-gears text-purple-600"></i> Protocole de Cotisation Mutuelle
-            </h5>
+            <div class="flex items-center justify-between mb-6">
+                <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <i class="fas fa-gears text-purple-600"></i> Protocole de Cotisation Mutuelle
+                </h5>
+                @php
+                    $isCycleUnderway = $activeCycle && $activeCycle->status === 'active' && $activeCycle->collected_amount > 0 && $activeCycle->collected_amount < $activeCycle->target_amount;
+                @endphp
+                @if($isCycleUnderway)
+                    <span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
+                        <i class="fas fa-lock mr-1"></i> Cycle 31 jours en cours (Mise verrouillée)
+                    </span>
+                @else
+                    <a href="{{ route('admin.accounts.edit', $tontine->account_id) }}" class="text-[9px] font-bold text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-full border border-purple-200 transition">
+                        <i class="fas fa-pen-to-square mr-1"></i> Ajuster la mise (ex: 200 F → 1 000 F)
+                    </a>
+                @endif
+            </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Flux Unitaire</p>
@@ -164,7 +180,7 @@
                     <i class="fas fa-arrows-spin"></i>
                 </div>
                 <div>
-                    <h5 class="text-sm font-black text-slate-900 uppercase tracking-tight">Cycle Actif #{{ $activeCycle->cycle_number }}</h5>
+                    <h5 class="text-sm font-black text-slate-900 uppercase tracking-tight">Cycle Actif {{ $activeCycle->cycle_number }}</h5>
                     <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">Période : <span class="text-slate-700">{{ $activeCycle->start_date->format('d/m/Y') }}</span> → <span class="text-slate-700">{{ $activeCycle->end_date->format('d/m/Y') }}</span></p>
                 </div>
             </div>
@@ -187,7 +203,7 @@
         <div class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
-                    <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Cible du Cycle #{{ $displayCycle->cycle_number ?? '?' }}</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Cible du Cycle {{ $displayCycle->cycle_number ?? '?' }}</p>
                     <p class="text-xl font-black text-slate-900 font-numeric">{{ number_format($displayCycle->target_amount ?? 0, 0, ',', ' ') }} <small class="text-xs text-slate-400">XOF</small></p>
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
@@ -217,7 +233,7 @@
                        {{ ($selectedCycle && $selectedCycle->id === $cycle->id) 
                            ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' 
                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}">
-                        Cycle #{{ $cycle->cycle_number }}
+                        Cycle {{ $cycle->cycle_number }}
                     </a>
                 @endforeach
             </div>
@@ -226,7 +242,7 @@
             <div class="mb-8">
                 <div class="flex items-center justify-between mb-4">
                     <h6 class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <i class="fas fa-calendar-alt text-purple-600"></i> Calendrier du Cycle #{{ $displayCycle->cycle_number ?? '?' }}
+                        <i class="fas fa-calendar-alt text-purple-600"></i> Calendrier du Cycle {{ $displayCycle->cycle_number ?? '?' }}
                     </h6>
                     <span class="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full uppercase">
                         {{ $gridFilledSlots }} / {{ $gridTotalSlots }} {{ $tontine->payment_frequency === 'daily' ? 'Jours' : ($tontine->payment_frequency === 'weekly' ? 'Semaines' : 'Mois') }}
@@ -277,14 +293,16 @@
                                 <i class="fas fa-check text-lg"></i>
                             </div>
                             <div>
-                                <p class="text-xs font-black text-emerald-800 uppercase tracking-tight">Cycle #{{ $pendingPayoutCycle->cycle_number }} Prêt au Déblocage</p>
+                                <p class="text-xs font-black text-emerald-800 uppercase tracking-tight">Cycle {{ $pendingPayoutCycle->cycle_number }} Prêt au Déblocage</p>
                                 <p class="text-[10px] font-bold text-emerald-600">Net à payer : <span class="font-black italic">{{ number_format($pendingPayoutCycle->payout_amount, 0, ',', ' ') }} XOF</span> (Après commission microfinance)</p>
                             </div>
                         </div>
-                        <form action="{{ route('admin.tontines.payout', $tontine->id) }}" method="POST"
-                              onsubmit="return confirm('Confirmez-vous le déblocage effectif de {{ number_format($pendingPayoutCycle->payout_amount, 0, ',', ' ') }} XOF pour ce client ?');">
+                        <form action="{{ route('admin.tontines.payout', $tontine->id) }}" method="POST">
                             @csrf
-                            <button type="submit" class="btn-bank btn-bank-success !py-2">
+                            <button type="button" class="btn-bank btn-bank-success !py-2"
+                                    data-confirm="Confirmez-vous le déblocage effectif de <strong>{{ number_format($pendingPayoutCycle->payout_amount, 0, ',', ' ') }} XOF</strong> pour ce client ?"
+                                    data-confirm-title="Déblocage du Capital Échu"
+                                    data-confirm-btn="Confirmer le Déblocage">
                                 <i class="fas fa-hand-holding-dollar mr-2"></i>Débloquer Capital
                             </button>
                         </form>
@@ -292,10 +310,13 @@
                 @endif
 
                 @if($activeCycle && $activeCycle->collected_amount > 0)
-                    <form action="{{ route('admin.tontines.cycles.close', $activeCycle->id) }}" method="POST" 
-                          onsubmit="return confirm('ALERTE COMMISSION : La clôture de ce cycle prélèvera obligatoirement {{ number_format($dailyCommission, 0, ',', ' ') }} XOF au profit de la microfinance, conformément à la règle du 1/31. Continuer ?');">
+                    <form action="{{ route('admin.tontines.cycles.close', $activeCycle->id) }}" method="POST">
                         @csrf
-                        <button type="submit" class="px-6 py-2.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20 text-[10px] font-black uppercase tracking-widest">
+                        <button type="button" class="px-6 py-2.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20 text-[10px] font-black uppercase tracking-widest"
+                                data-confirm="ALERTE COMMISSION : La clôture de ce cycle prélèvera obligatoirement <strong>{{ number_format($dailyCommission, 0, ',', ' ') }} XOF</strong> au profit de la microfinance, conformément à la règle du 1/31. Continuer ?"
+                                data-confirm-title="Clôture Anticipée de Cycle"
+                                data-confirm-btn="Confirmer la Clôture"
+                                data-confirm-class="danger">
                             <i class="fas fa-stop-circle mr-2"></i>Clôture Anticipée (Prélèvement {{ number_format($dailyCommission, 0, ',', ' ') }})
                         </button>
                     </form>

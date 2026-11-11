@@ -7,12 +7,12 @@
 @push('styles')
 <style>
     .search-container {
-        background: #1a2332;
-        border: 1px solid rgba(239, 68, 68, 0.15);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 16px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .search-input-group {
@@ -22,27 +22,28 @@
     }
 
     .search-input-group input {
-        background: #0f1923;
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        color: white;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #0f172a;
         border-radius: 12px;
-        padding: 15px 50px 15px 45px;
-        font-size: 1.05rem;
+        padding: 14px 48px 14px 44px;
+        font-size: 1rem;
         width: 100%;
-        transition: all 0.3s;
+        transition: all 0.2s;
         font-weight: 500;
     }
 
     .search-input-group input:focus {
-        border-color: #ef4444;
-        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+        background: #ffffff;
+        border-color: #e11d48;
+        box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.12);
         outline: none;
     }
 
     .search-input-group .search-icon {
         position: absolute;
-        left: 18px;
-        color: #ef4444;
+        left: 16px;
+        color: #e11d48;
         font-size: 1.1rem;
     }
 
@@ -51,7 +52,7 @@
         right: 15px;
         background: none;
         border: none;
-        color: rgba(225, 232, 237, 0.4);
+        color: #94a3b8;
         font-size: 1rem;
         cursor: pointer;
         display: none;
@@ -72,12 +73,13 @@
     }
 
     .shortcut-btn {
-        background: rgba(239, 68, 68, 0.08);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        color: rgba(225, 232, 237, 0.7);
+        background: #fff1f2;
+        border: 1px solid #ffe4e6;
+        color: #be123c;
         border-radius: 20px;
         padding: 5px 14px;
         font-size: 0.78rem;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
         display: flex;
@@ -86,9 +88,9 @@
     }
 
     .shortcut-btn:hover {
-        background: rgba(239, 68, 68, 0.15);
-        color: #ef4444;
-        border-color: #ef4444;
+        background: #e11d48;
+        color: #ffffff;
+        border-color: #e11d48;
     }
 
     .shortcut-btn i {
@@ -96,33 +98,35 @@
     }
 
     .keyboard-hint {
-        color: rgba(225, 232, 237, 0.3);
-        font-size: 0.72rem;
+        color: #94a3b8;
+        font-size: 0.75rem;
         display: flex;
         align-items: center;
         gap: 6px;
     }
 
     .keyboard-hint kbd {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        padding: 1px 6px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        padding: 2px 6px;
         border-radius: 4px;
         font-size: 0.7rem;
-        color: #ef4444;
+        color: #475569;
+        font-weight: 600;
     }
 
     /* Résultats récents */
     .recent-section {
-        margin-top: 15px;
+        margin-top: 16px;
         display: none;
     }
 
     .recent-header {
-        color: rgba(225, 232, 237, 0.4);
-        font-size: 0.75rem;
+        color: #64748b;
+        font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
+        font-weight: 700;
         margin-bottom: 8px;
         display: flex;
         justify-content: space-between;
@@ -132,8 +136,8 @@
     .recent-header button {
         background: none;
         border: none;
-        color: rgba(225, 232, 237, 0.3);
-        font-size: 0.7rem;
+        color: #94a3b8;
+        font-size: 0.72rem;
         cursor: pointer;
     }
 
@@ -145,29 +149,29 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(239, 68, 68, 0.05);
-        border: 1px solid rgba(239, 68, 68, 0.1);
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
         padding: 6px 12px;
         margin: 0 6px 6px 0;
         cursor: pointer;
         transition: all 0.2s;
         font-size: 0.8rem;
-        color: rgba(225, 232, 237, 0.7);
+        color: #334155;
     }
 
     .recent-item:hover {
-        background: rgba(239, 68, 68, 0.12);
-        border-color: #ef4444;
-        color: white;
+        background: #fff1f2;
+        border-color: #e11d48;
+        color: #be123c;
     }
 
     .recent-item .recent-name {
-        font-weight: 500;
+        font-weight: 600;
     }
 
     .recent-item .recent-num {
-        color: rgba(225, 232, 237, 0.4);
+        color: #64748b;
         font-size: 0.72rem;
     }
 
@@ -177,69 +181,78 @@
     }
 
     .client-card {
-        background: #1a2332;
-        border: 1px solid rgba(239, 68, 68, 0.1);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
-        padding: 15px;
+        padding: 16px;
         margin-bottom: 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: all 0.15s;
+        transition: all 0.15s ease;
         cursor: pointer;
-        animation: slideIn 0.2s ease-out;
-    }
-
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(-5px); }
-        to { opacity: 1; transform: translateY(0); }
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
 
     .client-card:hover {
-        border-color: #ef4444;
-        background: rgba(239, 68, 68, 0.05);
-        transform: translateX(3px);
+        border-color: #e11d48;
+        background: #fff1f2;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.08);
     }
 
     .client-card.selected {
-        border-color: #ef4444;
-        background: rgba(239, 68, 68, 0.1);
-        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        border-color: #e11d48;
+        background: #fff1f2;
+        box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2);
     }
 
-    .client-info h6 { color: white; margin-bottom: 3px; font-weight: 600; }
-    .client-info span { color: rgba(225, 232, 237, 0.5); font-size: 0.8rem; }
+    .client-info h6 { color: #0f172a; margin-bottom: 3px; font-weight: 700; }
+    .client-info span { color: #64748b; font-size: 0.82rem; }
+
+    .account-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 6px;
+        margin-left: 8px;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .badge-savings { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; }
+    .badge-tontine { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
 
     .fast-indicator {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        font-size: 0.65rem;
-        color: #10b981;
+        font-size: 0.7rem;
+        color: #059669;
+        font-weight: 600;
         margin-left: 8px;
     }
 
-    .fast-indicator i { font-size: 0.55rem; }
+    .fast-indicator i { font-size: 0.65rem; }
 
     .result-meta {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }
 
     .result-meta .result-time {
-        font-size: 0.7rem;
-        color: rgba(225, 232, 237, 0.3);
+        font-size: 0.72rem;
+        color: #94a3b8;
     }
 
     .quick-action-btn {
-        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        background: linear-gradient(135deg, #e11d48, #be123c);
         border: none;
         color: white;
         border-radius: 8px;
-        padding: 6px 14px;
-        font-size: 0.78rem;
+        padding: 7px 16px;
+        font-size: 0.8rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
@@ -247,55 +260,64 @@
     }
 
     .quick-action-btn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(225, 29, 72, 0.25);
     }
 
     .withdrawal-modal-content {
-        background: #1a2332;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        color: white;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        color: #0f172a;
     }
 
-    .form-label { color: rgba(225, 232, 237, 0.6); font-size: 0.85rem; }
+    .form-label { color: #334155; font-size: 0.85rem; font-weight: 600; }
 
     .form-control, .form-select {
-        background: #0f1923;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        color: white;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #0f172a;
         border-radius: 8px;
         padding: 10px 12px;
     }
 
     .form-control:focus, .form-select:focus {
-        background: #0f1923;
-        color: white;
-        border-color: #ef4444;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        background: #ffffff;
+        color: #0f172a;
+        border-color: #e11d48;
+        box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.15);
     }
 
     .amount-input {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #ef4444;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #e11d48;
         text-align: center;
+        background: #fff1f2;
+        border-color: #fecdd3;
     }
 
     .btn-withdrawal {
-        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        background: linear-gradient(135deg, #e11d48, #be123c);
         border: none;
         color: white;
         font-weight: 600;
-        padding: 12px;
-        border-radius: 10px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(225, 29, 72, 0.2);
+    }
+    .btn-withdrawal:hover {
+        background: linear-gradient(135deg, #be123c, #9f1239);
+        color: white;
     }
 
     .balance-box {
-        background: rgba(239, 68, 68, 0.05);
+        background: #f8fafc;
         border-radius: 10px;
         padding: 15px;
         margin-bottom: 20px;
-        border: 1px solid rgba(239, 68, 68, 0.1);
+        border: 1px solid #e2e8f0;
     }
 
     .info-item {
@@ -305,15 +327,15 @@
         font-size: 0.85rem;
     }
 
-    .info-item span:first-child { color: rgba(225, 232, 237, 0.5); }
-    .info-item span:last-child { color: white; font-weight: 500; }
+    .info-item span:first-child { color: #64748b; font-weight: 500; }
+    .info-item span:last-child { color: #0f172a; font-weight: 700; }
 
-    .text-withdrawal { color: #ef4444; }
+    .text-withdrawal { color: #e11d48; }
 
     /* Loading skeleton */
     .skeleton-card {
-        background: #1a2332;
-        border: 1px solid rgba(239, 68, 68, 0.05);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 10px;
@@ -321,7 +343,7 @@
     }
 
     .skeleton-line {
-        background: rgba(239, 68, 68, 0.08);
+        background: #e2e8f0;
         border-radius: 4px;
         height: 14px;
         margin-bottom: 8px;
@@ -333,7 +355,7 @@
 
     @keyframes skeleton-pulse {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+        50% { opacity: 0.4; }
     }
 </style>
 @endpush
@@ -342,8 +364,8 @@
 
 <div class="search-container">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="text-white mb-0">
-            <i class="fas fa-hand-holding-usd me-2" style="color: #ef4444;"></i>Rechercher un compte pour retrait
+        <h5 class="text-slate-900 fw-bold mb-0">
+            <i class="fas fa-hand-holding-usd me-2 text-rose-600"></i>Rechercher un compte pour retrait
         </h5>
         <div class="keyboard-hint d-none d-md-flex">
             <kbd>/</kbd> pour rechercher &bull; <kbd>Échap</kbd> pour effacer
@@ -369,15 +391,12 @@
         <button class="shortcut-btn" onclick="quickSearch('SAV-')">
             <i class="fas fa-piggy-bank"></i> Épargne
         </button>
-        {{-- <button class="shortcut-btn" onclick="quickSearch('EPR-')">
-            <i class="fas fa-piggy-bank"></i> EPR
-        </button> --}}
     </div>
 
     <!-- Récents -->
     <div id="recentSection" class="recent-section">
         <div class="recent-header">
-            <span><i class="fas fa-clock me-1"></i> Récemment utilisés</span>
+            <span><i class="fas fa-clock me-1 text-slate-400"></i> Récemment utilisés</span>
             <button onclick="clearRecentSearches()">Effacer</button>
         </div>
         <div id="recentList"></div>
@@ -387,8 +406,8 @@
     <div id="searchResults" class="results-container">
         <div class="result-meta">
             <div class="d-flex align-items-center gap-2">
-                <h6 class="text-white-50 mb-0">Comptes éligibles</h6>
-                <span id="resultCount" class="badge bg-danger">0</span>
+                <h6 class="text-slate-700 fw-bold mb-0">Comptes éligibles</h6>
+                <span id="resultCount" class="badge" style="background: #ffe4e6; color: #9f1239; font-size: 0.75rem; font-weight: 700; border: 1px solid #fecdd3;">0</span>
                 <span id="fastModeIndicator" class="fast-indicator" style="display:none;">
                     <i class="fas fa-bolt"></i> Recherche rapide
                 </span>
@@ -399,9 +418,9 @@
     </div>
 
     <!-- States -->
-    <div id="searchPlaceholder" class="mt-4 text-center py-4 text-white-50">
-        <i class="fas fa-user-minus fa-3x mb-3 d-block opacity-25"></i>
-        <p>Entrez les informations du client pour initier le retrait...</p>
+    <div id="searchPlaceholder" class="mt-4 text-center py-4 text-slate-400">
+        <i class="fas fa-user-minus fa-3x mb-3 d-block text-slate-300"></i>
+        <p class="mb-0 fw-medium">Entrez les informations du client pour initier le retrait...</p>
     </div>
 
     <div id="searchLoading" class="mt-4" style="display:none;">
@@ -424,48 +443,53 @@
 <div class="modal fade" id="withdrawalModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content withdrawal-modal-content">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title text-withdrawal">Confirmer le Retrait</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header border-bottom border-slate-100 px-4 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <h5 class="modal-title font-bold text-slate-900 mb-0">Confirmer le Retrait</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="withdrawalForm" method="POST">
                 @csrf
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="balance-box">
                         <div class="info-item">
                             <span>Client</span>
-                            <span id="modalClientName">-</span>
+                            <span id="modalClientName" class="text-slate-900">-</span>
                         </div>
                         <div class="info-item">
                             <span>Compte</span>
-                            <span id="modalAccountNumber">-</span>
+                            <span id="modalAccountNumber" class="font-mono text-slate-800">-</span>
                         </div>
-                        <div class="info-item border-top border-secondary pt-2 mt-2">
+                        <div class="info-item border-top border-slate-200 pt-2 mt-2">
                             <span>Solde Disponible</span>
-                            <span id="modalAvailableBalance" class="fw-bold text-white fs-5">-</span>
+                            <span id="modalAvailableBalance" class="fw-bold text-rose-600 fs-5">-</span>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Montant du retrait (FCFA)</label>
                         <input type="number" name="amount" id="withdrawalAmount" class="form-control amount-input" placeholder="0" required min="100">
-                        <div id="amountHelp" class="form-text text-danger mt-1" style="display:none;">
+                        <div id="amountHelp" class="form-text text-danger mt-1 fw-medium" style="display:none;">
                             <i class="fas fa-exclamation-triangle"></i> Le montant dépasse le solde disponible !
                         </div>
                     </div>
 
-                    <div class="fee-summary mt-3 mb-3 p-3 rounded" style="background: rgba(0,0,0,0.2); border: 1px dashed rgba(239, 68, 68, 0.3); display:none;" id="feeContainer">
+                    <div class="fee-summary mt-3 mb-3 p-3 rounded" style="background: #f8fafc; border: 1px dashed #fca5a5; display:none;" id="feeContainer">
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="text-white-50 small">Montant remis au client</span>
-                            <span class="text-white small" id="summaryNet">-</span>
+                            <span class="text-slate-500 small">Montant remis au client</span>
+                            <span class="text-slate-900 small fw-bold" id="summaryNet">-</span>
                         </div>
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="text-white-50 small">Commission (<span id="feeRateText">Règle Professionnelle</span>)</span>
-                            <span class="text-danger small" id="summaryFee">-</span>
+                            <span class="text-slate-500 small">Commission (<span id="feeRateText">Règle Professionnelle</span>)</span>
+                            <span class="text-rose-600 small fw-bold" id="summaryFee">-</span>
                         </div>
-                        <div class="d-flex justify-content-between mt-2 pt-2 border-top border-secondary">
-                            <span class="text-white-50 font-weight-bold">Total débité du compte</span>
-                            <span class="text-withdrawal fw-bold" id="summaryTotal">-</span>
+                        <div class="d-flex justify-content-between mt-2 pt-2 border-top border-slate-200">
+                            <span class="text-slate-700 font-bold">Total débité du compte</span>
+                            <span class="text-rose-600 fw-bold fs-6" id="summaryTotal">-</span>
                         </div>
                     </div>
 
@@ -484,15 +508,15 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 p-3 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25">
-                        <small class="text-danger d-flex align-items-center">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Vérifiez l'identité du client avant de valider le décaissement.
+                    <div class="mt-4 p-3 rounded bg-rose-50 border border-rose-200">
+                        <small class="text-rose-700 d-flex align-items-center fw-medium">
+                            <i class="fas fa-shield-alt me-2 text-rose-500 fs-6"></i>
+                            Vérifiez l'identité physique ou la signature du client avant de valider le décaissement.
                         </small>
                     </div>
                 </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                <div class="modal-footer border-top border-slate-100 px-4 py-3 bg-slate-50">
+                    <button type="button" class="btn btn-outline-secondary rounded-lg" data-bs-dismiss="modal">Annuler</button>
                     <button type="submit" id="submitWithdrawal" class="btn btn-withdrawal px-4">Valider le Décaissement</button>
                 </div>
             </form>
@@ -504,6 +528,13 @@
 
 @push('scripts')
 <script>
+function formatNumber(num) {
+    if (num === null || num === undefined || num === '') return '0';
+    const val = parseFloat(num);
+    if (isNaN(val)) return '0';
+    return val.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+}
+
 $(document).ready(function() {
     let searchTimer;
     let currentAvailableBalance = 0;
@@ -518,6 +549,12 @@ $(document).ready(function() {
 
     loadRecentSearches();
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialQuery = urlParams.get('search') || urlParams.get('q');
+    if (initialQuery) {
+        $('#accountSearch').val(initialQuery).trigger('input');
+    }
+
     // Raccourci clavier
     $(document).on('keydown', function(e) {
         if (e.key === '/' && !$('#accountSearch').is(':focus') && !$('.modal').hasClass('show')) {
@@ -526,13 +563,26 @@ $(document).ready(function() {
         }
     });
 
+    // Raccourci clavier et navigation
     $('#accountSearch').on('keydown', function(e) {
-        if (e.key === 'Escape') clearSearchField();
-        if (e.key === 'ArrowDown') { e.preventDefault(); navigateResults(1); }
-        if (e.key === 'ArrowUp') { e.preventDefault(); navigateResults(-1); }
-        if (e.key === 'Enter' && selectedIndex >= 0) {
+        if (e.key === 'Escape') {
+            clearSearchField();
+        } else if (e.key === 'ArrowDown') {
             e.preventDefault();
-            $('.client-card').eq(selectedIndex).click();
+            navigateResults(1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigateResults(-1);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(searchTimer);
+            if (selectedIndex >= 0) {
+                $('.client-card').eq(selectedIndex).click();
+            } else if ($('.client-card').length > 0) {
+                $('.client-card').first().click();
+            } else {
+                executeRetraitSearch($(this).val().trim());
+            }
         }
     });
 
@@ -546,6 +596,37 @@ $(document).ready(function() {
         lastQuery = '';
         selectedIndex = -1;
         loadRecentSearches();
+    }
+
+    function executeRetraitSearch(query) {
+        if (!query || query.length < 1) {
+            $('#searchResults').hide();
+            $('#searchPlaceholder').show();
+            $('#recentSection').show();
+            lastQuery = '';
+            return;
+        }
+
+        $('#recentSection').hide();
+        $('#searchPlaceholder').hide();
+        $('#searchLoading').show();
+
+        const startTime = performance.now();
+        lastQuery = query;
+
+        $.ajax({
+            url: "{{ route('caissier.retrait.search') }}",
+            method: "GET",
+            data: { query: query },
+            success: function(response) {
+                const elapsed = Math.round(performance.now() - startTime);
+                renderResults(response.data, response.fast_mode, elapsed);
+            },
+            error: function() {
+                $('#searchLoading').hide();
+                $('#searchPlaceholder').html('<i class="fas fa-exclamation-triangle fa-3x mb-3 d-block text-warning opacity-50"></i><p>Erreur de connexion. Réessayez...</p>').show();
+            }
+        });
     }
 
     $('#accountSearch').on('input', function() {
@@ -562,46 +643,11 @@ $(document).ready(function() {
             return;
         }
 
-        $('#recentSection').hide();
-        if (query === lastQuery) return;
-
-        const cached = searchCache[query];
-        if (cached && (Date.now() - cached.time < CACHE_DURATION)) {
-            renderResults(cached.data, cached.fastMode, cached.searchTime);
-            return;
-        }
-
         const isNumberSearch = /^(TON|SAV|EPR|ACC|\d)/i.test(query);
-        const debounceTime = isNumberSearch ? DEBOUNCE_FAST : DEBOUNCE_NORMAL;
-
-        $('#searchPlaceholder').hide();
-        $('#searchLoading').show();
+        const debounceTime = isNumberSearch ? 80 : 150;
 
         searchTimer = setTimeout(() => {
-            const startTime = performance.now();
-            lastQuery = query;
-
-            $.ajax({
-                url: "{{ route('caissier.retrait.search') }}",
-                method: "GET",
-                data: { query: query },
-                success: function(response) {
-                    const elapsed = Math.round(performance.now() - startTime);
-
-                    searchCache[query] = {
-                        data: response.data,
-                        fastMode: response.fast_mode,
-                        searchTime: elapsed,
-                        time: Date.now()
-                    };
-
-                    renderResults(response.data, response.fast_mode, elapsed);
-                },
-                error: function() {
-                    $('#searchLoading').hide();
-                    $('#searchPlaceholder').html('<i class="fas fa-exclamation-triangle fa-3x mb-3 d-block text-warning opacity-50"></i><p>Erreur de connexion. Réessayez...</p>').show();
-                }
-            });
+            executeRetraitSearch(query);
         }, debounceTime);
     });
 
@@ -617,19 +663,24 @@ $(document).ready(function() {
             $('#searchResults').show();
 
             data.forEach((account, index) => {
+                const isTontine = account.account_type === 'tontine';
+                const badgeClass = isTontine ? 'badge-tontine' : 'badge-savings';
+                const badgeLabel = isTontine ? 'Tontine' : 'Épargne';
+                const canWithdraw = parseFloat(account.balance) > 0;
+
                 const html = `
-                    <div class="client-card" data-index="${index}" onclick="openWithdrawalModal(${JSON.stringify(account).replace(/"/g, '&quot;')})">
+                    <div class="client-card ${canWithdraw ? '' : 'opacity-75'}" data-index="${index}" onclick="${canWithdraw ? `openWithdrawalModal(${JSON.stringify(account).replace(/"/g, '&quot;')})` : `Swal.fire({icon: 'info', title: 'Solde Nul', text: 'Le solde de ce compte est de 0 FCFA. Aucun retrait n\\'est possible.'})`}">
                         <div class="client-info">
-                            <h6>${account.client_name} <span class="badge bg-secondary small" style="font-size:0.6rem;">${account.account_type}</span></h6>
-                            <span><i class="fas fa-barcode me-1"></i>${account.account_number} • <i class="fas fa-phone me-1"></i>${account.client_phone || 'N/A'}</span>
+                            <h6>${account.client_name} <span class="account-badge ${badgeClass}">${badgeLabel}</span></h6>
+                            <span><i class="fas fa-barcode me-1 text-slate-400"></i>${account.account_number} • <i class="fas fa-phone me-1 text-slate-400"></i>${account.client_phone || 'N/A'}</span>
                         </div>
                         <div class="d-flex align-items-center gap-3">
                             <div class="text-end">
-                                <div class="text-danger fw-bold">${formatNumber(account.balance)} FCFA</div>
-                                <div class="text-muted small">Disponible</div>
+                                <div class="${canWithdraw ? 'text-rose-600' : 'text-slate-400'} fw-bold fs-6">${formatNumber(account.balance)} FCFA</div>
+                                <div class="text-slate-500 small">Disponible</div>
                             </div>
-                            <button class="quick-action-btn" onclick="event.stopPropagation(); openWithdrawalModal(${JSON.stringify(account).replace(/"/g, '&quot;')})">
-                                <i class="fas fa-arrow-up me-1"></i> Retrait
+                            <button class="${canWithdraw ? 'quick-action-btn' : 'btn btn-sm btn-light border text-muted'}" ${canWithdraw ? '' : 'disabled'} onclick="event.stopPropagation(); ${canWithdraw ? `openWithdrawalModal(${JSON.stringify(account).replace(/"/g, '&quot;')})` : `Swal.fire({icon: 'info', title: 'Solde Nul', text: 'Le solde de ce compte est de 0 FCFA. Aucun retrait n\\'est possible.'})`}">
+                                <i class="fas fa-arrow-up me-1"></i> ${canWithdraw ? 'Retrait' : 'Solde 0 F'}
                             </button>
                         </div>
                     </div>

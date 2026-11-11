@@ -56,7 +56,7 @@ class ProcessTontineCycles extends Command
                 'balance_before' => $account->balance,
                 'balance_after' => $account->balance + $payoutAmount,
                 'payment_method' => 'system',
-                'description' => "Redistribution cycle tontine #{$cycle->cycle_number}",
+                'description' => "Redistribution cycle tontine {$cycle->cycle_number}",
                 'status' => 'completed',
                 'transaction_date' => Carbon::now()
             ]);

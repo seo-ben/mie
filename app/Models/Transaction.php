@@ -52,6 +52,16 @@ class Transaction extends Model
         return $this->belongsTo(Account::class);
     }
 
+    public function loan()
+    {
+        return $this->belongsTo(Loan::class);
+    }
+
+    public function getClientAttribute()
+    {
+        return $this->account?->client ?? $this->loan?->client;
+    }
+
     public function receipt()
     {
         return $this->hasOne(TransactionReceipt::class);

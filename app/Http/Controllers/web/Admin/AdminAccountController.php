@@ -104,10 +104,12 @@ class AdminAccountController extends Controller
                 $tontineCarnetFee = SystemParameter::where('parameter_key', 'tontine_300_activation_fee')->value('parameter_value') ?? 1000;
             }
 
-            // Vérifier si le client a déjà un compte d'épargne
-            $hasSavingsAccount = $client->accounts->where('account_type', 'savings')->count() > 0;
+            // Vérifier si le client a déjà un compte d'épargne ou tontine
+            $hasSavingsAccount = !$client->canOpenSavingsAccount();
+            $canOpenTontine = $client->canOpenTontineAccount();
+            $hasUnfinishedCycle = $client->hasActiveUnfinishedTontineCycle();
 
-            return view('admin.accounts.create', compact('client', 'hasSavingsAccount', 'savingsActivationFee', 'tontineCarnetFee'));
+            return view('admin.accounts.create', compact('client', 'hasSavingsAccount', 'canOpenTontine', 'hasUnfinishedCycle', 'savingsActivationFee', 'tontineCarnetFee'));
         }
 
         /**
@@ -130,8 +132,23 @@ class AdminAccountController extends Controller
             try {
                 // 0ï¸â£ Vérification KYC pour les comptes épargne
                 $client = Client::findOrFail($clientId);
-                if ($request->account_type === 'savings' && $client->kyc_status !== 'approved') {
-                     throw new \Exception('Le client doit avoir un KYC approuvé pour ouvrir un compte d\'épargne.');
+
+                if ($request->account_type === 'savings') {
+                    if ($client->kyc_status !== 'approved') {
+                        throw new \Exception('Le client doit avoir un KYC approuvé pour ouvrir un compte d\'épargne.');
+                    }
+                    if (!$client->canOpenSavingsAccount()) {
+                        throw new \Exception('Ce client possède déjà un compte d\'épargne actif (limite stricte de 1 compte d\'épargne par client).');
+                    }
+                }
+
+                if ($request->account_type === 'tontine') {
+                    if (!$client->canOpenTontineAccount()) {
+                        throw new \Exception('Ce client a atteint sa limite autorisée de comptes Tontine (' . ($client->max_tontine_accounts ?? 1) . '). Seul un administrateur peut augmenter ce quota dans la fiche du client.');
+                    }
+                    if ($client->hasActiveUnfinishedTontineCycle()) {
+                        throw new \Exception('Ce client a déjà un cycle de tontine de 31 jours en cours de cotisation non achevé. Selon les règles de gestion, il doit terminer son cycle de 31 jours avant de pouvoir passer à un autre carnet.');
+                    }
                 }
 
                 DB::beginTransaction();
@@ -283,17 +300,21 @@ class AdminAccountController extends Controller
          */
         public function edit($accountId)
         {
-            $account = Account::with(['client', 'savingsAccount', 'tontineAccount'])
+            $account = Account::with(['client', 'savingsAccount', 'tontineAccount.activeCycle'])
                 ->findOrFail($accountId);
 
-            // On ne peut pas éditer un compte actif
-            if ($account->status === 'active') {
-                return redirect()
-                    ->route('admin.accounts.show', $accountId)
-                    ->with('error', 'Impossible de modifier un compte actif.');
+            $activeCycle = $account->tontineAccount?->activeCycle;
+            $isTontineCycleLocked = false;
+            $tontineCycleLockReason = '';
+
+            if ($account->account_type === 'tontine' && $activeCycle) {
+                if ($activeCycle->status === 'active' && $activeCycle->collected_amount > 0 && $activeCycle->collected_amount < $activeCycle->target_amount) {
+                    $isTontineCycleLocked = true;
+                    $tontineCycleLockReason = "Le cycle de 31 jours est en cours de cotisation (" . number_format($activeCycle->collected_amount, 0, ',', ' ') . " FCFA cotisés sur " . number_format($activeCycle->target_amount, 0, ',', ' ') . " FCFA attendus). Selon la règle des 31 jours, le client doit obligatoirement achever son mois avant de pouvoir modifier sa mise (ex: passer de 200 F à 1 000 F).";
+                }
             }
 
-            return view('admin.accounts.edit', compact('account'));
+            return view('admin.accounts.edit', compact('account', 'isTontineCycleLocked', 'tontineCycleLockReason'));
         }
 
         /**
@@ -301,21 +322,14 @@ class AdminAccountController extends Controller
          */
         public function update(Request $request, $accountId)
         {
-            $account = Account::with(['savingsAccount', 'tontineAccount'])
+            $account = Account::with(['savingsAccount', 'tontineAccount.activeCycle'])
                 ->findOrFail($accountId);
-
-            // Vérifier que le compte n'est pas actif
-            if ($account->status === 'active') {
-                return redirect()
-                    ->back()
-                    ->with('error', 'Impossible de modifier un compte actif.');
-            }
 
             $request->validate([
                 'interest_rate' => 'nullable|numeric|min:0|max:100',
                 'minimum_balance' => 'nullable|numeric|min:0',
                 'monthly_fee' => 'nullable|numeric|min:0',
-                'tontine_amount' => 'nullable|numeric|min:1000',
+                'tontine_amount' => 'nullable|numeric|min:50',
                 'cycle_duration_months' => 'nullable|integer|min:1|max:24',
                 'payment_frequency' => 'nullable|in:daily,weekly,monthly',
             ]);
@@ -330,33 +344,55 @@ class AdminAccountController extends Controller
                         'monthly_fee' => $request->monthly_fee,
                     ]);
                 } elseif ($account->account_type === 'tontine' && $account->tontineAccount) {
-                    $expectedMonthlyPayment = $this->calculateExpectedPayment(
-                        $request->tontine_amount,
-                        $request->cycle_duration_months,
-                        $request->payment_frequency
-                    );
+                    $activeCycle = $account->tontineAccount->activeCycle;
+
+                    // Vérification de la règle des 31 jours : si le cycle est en cours
+                    if ($activeCycle && $activeCycle->status === 'active' && $activeCycle->collected_amount > 0 && $activeCycle->collected_amount < $activeCycle->target_amount) {
+                        if ((float)$request->tontine_amount != (float)$account->tontineAccount->tontine_amount) {
+                            throw new \Exception("Impossible de modifier la mise journalière : le cycle de 31 jours est actuellement en cours (" . number_format($activeCycle->collected_amount, 0, ',', ' ') . " FCFA cotisés sur " . number_format($activeCycle->target_amount, 0, ',', ' ') . " FCFA). Le client doit obligatoirement terminer son mois de 31 jours avant de passer à une autre mise (ex: de 200 F à 1 000 F).");
+                        }
+                    }
+
+                    $newTontineAmount = (float) $request->tontine_amount;
+                    $duration = (int) ($request->cycle_duration_months ?? $account->tontineAccount->cycle_duration_months ?? 1);
+                    $frequency = $request->payment_frequency ?? $account->tontineAccount->payment_frequency ?? 'daily';
+
+                    $totalPeriods = match ($frequency) {
+                        'daily' => $duration * 31,
+                        'weekly' => (int) round(($duration * 52) / 12),
+                        'monthly' => $duration,
+                        default => $duration * 31,
+                    };
+                    $totalExpected = $newTontineAmount * $totalPeriods;
 
                     $account->tontineAccount->update([
-                        'tontine_amount' => $request->tontine_amount,
-                        'cycle_duration_months' => $request->cycle_duration_months,
-                        'payment_frequency' => $request->payment_frequency,
-                        'expected_monthly_payment' => $expectedMonthlyPayment,
-                        'total_expected' => $request->tontine_amount,
+                        'tontine_amount' => $newTontineAmount,
+                        'cycle_duration_months' => $duration,
+                        'payment_frequency' => $frequency,
+                        'expected_monthly_payment' => $newTontineAmount,
+                        'total_expected' => $totalExpected,
                     ]);
+
+                    // Si le cycle actif n'a pas encore de cotisation, adapter son target_amount
+                    if ($activeCycle && $activeCycle->collected_amount == 0) {
+                        $activeCycle->update([
+                            'target_amount' => $newTontineAmount * 31,
+                        ]);
+                    }
                 }
 
                 DB::commit();
 
                 return redirect()
                     ->route('admin.accounts.show', $accountId)
-                    ->with('success', 'Compte mis à jour avec succès.');
+                    ->with('success', 'Paramètres du compte mis à jour avec succès.');
 
             } catch (\Exception $e) {
                 DB::rollBack();
 
                 return redirect()
                     ->back()
-                    ->with('error', 'Erreur lors de la mise à jour: ' . $e->getMessage());
+                    ->with('error', 'Erreur lors de la mise à jour : ' . $e->getMessage());
             }
         }
 
@@ -464,9 +500,33 @@ class AdminAccountController extends Controller
          */
         private function getCurrentSessionId()
         {
-            return CashierSession::where('user_id', auth()->id())
+            // 1. Session ouverte directement pour l'utilisateur connecté
+            $sessionId = CashierSession::where('user_id', auth()->id())
                 ->where('status', 'open')
                 ->value('id');
+
+            if ($sessionId) {
+                return $sessionId;
+            }
+
+            // 2. Si administrateur, rattacher à la session ouverte de l'agence ou la dernière session active
+            $user = auth()->user();
+            if ($user && in_array($user->role, ['administrateur_systeme', 'administrateur_reglementaire'])) {
+                $agencySession = CashierSession::where('status', 'open')
+                    ->when($user->agency_id, fn($q) => $q->where('agency_id', $user->agency_id))
+                    ->latest('opened_at')
+                    ->value('id');
+
+                if ($agencySession) {
+                    return $agencySession;
+                }
+
+                return CashierSession::where('status', 'open')
+                    ->latest('opened_at')
+                    ->value('id');
+            }
+
+            return null;
         }
 
         /**
@@ -1334,7 +1394,7 @@ class AdminAccountController extends Controller
 
                 // â Vérifier la session de caisse
                 $sessionId = $this->getCurrentSessionId();
-                if (!$sessionId) {
+                if (!$sessionId && !in_array(auth()->user()->role, ['administrateur_systeme', 'administrateur_reglementaire'])) {
                     throw new \Exception('Vous devez avoir une session de caisse ouverte pour effectuer un dépôt.');
                 }
 
@@ -1568,11 +1628,11 @@ class AdminAccountController extends Controller
                 // Un seul cycle affecté
                 $cycle = $cyclesAffected[0];
                 if ($cycle['completed']) {
-                    $message .= '<br>ð Cycle #' . $cycle['cycle_number'] . ' complété !';
+                    $message .= '<br>ð Cycle ' . $cycle['cycle_number'] . ' complété !';
                 } else {
                     // Calculer le restant
                     $remaining = $tontine->tontine_amount - $cycle['amount'];
-                    $message .= '<br>ð Cycle #' . $cycle['cycle_number'] . ' : reste ' .
+                    $message .= '<br>ð Cycle ' . $cycle['cycle_number'] . ' : reste ' .
                             number_format($remaining, 0, ',', ' ') . ' FCFA';
                 }
             } else {
@@ -1581,7 +1641,7 @@ class AdminAccountController extends Controller
 
                 foreach ($cyclesAffected as $cycle) {
                     $status = $cycle['completed'] ? 'â Complété' : 'En cours';
-                    $message .= '<br>&nbsp;&nbsp;• Cycle #' . $cycle['cycle_number'] . ' : ' .
+                    $message .= '<br>&nbsp;&nbsp;• Cycle ' . $cycle['cycle_number'] . ' : ' .
                             number_format($cycle['amount'], 0, ',', ' ') . ' FCFA ' . $status;
                 }
 
@@ -1934,7 +1994,7 @@ class AdminAccountController extends Controller
 
                 // â Vérifier la session de caisse
                 $sessionId = $this->getCurrentSessionId();
-                if (!$sessionId) {
+                if (!$sessionId && !in_array(auth()->user()->role, ['administrateur_systeme', 'administrateur_reglementaire'])) {
                     throw new \Exception('Vous devez avoir une session de caisse ouverte pour effectuer un dépôt.');
                 }
 
@@ -2048,13 +2108,14 @@ class AdminAccountController extends Controller
                     $account = clone $baseAccount;
                     
                     // === TRAITEMENT SELON LE TYPE DE COMPTE ===
+                    $sessionParam = $sessionId ? (string)$sessionId : null;
                     if ($account->account_type === 'tontine') {
-                        $result = $this->processTontineDeposit($account, $amount, $request, $paymentReference, $description, $sessionId);
+                        $result = $this->processTontineDeposit($account, $amount, $request, $paymentReference, $description, $sessionParam);
                         $message = $result['message'];
                         $transRef = $result['transaction_reference'];
                         $transId = $result['transaction_id'];
                     } else {
-                        $result = $this->processSavingsDeposit($account, $amount, $request, $paymentReference, $description, $sessionId);
+                        $result = $this->processSavingsDeposit($account, $amount, $request, $paymentReference, $description, $sessionParam);
                         $message = $result['message'];
                         $transRef = $result['transaction_reference'];
                         $transId = $result['transaction_id'];
@@ -2088,7 +2149,7 @@ class AdminAccountController extends Controller
         /**
          * NOUVEAU : Traiter un dépôt sur compte d'épargne
          */
-        private function processSavingsDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description, string $sessionId): array
+        private function processSavingsDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description, ?string $sessionId = null): array
         {
             $balanceBefore = $account->balance;
             $balanceAfter = $balanceBefore + $amount;
@@ -2129,7 +2190,7 @@ class AdminAccountController extends Controller
         /**
          * NOUVEAU : Traiter un dépôt tontine avec logique multi-cycles
          */
-        private function processTontineDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description, string $sessionId): array
+        private function processTontineDeposit(Account $account, float $amount, Request $request, string $paymentReference, string $description, ?string $sessionId = null): array
         {
             $tontine = $account->tontineAccount;
             $balanceBefore = $account->balance;

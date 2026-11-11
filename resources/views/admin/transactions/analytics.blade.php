@@ -188,17 +188,25 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4">
+                                @if($client->account && $client->account->client)
                                 <a href="{{ route('admin.clients.show', $client->account->client_id) }}"
                                    class="font-semibold text-blue-600 hover:text-blue-800">
                                     {{ $client->account->client->first_name }} {{ $client->account->client->last_name }}
                                 </a>
                                 <div class="text-sm text-gray-500">{{ $client->account->client->client_number }}</div>
+                                @else
+                                <span class="text-gray-400 italic">Client non disponible</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
+                                @if($client->account)
                                 <a href="{{ route('admin.accounts.show', $client->account_id) }}"
                                    class="text-sm text-blue-600 hover:text-blue-800">
                                     {{ $client->account->account_number }}
                                 </a>
+                                @else
+                                <span class="text-sm text-gray-400">-</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
                                 {{ number_format($client->transaction_count) }}

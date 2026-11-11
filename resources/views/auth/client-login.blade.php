@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Espace Client Sécurisé | MIE YAYRA</title>
+    <title>Espace Client Sécurisé | FSD YAYRA</title>
     
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,7 +79,7 @@
             <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl shadow-emerald-500/10 mb-4 border border-emerald-50">
                 <i class="fas fa-hand-holding-dollar text-3xl text-emerald-600"></i>
             </div>
-            <h1 class="text-3xl font-black text-slate-900 heading-font tracking-tight mb-2">MIE YAYRA</h1>
+            <h1 class="text-3xl font-black text-slate-900 heading-font tracking-tight mb-2">FSD YAYRA</h1>
             <p class="text-emerald-700 text-xs font-black uppercase tracking-[0.2em]">Votre Espace Personnel de Trésorerie</p>
         </div>
 
@@ -176,7 +176,7 @@
                 </div>
             </div>
             <p class="text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em]">
-                &copy; {{ date('Y') }} MIE YAYRA • Banque de Proximité Numérique
+                &copy; {{ date('Y') }} FSD YAYRA • Banque de Proximité Numérique
             </p>
         </div>
     </div>

@@ -1,0 +1,222 @@
+- generic [active] [ref=f1e1]:
+  - complementary [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - link " FSD YAYRA Guichet & Caisse" [ref=f1e4] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/caissier/dashboard
+        - generic [ref=f1e5]: 
+        - generic [ref=f1e7]:
+          - heading "FSD YAYRA" [level=5] [ref=f1e8]
+          - generic [ref=f1e9]: Guichet & Caisse
+      - button "" [ref=f1e10] [cursor=pointer]
+      - text: 
+    - list [ref=f1e12]:
+      - generic [ref=f1e13]: Dashboard
+      - listitem [ref=f1e14]:
+        - link " Tableau de Bord" [ref=f1e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/dashboard
+          - generic [ref=f1e16]: 
+          - generic [ref=f1e17]: Tableau de Bord
+      - listitem [ref=f1e18]:
+        - link " Terminal de Caisse" [ref=f1e19] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/terminal
+          - generic [ref=f1e20]: 
+          - generic [ref=f1e21]: Terminal de Caisse
+      - generic [ref=f1e22]: Guichet & Opérations
+      - listitem [ref=f1e23]:
+        - button " Opérations Guichet " [ref=f1e24] [cursor=pointer]:
+          - generic [ref=f1e25]: 
+          - generic [ref=f1e26]: Opérations Guichet
+          - generic [ref=f1e27]: 
+        - text:     
+      - generic [ref=f1e28]: Crédits & Prêts
+      - listitem [ref=f1e29]:
+        - button " Gestion des Prêts " [ref=f1e30] [cursor=pointer]:
+          - generic [ref=f1e31]: 
+          - generic [ref=f1e32]: Gestion des Prêts
+          - generic [ref=f1e33]: 
+        - text:    
+      - generic [ref=f1e34]: Clients & Comptes
+      - listitem [ref=f1e35]:
+        - button " Dossiers Clients " [ref=f1e36] [cursor=pointer]:
+          - generic [ref=f1e37]: 
+          - generic [ref=f1e38]: Dossiers Clients
+          - generic [ref=f1e39]: 
+        - text:   
+      - generic [ref=f1e40]: Agents & Terrain
+      - listitem [ref=f1e41]:
+        - button " Collectes Terrain " [ref=f1e42] [cursor=pointer]:
+          - generic [ref=f1e43]: 
+          - generic [ref=f1e44]: Collectes Terrain
+          - generic [ref=f1e45]: 
+        - text: 
+      - generic [ref=f1e46]: Rapports & Audit
+      - listitem [ref=f1e47]:
+        - button " États & Clôture " [ref=f1e48] [cursor=pointer]:
+          - generic [ref=f1e49]: 
+          - generic [ref=f1e50]: États & Clôture
+          - generic [ref=f1e51]: 
+        - text:   
+  - generic [ref=f1e52]:
+    - banner [ref=f1e53]:
+      - generic [ref=f1e54]:
+        - text: 
+        - generic [ref=f1e55]:
+          - generic: 
+          - textbox "Rechercher un client, compte, prêt... (Entrée)" [ref=f1e56]
+      - generic [ref=f1e57]:
+        - generic [ref=f1e58]:
+          - button "" [ref=f1e59] [cursor=pointer]
+          - text:  
+        - generic [ref=f1e62]:
+          - generic [ref=f1e63]: 
+          - generic [ref=f1e64]: Agence Agoè (Siège)
+        - generic [ref=f1e65]: Guichet Actif
+        - generic [ref=f1e68]:
+          - generic [ref=f1e69] [cursor=pointer]:
+            - generic [ref=f1e70]:
+              - paragraph [ref=f1e71]: Kodzo GADZEKPO
+              - paragraph [ref=f1e72]: Caissier Guichet
+            - generic [ref=f1e73]: K
+            - generic [ref=f1e74]: 
+          - text:    
+    - main [ref=f1e75]:
+      - generic [ref=f1e76]:
+        - generic [ref=f1e77]:
+          - generic [ref=f1e78]:
+            - heading "Terminal de Caisse" [level=2] [ref=f1e79]
+            - navigation "breadcrumb" [ref=f1e80]:
+              - list [ref=f1e81]:
+                - listitem [ref=f1e82]:
+                  - link "Dashboard" [ref=f1e83] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/caissier/dashboard
+                - listitem [ref=f1e84]: / Terminal & Journal
+          - generic [ref=f1e85]:
+            - link "+ Nouveau Dépôt" [ref=f1e86] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/depot
+              - generic [ref=f1e87]: +
+              - text: Nouveau Dépôt
+            - link " Nouveau Retrait" [ref=f1e88] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/retrait
+              - generic [ref=f1e89]: 
+              - text: Nouveau Retrait
+            - button " Coffre" [ref=f1e90] [cursor=pointer]:
+              - generic [ref=f1e91]: 
+              - text: Coffre
+        - generic [ref=f1e92]:
+          - generic [ref=f1e94]:
+            - generic [ref=f1e95]:
+              - generic [ref=f1e96]: 
+              - generic [ref=f1e98]:
+                - generic [ref=f1e99]: 
+                - text: Ouverture
+            - generic [ref=f1e100]:
+              - generic [ref=f1e101]: 0 F
+              - generic [ref=f1e102]: Provision Initiale Caisse
+          - generic [ref=f1e104]:
+            - generic [ref=f1e105]:
+              - generic [ref=f1e106]: 
+              - generic [ref=f1e108]:
+                - generic [ref=f1e109]: +
+                - text: Inflow
+            - generic [ref=f1e110]:
+              - generic [ref=f1e111]: +390 577 F
+              - generic [ref=f1e112]: Total Entrées Guichet
+          - generic [ref=f1e114]:
+            - generic [ref=f1e115]:
+              - generic [ref=f1e116]: 
+              - generic [ref=f1e118]:
+                - generic [ref=f1e119]: 
+                - text: Outflow
+            - generic [ref=f1e120]:
+              - generic [ref=f1e121]: "-0 F"
+              - generic [ref=f1e122]: Total Sorties Guichet
+          - generic [ref=f1e124]:
+            - generic [ref=f1e125]:
+              - generic [ref=f1e126]: 
+              - generic [ref=f1e128]:
+                - generic [ref=f1e129]: 
+                - text: En Caisse
+            - generic [ref=f1e130]:
+              - generic [ref=f1e131]: 390 577 F
+              - generic [ref=f1e132]: Solde Consolidé Théorique
+        - generic [ref=f1e134]:
+          - generic [ref=f1e135]:
+            - generic [ref=f1e136]: Date Début
+            - textbox [ref=f1e137]
+          - generic [ref=f1e138]:
+            - generic [ref=f1e139]: Date Fin
+            - textbox [ref=f1e140]
+          - generic [ref=f1e141]:
+            - button " Auditer la Période" [ref=f1e142] [cursor=pointer]:
+              - generic [ref=f1e143]: 
+              - text: Auditer la Période
+            - link "Session Actuelle" [ref=f1e144] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/terminal
+        - generic [ref=f1e145]:
+          - generic [ref=f1e146]:
+            - generic [ref=f1e147]: Session Active
+            - generic [ref=f1e149]: Ouverte le 10/11/2026 à 14:50
+          - generic [ref=f1e150]:
+            - button " Transfert Coffre" [ref=f1e151] [cursor=pointer]:
+              - generic [ref=f1e152]: 
+              - text: Transfert Coffre
+            - link " Clôturer Caisse" [ref=f1e153] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/session/close
+              - generic [ref=f1e154]: 
+              - text: Clôturer Caisse
+        - generic [ref=f1e155]:
+          - generic [ref=f1e156]:
+            - generic [ref=f1e157]:
+              - heading " Journal des Écritures de Caisse (1)" [level=6] [ref=f1e158]:
+                - generic [ref=f1e159]: 
+                - text: Journal des Écritures de Caisse (1)
+              - text: Flux chronologiques et écritures de guichet
+            - generic [ref=f1e160]:
+              - link "Toutes (24)" [ref=f1e161] [cursor=pointer]:
+                - /url: http://127.0.0.1:8000/caissier/terminal?status=all&page=1
+              - link " Validées (23)" [ref=f1e162] [cursor=pointer]:
+                - /url: http://127.0.0.1:8000/caissier/terminal?status=completed&page=1
+                - generic [ref=f1e163]: 
+                - text: Validées (23)
+              - link " Extournées (1)" [ref=f1e164] [cursor=pointer]:
+                - /url: http://127.0.0.1:8000/caissier/terminal?status=cancelled&page=1
+                - generic [ref=f1e165]: 
+                - text: Extournées (1)
+          - table [ref=f1e167]:
+            - rowgroup [ref=f1e168]:
+              - row [ref=f1e169]:
+                - columnheader "Réf / Heure" [ref=f1e170]
+                - columnheader "Client & Compte" [ref=f1e171]
+                - columnheader "Nature Opération" [ref=f1e172]
+                - columnheader "Canal" [ref=f1e173]
+                - columnheader "Montant" [ref=f1e174]
+                - columnheader "Actions" [ref=f1e175]
+            - rowgroup [ref=f1e176]:
+              - row [ref=f1e177]:
+                - cell "17:17:22 TXN-20261110171722-1119  Extournée (Annulée)" [ref=f1e178]:
+                  - generic [ref=f1e179]: 17:17:22
+                  - generic [ref=f1e180]: TXN-20261110171722-1119
+                  - 'generic "Dépôt initial à l''inscription [EXTOURNE: beiu - PIN validé]" [ref=f1e181]':
+                    - generic [ref=f1e182]: 
+                    - text: Extournée (Annulée)
+                - cell "S Sewoda Komla Bernard ACC-2611-EI1MPJ" [ref=f1e183]:
+                  - generic [ref=f1e184]:
+                    - generic [ref=f1e185]: S
+                    - generic [ref=f1e186]:
+                      - generic [ref=f1e187]: Sewoda Komla Bernard
+                      - text: ACC-2611-EI1MPJ
+                - cell "TONTINE (DÉPÔT)  Extourné" [ref=f1e188]:
+                  - generic [ref=f1e189]:
+                    - generic [ref=f1e190]: TONTINE (DÉPÔT)
+                    - generic [ref=f1e191]:
+                      - generic [ref=f1e192]: 
+                      - text: Extourné
+                - cell "cash" [ref=f1e193]
+                - cell "3 000 FCFA Annulé" [ref=f1e195]:
+                  - deletion [ref=f1e196]: 3 000 FCFA
+                  - generic [ref=f1e197]: Annulé
+                - cell " Extourné" [ref=f1e198]:
+                  - 'generic "Dépôt initial à l''inscription [EXTOURNE: beiu - PIN validé]" [ref=f1e200]':
+                    - generic [ref=f1e201]: 
+                    - text: Extourné
+  - text:         

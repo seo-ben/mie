@@ -325,7 +325,7 @@
                     <div class="card-body">
                         <h6 class="mb-3 text-primary">
                             <i class="fas fa-sync-alt me-2"></i>
-                            Cycle Actif (#{{ $activeCycle->cycle_number }})
+                            Cycle Actif ({{ $activeCycle->cycle_number }})
                         </h6>
                         @php
                             $cycleProgress = $activeCycle->target_amount > 0

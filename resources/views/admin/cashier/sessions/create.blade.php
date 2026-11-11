@@ -1,6 +1,6 @@
 @extends('layouts.app_admin')
 
-@section('title', 'Ouvrir une Session de Caisse - MIE YAYRA')
+@section('title', 'Ouvrir une Session de Caisse - FSD YAYRA')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-8">

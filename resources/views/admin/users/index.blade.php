@@ -112,9 +112,19 @@
                                     ];
                                     $roleInfo = $roles[$user->role] ?? ['label' => $user->role, 'class' => 'text-slate-400 bg-slate-50'];
                                 @endphp
-                                <span class="text-[9px] font-extrabold uppercase px-2 py-1 rounded-full {{ $roleInfo['class'] }}">
-                                    {{ $roleInfo['label'] }}
-                                </span>
+                                <div class="flex flex-col gap-1 items-start">
+                                    <span class="text-[9px] font-extrabold uppercase px-2 py-1 rounded-full {{ $roleInfo['class'] }}">
+                                        {{ $roleInfo['label'] }}
+                                    </span>
+                                    @if($user->role === 'caissier')
+                                        <a href="{{ route('admin.users.toggle-cashier-open', $user) }}" 
+                                           class="inline-flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition {{ $user->can_open_cashier_session ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300' }}"
+                                           title="Cliquez pour {{ $user->can_open_cashier_session ? 'révoquer' : 'accorder' }} l'autorisation d'ouverture autonome de caisse">
+                                            <i class="fas {{ $user->can_open_cashier_session ? 'fa-lock-open text-emerald-600' : 'fa-lock text-slate-400' }}"></i>
+                                            {{ $user->can_open_cashier_session ? 'Ouv. Caisse Autorisée' : 'Ouv. Caisse Verrouillée' }}
+                                        </a>
+                                    @endif
+                                </div>
                             </td>
                             <td>
                                 <span class="text-[10px] font-black {{ $user->agency ? 'text-blue-600' : 'text-slate-400' }} uppercase">
@@ -137,10 +147,14 @@
                                         <i class="fas fa-user-gear text-xs"></i>
                                     </a>
                                     @if($user->id !== auth()->id())
-                                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline-block" onsubmit="return confirm('Initier le Protocole de Désactivation ?');">
+                                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline-block">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="p-2 text-slate-400 hover:text-red-600 transition" title="Révoquer Accès">
+                                            <button type="button" class="p-2 text-slate-400 hover:text-red-600 transition" title="Révoquer Accès"
+                                                    data-confirm="Confirmez-vous la désactivation du compte utilisateur de <strong>{{ addslashes($user->name) }}</strong> ?"
+                                                    data-confirm-title="Désactivation Utilisateur"
+                                                    data-confirm-btn="Oui, Désactiver"
+                                                    data-confirm-class="danger">
                                                 <i class="fas fa-user-slash text-xs"></i>
                                             </button>
                                         </form>

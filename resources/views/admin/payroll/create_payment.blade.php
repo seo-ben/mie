@@ -70,7 +70,7 @@
                                 <div>
                                     <p class="text-[10px] font-black text-blue-800 uppercase tracking-tighter">Terminal de Caisse Actif</p>
                                     @if($activeSession)
-                                        <p class="text-[9px] font-bold text-blue-600">Session #{{ $activeSession->id }} — Solde : {{ number_format($activeSession->opening_balance, 0, ',', ' ') }} XOF</p>
+                                        <p class="text-[9px] font-bold text-blue-600">Session {{ $activeSession->id }} — Solde : {{ number_format($activeSession->opening_balance, 0, ',', ' ') }} XOF</p>
                                     @else
                                         <p class="text-[9px] font-bold text-rose-600 uppercase">Attention : Aucune session de caisse ouverte !</p>
                                     @endif

@@ -229,7 +229,7 @@
                                 @if($tontine->activeCycle)
                                     <div class="mt-2 small">
                                         <span class="badge bg-info-soft text-info">
-                                            <i class="fas fa-sync-alt me-1"></i>Cycle #{{ $tontine->activeCycle->cycle_number }}
+                                            <i class="fas fa-sync-alt me-1"></i>Cycle {{ $tontine->activeCycle->cycle_number }}
                                         </span>
                                     </div>
                                 @endif

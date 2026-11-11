@@ -30,16 +30,24 @@
                 <i class="fas fa-pen-nib mr-2 text-[10px]"></i> Modifier le Dossier
             </a>
             @if($client->is_active)
-                <form action="{{ route('admin.clients.deactivate-accounts', $client->id) }}" method="POST" onsubmit="return confirm('Confirmer la révocation des accès pour cette entité ?');">
+                <form action="{{ route('admin.clients.deactivate-accounts', $client->id) }}" method="POST">
                     @csrf @method('PATCH')
-                    <button type="submit" class="btn-bank btn-bank-danger">
+                    <button type="button" class="btn-bank btn-bank-danger"
+                            data-confirm="Confirmer la révocation des accès pour l'adhérent <strong>{{ addslashes($client->full_name) }}</strong> ?"
+                            data-confirm-title="Révocation des Accès Client"
+                            data-confirm-btn="Oui, Révoquer les Accès"
+                            data-confirm-class="danger">
                         <i class="fas fa-shield-slash mr-2 text-[10px]"></i> Révoquer Accès
                     </button>
                 </form>
             @else
-                <form action="{{ route('admin.clients.activate-accounts', $client->id) }}" method="POST" onsubmit="return confirm('Confirmer la réactivation opérationnelle de cette entité ?');">
+                <form action="{{ route('admin.clients.activate-accounts', $client->id) }}" method="POST">
                     @csrf @method('PATCH')
-                    <button type="submit" class="btn-bank btn-bank-success">
+                    <button type="button" class="btn-bank btn-bank-success"
+                            data-confirm="Confirmer la réactivation opérationnelle de l'adhérent <strong>{{ addslashes($client->full_name) }}</strong> ?"
+                            data-confirm-title="Réactivation Dossier Client"
+                            data-confirm-btn="Réactiver le Client"
+                            data-confirm-class="success">
                         <i class="fas fa-shield-check mr-2 text-[10px]"></i> Réactiver
                     </button>
                 </form>
@@ -167,13 +175,24 @@
         <div class="lg:col-span-2 space-y-8">
             <!-- Registre des Comptes (comptes de Capital) -->
             <div class="bank-card overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">comptes de Capital Gérés</h3>
-                    @if($client->kyc_status === 'approved')
-                        <a href="{{ route('admin.accounts.create', $client->id) }}" class="text-[10px] font-black text-blue-600 uppercase hover:underline">
-                            + Initialiser un compte
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Comptes de Capital Gérés</h3>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
+                            Tontine : <span class="text-purple-600 font-black">{{ $client->tontineAccounts()->where('status', 'active')->count() }}/{{ $client->max_tontine_accounts ?? 1 }}</span> actif(s) 
+                            • Épargne : <span class="text-emerald-600 font-black">{{ $client->savingsAccounts()->where('status', 'active')->count() }}/1</span> actif
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('admin.clients.edit', $client->id) }}" class="text-[9px] font-bold text-slate-500 uppercase hover:text-blue-600">
+                            <i class="fas fa-sliders mr-1"></i> Gérer Plafonds
                         </a>
-                    @endif
+                        @if($client->kyc_status === 'approved')
+                            <a href="{{ route('admin.accounts.create', $client->id) }}" class="text-[10px] font-black text-blue-600 uppercase hover:underline">
+                                + Initialiser un compte
+                            </a>
+                        @endif
+                    </div>
                 </div>
                 <div class="divide-y divide-slate-100">
                     @forelse($client->accounts as $account)

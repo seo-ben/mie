@@ -183,7 +183,7 @@
                 <tbody class="divide-y divide-slate-100">
                     @foreach($userPerformances as $index => $perf)
                     <tr class="hover:bg-slate-50/50">
-                        <td class="text-center font-black text-slate-400 text-xs">#{{ $index + 1 }}</td>
+                        <td class="text-center font-black text-slate-400 text-xs">{{ $index + 1 }}</td>
                         <td>
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-500 text-[10px]">

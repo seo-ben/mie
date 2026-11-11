@@ -168,7 +168,7 @@ class AdminNotificationController extends Controller
 
         $messages = [
             ['title' => 'Nouveau client inscrit', 'message' => 'Jean Dupont vient de créer un compte.'],
-            ['title' => 'Prêt approuvé', 'message' => 'Le prêt #12345 a été approuvé avec succès.'],
+            ['title' => 'Prêt approuvé', 'message' => 'Le prêt 12345 a été approuvé avec succès.'],
             ['title' => 'Paiement en retard', 'message' => 'Le client Marie Martin a un paiement en retard de 3 jours.'],
             ['title' => 'Erreur système', 'message' => 'Une erreur est survenue lors de la synchronisation.'],
             ['title' => 'Tontine terminée', 'message' => 'Le cycle de tontine "Épargne Mensuelle" est terminé.'],

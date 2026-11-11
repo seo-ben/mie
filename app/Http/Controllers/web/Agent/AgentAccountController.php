@@ -15,18 +15,35 @@ use Illuminate\Support\Str;
 class AgentAccountController extends Controller
 {
     /**
-     * Liste de tous les comptes tontine de l'agent
+     * Obtenir les IDs des clients autorisés pour cet utilisateur
+     */
+    protected function getAuthorizedClientIds($user)
+    {
+        if (request()->routeIs('caissier.*') || $user->role === 'caissier' || $user->role === 'administrateur_systeme') {
+            return Client::when($user->agency_id && $user->role !== 'administrateur_systeme', function($q) use ($user) {
+                $q->where('agency_id', $user->agency_id);
+            })->pluck('id');
+        }
+        return Client::where('registered_by', $user->id)->pluck('id');
+    }
+
+    /**
+     * Liste de tous les comptes tontine et épargne de l'agent/caissier
      */
     public function index(Request $request)
     {
         $user = auth()->user();
 
-        // Récupérer les IDs des clients de l'agent
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        // Récupérer les IDs des clients autorisés
+        $clientIds = $this->getAuthorizedClientIds($user);
 
         $query = Account::with(['client', 'tontineAccount.activeCycle'])
-            ->whereIn('client_id', $clientIds)
-            ->where('account_type', 'tontine');
+            ->whereIn('client_id', $clientIds);
+
+        // Si ce n'est pas la caisse, restreindre aux tontines par défaut ou filtrer
+        if (!request()->routeIs('caissier.*')) {
+            $query->where('account_type', 'tontine');
+        }
 
         // Recherche
         if ($request->filled('search')) {
@@ -49,19 +66,16 @@ class AgentAccountController extends Controller
         $accounts = $query->latest()->paginate(15);
 
         // Statistiques
+        $statsBase = Account::whereIn('client_id', $clientIds);
+        if (!request()->routeIs('caissier.*')) {
+            $statsBase->where('account_type', 'tontine');
+        }
+
         $stats = [
-            'total_accounts' => Account::whereIn('client_id', $clientIds)
-                ->where('account_type', 'tontine')->count(),
-            'active_accounts' => Account::whereIn('client_id', $clientIds)
-                ->where('account_type', 'tontine')
-                ->where('status', 'active')->count(),
-            'suspended_accounts' => Account::whereIn('client_id', $clientIds)
-                ->where('account_type', 'tontine')
-                ->where('status', 'suspended')->count(),
-            'total_balance' => Account::whereIn('client_id', $clientIds)
-                ->where('account_type', 'tontine')
-                ->where('status', 'active')
-                ->sum('balance'),
+            'total_accounts' => (clone $statsBase)->count(),
+            'active_accounts' => (clone $statsBase)->where('status', 'active')->count(),
+            'suspended_accounts' => (clone $statsBase)->where('status', 'suspended')->count(),
+            'total_balance' => (clone $statsBase)->where('status', 'active')->sum('balance'),
         ];
 
         if (request()->routeIs('caissier.*')) {
@@ -107,6 +121,14 @@ class AgentAccountController extends Controller
             $client = Client::where('id', $clientId)
                 ->where('registered_by', $user->id)
                 ->firstOrFail();
+
+            if (!$client->canOpenTontineAccount()) {
+                return redirect()->back()->with('error', "Ce client a atteint sa limite autorisée de comptes Tontine (" . ($client->max_tontine_accounts ?? 1) . "). Seul un administrateur peut autoriser l'ouverture d'un compte supplémentaire.");
+            }
+
+            if ($client->hasActiveUnfinishedTontineCycle()) {
+                return redirect()->back()->with('error', "Ce client a un cycle de tontine de 31 jours en cours de cotisation non achevé. Selon la règle institutionnelle, il doit obligatoirement achever ses 31 jours avant de pouvoir passer à un autre carnet.");
+            }
 
             // 1. Créer le compte de base
         $account = Account::create([
@@ -181,35 +203,39 @@ class AgentAccountController extends Controller
         $user = auth()->user();
 
         // Récupérer les IDs des clients de l'agent
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        $clientIds = $this->getAuthorizedClientIds($user);
 
-        $account = Account::with([
+        $query = Account::with([
             'client',
             'tontineAccount.cycles' => function($q) {
                 $q->orderBy('cycle_number', 'desc');
             },
             'tontineAccount.activeCycle',
             'transactions' => function($q) {
-                $q->latest()->limit(20);
+                $q->latest()->limit(25);
             },
             'createdBy',
             'activatedBy'
         ])
-        ->whereIn('client_id', $clientIds)
-        ->where('account_type', 'tontine')
-        ->findOrFail($accountId);
+        ->whereIn('client_id', $clientIds);
+
+        if (!request()->routeIs('caissier.*')) {
+            $query->where('account_type', 'tontine');
+        }
+
+        $account = $query->findOrFail($accountId);
+
+        $tontine = $account->tontineAccount;
 
         // Statistiques du compte
         $stats = [
             'total_deposits' => $account->transactions()
-                ->where('transaction_type', 'deposit')
+                ->whereIn('transaction_type', ['deposit', 'savings_deposit', 'tontine_deposit'])
                 ->where('status', 'completed')
                 ->sum('amount'),
-            'total_cycles' => $account->tontineAccount->cycles()->count(),
-            'completed_cycles' => $account->tontineAccount->cycles()
-                ->where('status', 'completed')->count(),
-            'active_cycles' => $account->tontineAccount->cycles()
-                ->where('status', 'active')->count(),
+            'total_cycles' => $tontine ? $tontine->cycles()->count() : 0,
+            'completed_cycles' => $tontine ? $tontine->cycles()->where('status', 'completed')->count() : 0,
+            'active_cycles' => $tontine ? $tontine->cycles()->where('status', 'active')->count() : 0,
             'transaction_count' => $account->transactions()->count(),
         ];
 
@@ -226,7 +252,7 @@ class AgentAccountController extends Controller
     public function activateForm($accountId)
     {
         $user = auth()->user();
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        $clientIds = $this->getAuthorizedClientIds($user);
 
         $account = Account::with(['client', 'tontineAccount'])
             ->whereIn('client_id', $clientIds)
@@ -264,7 +290,7 @@ class AgentAccountController extends Controller
             DB::beginTransaction();
 
             $user = auth()->user();
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+            $clientIds = $this->getAuthorizedClientIds($user);
 
             $account = Account::with(['tontineAccount'])
                 ->whereIn('client_id', $clientIds)
@@ -345,34 +371,42 @@ class AgentAccountController extends Controller
     public function depositForm($accountId)
     {
         $user = auth()->user();
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        $clientIds = $this->getAuthorizedClientIds($user);
 
-        $account = Account::with([
+        $query = Account::with([
             'client',
             'tontineAccount.activeCycle',
             'tontineAccount.cycles'
         ])
         ->whereIn('client_id', $clientIds)
-        ->where('account_type', 'tontine')
-        ->where('status', 'active')
-        ->findOrFail($accountId);
+        ->where('status', 'active');
+
+        if (!request()->routeIs('caissier.*')) {
+            $query->where('account_type', 'tontine');
+        }
+
+        $account = $query->findOrFail($accountId);
 
         $tontine = $account->tontineAccount;
-        $activeCycle = $tontine->activeCycle;
+        $activeCycle = $tontine ? $tontine->activeCycle : null;
 
         $data = [
             'account' => $account,
-            'suggestedAmount' => $tontine->tontine_amount,
+            'suggestedAmount' => $tontine ? $tontine->tontine_amount : 5000,
             'activeCycle' => $activeCycle,
             'remainingAmount' => $activeCycle ? ($activeCycle->target_amount - $activeCycle->collected_amount) : 0,
-            'totalRemaining' => $tontine->total_expected - $tontine->total_paid,
+            'totalRemaining' => $tontine ? ($tontine->total_expected - $tontine->total_paid) : 0,
         ];
+
+        if (request()->routeIs('caissier.*')) {
+            return view('agent.cashier.accounts.deposit', $data);
+        }
 
         return view('agent.accounts.deposit', $data);
     }
 
     /**
-     * Traiter le dépôt sur compte tontine (avec logique multi-cycles)
+     * Traiter le dépôt sur compte tontine / épargne
      */
     public function processDeposit(Request $request, $accountId)
     {
@@ -395,55 +429,81 @@ class AgentAccountController extends Controller
             DB::beginTransaction();
 
             $user = auth()->user();
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+            $clientIds = $this->getAuthorizedClientIds($user);
 
-            $account = Account::with([
+            $query = Account::with([
                 'client',
                 'tontineAccount.activeCycle',
                 'tontineAccount.cycles'
             ])
             ->whereIn('client_id', $clientIds)
-            ->where('account_type', 'tontine')
-            ->where('status', 'active')
-            ->lockForUpdate()
-            ->findOrFail($accountId);
+            ->where('status', 'active');
+
+            if (!request()->routeIs('caissier.*')) {
+                $query->where('account_type', 'tontine');
+            }
+
+            $account = $query->lockForUpdate()->findOrFail($accountId);
 
             $tontine = $account->tontineAccount;
-            $amount = $request->amount;
+            $amount = (float) $request->amount;
             $balanceBefore = $account->balance;
 
-            // Vérifier que la tontine n'est pas complète
-            $totalRemaining = $tontine->total_expected - $tontine->total_paid;
-
-            if ($totalRemaining <= 0) {
-                throw new \Exception(
-                    'Cette tontine est complète ! Total atteint : ' .
-                    number_format($tontine->total_expected, 0, ',', ' ') . ' FCFA'
-                );
+            // Récupérer la session caissier active si caissier
+            $sessionId = null;
+            if ($user->role === 'caissier') {
+                $session = \App\Models\CashierSession::where('user_id', $user->id)
+                    ->where('status', 'open')
+                    ->latest()
+                    ->first();
+                $sessionId = $session?->id;
             }
 
-            // Ajuster le montant si nécessaire
-            if ($amount > $totalRemaining) {
-                $amount = $totalRemaining;
-            }
+            $cyclesAffected = [];
+            $description = $request->description;
 
-            // Récupérer ou créer le cycle actif
-            $activeCycle = $tontine->activeCycle;
-            if (!$activeCycle) {
-                $activeCycle = $this->createTontineCycle($tontine);
-            }
+            if ($tontine) {
+                // Vérifier que la tontine n'est pas complète
+                $totalRemaining = $tontine->total_expected - $tontine->total_paid;
 
-            // Répartition multi-cycles
-            $cyclesAffected = $this->distributeTontineAmount($tontine, $activeCycle, $amount);
+                if ($totalRemaining <= 0) {
+                    throw new \Exception(
+                        'Cette tontine est complète ! Total atteint : ' .
+                        number_format($tontine->total_expected, 0, ',', ' ') . ' FCFA'
+                    );
+                }
+
+                // Ajuster le montant si nécessaire
+                if ($amount > $totalRemaining) {
+                    $amount = $totalRemaining;
+                }
+
+                // Récupérer ou créer le cycle actif
+                $activeCycle = $tontine->activeCycle;
+                if (!$activeCycle) {
+                    $activeCycle = $this->createTontineCycle($tontine);
+                }
+
+                // Répartition multi-cycles
+                $cyclesAffected = $this->distributeTontineAmount($tontine, $activeCycle, $amount);
+                if (empty($description)) {
+                    $description = 'Cotisation tontine (Cycles: ' . implode(', ', array_column($cyclesAffected, 'cycle_number')) . ')';
+                }
+
+                $tontine->increment('total_paid', $amount);
+            } else {
+                if (empty($description)) {
+                    $description = 'Dépôt sur compte d\'épargne au guichet';
+                }
+            }
 
             // Créer la transaction
             $paymentReference = $request->payment_reference ?: $this->generatePaymentReference($request->payment_method);
-            $description = $request->description ?: 'Cotisation tontine (Cycles: ' . implode(', ', array_column($cyclesAffected, 'cycle_number')) . ')';
 
             $transaction = Transaction::create([
                 'transaction_reference' => $this->generateTransactionReference(),
                 'account_id' => $account->id,
-                'transaction_type' => 'deposit',
+                'transaction_type' => $tontine ? 'tontine_deposit' : 'savings_deposit',
                 'amount' => $amount,
                 'fee_amount' => 0,
                 'balance_before' => $balanceBefore,
@@ -454,6 +514,8 @@ class AgentAccountController extends Controller
                 'description' => $description,
                 'status' => 'completed',
                 'processed_by' => $user->id,
+                'agency_id' => $user->agency_id ?? $account->client->agency_id ?? 1,
+                'cashier_session_id' => $sessionId,
                 'processed_at' => now(),
                 'transaction_date' => now(),
             ]);
@@ -464,12 +526,16 @@ class AgentAccountController extends Controller
                 'last_transaction_at' => now(),
             ]);
 
-            // Mettre à jour le total payé de la tontine
-            $tontine->increment('total_paid', $amount);
-
             DB::commit();
 
-            $message = $this->generateMultiCycleMessage($amount, $cyclesAffected, $tontine->fresh());
+            if (request()->routeIs('caissier.*')) {
+                return redirect()
+                    ->route('caissier.accounts.show', $accountId)
+                    ->with('success', 'Versement de ' . number_format($amount, 0, ',', ' ') . ' FCFA validé avec succès !')
+                    ->with('print_receipt', route('caissier.receipt.print', $transaction->id));
+            }
+
+            $message = $tontine ? $this->generateMultiCycleMessage($amount, $cyclesAffected, $tontine->fresh()) : 'Dépôt effectué avec succès.';
 
             return redirect()
                 ->route('agent.accounts.show', $accountId)
@@ -491,7 +557,7 @@ class AgentAccountController extends Controller
     public function transactions($accountId, Request $request)
     {
         $user = auth()->user();
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        $clientIds = $this->getAuthorizedClientIds($user);
 
         $account = Account::with('client')
             ->whereIn('client_id', $clientIds)
@@ -687,7 +753,7 @@ class AgentAccountController extends Controller
         if ($nbCycles === 1) {
             $cycle = $cyclesAffected[0];
             if ($cycle['completed']) {
-                $message .= '<br>🎉 Cycle #' . $cycle['cycle_number'] . ' complété !';
+                $message .= '<br>🎉 Cycle ' . $cycle['cycle_number'] . ' complété !';
             }
         } else {
             $message .= '<br>📈 Réparti sur ' . $nbCycles . ' cycle(s)';
@@ -729,7 +795,7 @@ class AgentAccountController extends Controller
         $query = $request->get('query');
 
         // Récupérer les IDs des clients de l'agent
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        $clientIds = $this->getAuthorizedClientIds($user);
 
         $accounts = Account::with([
             'client',
@@ -876,7 +942,7 @@ class AgentAccountController extends Controller
             $user = auth()->user();
 
             // Récupérer les IDs des clients de l'agent
-            $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+            $clientIds = $this->getAuthorizedClientIds($user);
 
             $account = Account::with([
                 'client',
@@ -977,7 +1043,7 @@ class AgentAccountController extends Controller
     public function dashboard()
     {
         $user = auth()->user();
-        $clientIds = Client::where('registered_by', $user->id)->pluck('id');
+        $clientIds = $this->getAuthorizedClientIds($user);
 
         $stats = [
             // Comptes

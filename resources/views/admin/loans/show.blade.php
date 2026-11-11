@@ -324,11 +324,166 @@
 
                     @if($loan->collateral_description)
                     <div class="col-span-2">
-                        <p class="text-sm text-gray-600">Garanties</p>
+                        <p class="text-sm text-gray-600">Garanties Déclarées</p>
                         <p class="mt-1 text-gray-900">{{ $loan->collateral_description }}</p>
                     </div>
                     @endif
                 </div>
+            </div>
+
+            <!-- Cautionnaires Solidaires (3 Cautions) -->
+            <div class="p-6 mb-6 bg-white rounded-lg shadow-sm border border-slate-100">
+                <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                            <i class="fas fa-users-viewfinder"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900">Cautionnaires Solidaires du Prêt ({{ $loan->guarantors->count() }} Caution(s))</h3>
+                            <p class="text-xs text-gray-500">Engagements de solidarité et cautions personnelles rattachées au crédit</p>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center px-3 py-1 text-xs font-semibold text-purple-700 bg-purple-50 rounded-full border border-purple-200">
+                        <i class="mr-1 fas fa-shield-halved"></i> 3 Cautions Requises
+                    </span>
+                </div>
+
+                @if($loan->guarantors->isEmpty())
+                    <div class="p-6 text-center bg-gray-50 rounded-xl">
+                        <i class="fas fa-user-slash text-2xl text-gray-300 mb-2"></i>
+                        <p class="text-xs text-gray-500">Aucun cautionnaire solidaire enregistré pour ce prêt.</p>
+                    </div>
+                @else
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        @foreach($loan->guarantors as $g)
+                        <div class="p-4 rounded-xl border {{ $g->is_verified ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-200 bg-white' }} shadow-xs flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-900 text-white">
+                                        Caution {{ $g->guarantor_order }}
+                                    </span>
+                                    @if($g->is_verified)
+                                        <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            <i class="mr-1 fas fa-check-circle"></i> Accord Validé
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                            <i class="mr-1 fas fa-clock"></i> En Attente
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <h4 class="text-sm font-black text-gray-900 mb-1">{{ $g->full_name }}</h4>
+                                <p class="text-xs text-gray-600 mb-3 font-mono">
+                                    <i class="fas fa-phone mr-1 text-gray-400"></i>{{ $g->phone }}
+                                </p>
+
+                                <div class="space-y-1.5 text-xs text-gray-600 border-t border-gray-100 pt-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Pièce CNI :</span>
+                                        <span class="font-mono font-semibold text-gray-800">{{ $g->id_card_number ?? '—' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Lien :</span>
+                                        <span class="font-semibold text-gray-800">{{ $g->relationship ?? 'Non spécifié' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Activité :</span>
+                                        <span class="font-semibold text-gray-800 truncate max-w-[120px]">{{ $g->profession ?? '—' }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Adresse :</span>
+                                        <span class="font-semibold text-gray-800 truncate max-w-[120px]">{{ $g->address ?? '—' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if($g->collateral_description || $g->collateral_value)
+                            <div class="mt-3 pt-2 border-t border-gray-100 bg-gray-50/80 p-2 rounded-lg text-xs">
+                                <span class="text-[10px] uppercase font-bold text-gray-400 block">Garantie souscrite :</span>
+                                <p class="font-medium text-gray-800 mb-0.5">{{ $g->collateral_description ?? 'Caution solidaire' }}</p>
+                                @if($g->collateral_value > 0)
+                                    <span class="text-emerald-700 font-bold font-mono">{{ number_format($g->collateral_value, 0, ',', ' ') }} FCFA</span>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <!-- Grille d'Audit & Checklist des 9 Vérifications Prêt -->
+            <div class="p-6 mb-6 bg-white rounded-lg shadow-sm border border-slate-100">
+                <form action="{{ route('admin.loans.verifications.update', $loan->id) }}" method="POST">
+                    @csrf
+                    
+                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 flex-wrap gap-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                                <i class="fas fa-list-check"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900">Grille d'Audit & Contrôles Prêt Obligatoires</h3>
+                                <p class="text-xs text-gray-500">Cochez les points audités avant décision du comité de crédit</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            @php
+                                $verifProg = $loan->getVerificationsProgress();
+                            @endphp
+                            <span class="inline-flex items-center px-3 py-1 text-xs font-bold rounded-full {{ $verifProg['is_complete'] ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                                {{ $verifProg['checked'] }} / {{ $verifProg['total'] }} contrôlés ({{ $verifProg['percent'] }}%)
+                            </span>
+                            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
+                                <i class="mr-1 fas fa-save"></i> Enregistrer Contrôles
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barre de progression -->
+                    <div class="w-full bg-gray-100 rounded-full h-2 mb-6 overflow-hidden">
+                        <div class="bg-emerald-600 h-2 rounded-full transition-all duration-500" style="width: {{ $verifProg['percent'] }}%"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        @foreach(\App\Models\Loan::VERIFICATION_ITEMS as $k => $item)
+                        @php
+                            $isChecked = $loan->isVerificationItemChecked($k);
+                        @endphp
+                        <div class="p-3 rounded-xl border {{ $isChecked ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-200 bg-gray-50/50' }} flex items-center justify-between gap-3">
+                            <label class="flex items-center gap-3 cursor-pointer select-none mb-0">
+                                <input type="checkbox" name="verifications[{{ $k }}]" value="1" {{ $isChecked ? 'checked' : '' }} class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
+                                <div>
+                                    <span class="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+                                        <i class="fas {{ $item['icon'] }} text-gray-400"></i> {{ $item['label'] }}
+                                    </span>
+                                    <span class="text-[10px] text-gray-400 block mt-0.5">{{ $item['category'] }}</span>
+                                </div>
+                            </label>
+                            <span class="inline-flex items-center px-2 py-0.5 text-[9px] font-bold rounded-full {{ $isChecked ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600' }}">
+                                {{ $isChecked ? 'Vérifié' : 'À Faire' }}
+                            </span>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Accord des Cautionnaires -->
+                    @if($loan->guarantors->isNotEmpty())
+                    <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-xs font-bold text-gray-700">Validation individuelle des 3 cautions :</span>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach($loan->guarantors as $g)
+                            <label class="inline-flex items-center gap-2 p-2 px-3 rounded-lg border bg-gray-50 text-xs font-medium cursor-pointer">
+                                <input type="checkbox" name="guarantor_verified[{{ $g->id }}]" value="1" {{ $g->is_verified ? 'checked' : '' }} class="text-emerald-600 rounded">
+                                <span>Caution {{ $g->guarantor_order }} : {{ $g->full_name }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </form>
             </div>
 
             <!-- Progression du remboursement -->
@@ -380,7 +535,7 @@
                     @foreach($loan->payments->where('status', 'pending')->take(3) as $payment)
                     <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
                         <div>
-                            <p class="font-semibold text-gray-900">Échéance #{{ $payment->payment_number }}</p>
+                            <p class="font-semibold text-gray-900">Échéance {{ $payment->payment_number }}</p>
                             <p class="text-sm text-gray-600">{{ $payment->due_date->format('d/m/Y') }}</p>
                         </div>
                         <div class="text-right">
@@ -787,7 +942,7 @@
                     <input type="number" name="paid_amount" id="paid_amount" required
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                            placeholder="Montant reçu"
-                           min="0" step="100">
+                           min="1" step="any">
                 </div>
 
                 <div>

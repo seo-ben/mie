@@ -1,0 +1,12 @@
+- generic [ref=e4]:
+  - heading "Connexion YAYRA" [level=1] [ref=e5]
+  - generic [ref=e6]:
+    - textbox "Entrez votre email" [active] [ref=e8]
+    - textbox "Entrez votre mot de passe" [ref=e10]
+    - generic [ref=e11]:
+      - generic [ref=e12] [cursor=pointer]:
+        - checkbox "Se souvenir de moi" [ref=e13]
+        - text: Se souvenir de moi
+      - link "Mot de passe oublié ?" [ref=e14] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/forgot-password
+    - button "Se Connecter" [ref=e15] [cursor=pointer]

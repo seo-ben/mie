@@ -215,7 +215,7 @@
                                         </span>
                                         @if($activeCycle)
                                             <span class="badge badge-sm bg-gradient-primary">
-                                                Cycle #{{ $activeCycle->cycle_number }}
+                                                Cycle {{ $activeCycle->cycle_number }}
                                             </span>
                                         @endif
                                     </div>

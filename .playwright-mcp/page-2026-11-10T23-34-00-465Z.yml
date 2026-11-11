@@ -1,0 +1,245 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - generic [ref=e3]:
+      - link " FSD YAYRA Guichet & Caisse" [ref=e4] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/caissier/dashboard
+        - generic [ref=e5]: 
+        - generic [ref=e7]:
+          - heading "FSD YAYRA" [level=5] [ref=e8]
+          - generic [ref=e9]: Guichet & Caisse
+      - button "" [ref=e10] [cursor=pointer]
+      - text: 
+    - list [ref=e12]:
+      - generic [ref=e13]: Dashboard
+      - listitem [ref=e14]:
+        - link " Tableau de Bord" [ref=e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/dashboard
+          - generic [ref=e16]: 
+          - generic [ref=e17]: Tableau de Bord
+      - listitem [ref=e18]:
+        - link " Terminal de Caisse" [ref=e19] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/terminal
+          - generic [ref=e20]: 
+          - generic [ref=e21]: Terminal de Caisse
+      - generic [ref=e22]: Guichet & Opérations
+      - listitem [ref=e23]:
+        - button " Opérations Guichet " [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: 
+          - generic [ref=e26]: Opérations Guichet
+          - generic [ref=e27]: 
+        - text:     
+      - generic [ref=e28]: Crédits & Prêts
+      - listitem [ref=e29]:
+        - button " Gestion des Prêts " [expanded] [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: 
+          - generic [ref=e32]: Gestion des Prêts
+          - generic [ref=e33]: 
+        - list [ref=e35]:
+          - listitem [ref=e36]:
+            - link " Tous les Prêts" [ref=e37] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/loans
+              - generic [ref=e38]: 
+              - text: Tous les Prêts
+          - listitem [ref=e39]:
+            - link " Demande de Prêt" [ref=e40] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/loans/apply
+              - generic [ref=e41]: 
+              - text: Demande de Prêt
+          - listitem [ref=e42]:
+            - link " Décaissements Prêts" [ref=e43] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/prets/disbursement
+              - generic [ref=e44]: 
+              - text: Décaissements Prêts
+          - listitem [ref=e45]:
+            - link " Remboursements Prêts" [ref=e46] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/loans?status=disbursed
+              - generic [ref=e47]: 
+              - text: Remboursements Prêts
+      - generic [ref=e48]: Clients & Comptes
+      - listitem [ref=e49]:
+        - button " Dossiers Clients " [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: 
+          - generic [ref=e52]: Dossiers Clients
+          - generic [ref=e53]: 
+        - text:   
+      - generic [ref=e54]: Agents & Terrain
+      - listitem [ref=e55]:
+        - button " Collectes Terrain " [ref=e56] [cursor=pointer]:
+          - generic [ref=e57]: 
+          - generic [ref=e58]: Collectes Terrain
+          - generic [ref=e59]: 
+        - text: 
+      - generic [ref=e60]: Rapports & Audit
+      - listitem [ref=e61]:
+        - button " États & Clôture " [ref=e62] [cursor=pointer]:
+          - generic [ref=e63]: 
+          - generic [ref=e64]: États & Clôture
+          - generic [ref=e65]: 
+        - text:   
+  - generic [ref=e66]:
+    - banner [ref=e67]:
+      - generic [ref=e68]:
+        - text: 
+        - generic [ref=e69]:
+          - generic: 
+          - textbox "Rechercher un client, compte, prêt... (Entrée)" [ref=e70]
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - button "" [ref=e73] [cursor=pointer]
+          - text:  
+        - generic [ref=e76]:
+          - generic [ref=e77]: 
+          - generic [ref=e78]: Agence Agoè (Siège)
+        - generic [ref=e79]: Guichet Actif
+        - generic [ref=e82]:
+          - generic [ref=e83] [cursor=pointer]:
+            - generic [ref=e84]:
+              - paragraph [ref=e85]: Kodzo GADZEKPO
+              - paragraph [ref=e86]: Caissier Guichet
+            - generic [ref=e87]: K
+            - generic [ref=e88]: 
+          - text:    
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - heading "Comptoir de Décaissement" [level=2] [ref=e93]
+            - navigation "breadcrumb" [ref=e94]:
+              - list [ref=e95]:
+                - listitem [ref=e96]:
+                  - link "Dashboard" [ref=e97] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/caissier/dashboard
+                - listitem [ref=e98]: / Gestion des Prêts
+                - listitem [ref=e99]: / Décaissements Validés
+          - generic [ref=e100]:
+            - link " Terminal Caisse" [ref=e101] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/terminal
+              - generic [ref=e102]: 
+              - text: Terminal Caisse
+            - link "+ Nouveau Dépôt" [ref=e103] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/depot
+              - generic [ref=e104]: +
+              - text: Nouveau Dépôt
+        - generic [ref=e105]:
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: 
+              - generic [ref=e111]:
+                - generic [ref=e112]: 
+                - text: Prêts Validés
+            - generic [ref=e113]:
+              - generic [ref=e114]: 1 dossier(s)
+              - generic [ref=e115]: Prêts en Attente de Décaissement
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - generic [ref=e119]: 
+              - generic [ref=e121]:
+                - generic [ref=e122]: 
+                - text: Volume Brut
+            - generic [ref=e123]:
+              - generic [ref=e124]: 250 000 FCFA
+              - generic [ref=e125]: Montant Global à Remettre
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - generic [ref=e129]: 
+              - generic [ref=e131]: Caisse
+            - generic [ref=e132]:
+              - generic [ref=e133]: 390 577 FCFA
+              - generic [ref=e134]: Liquidité Disponible au Guichet
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - generic [ref=e138]: 
+              - generic [ref=e140]:
+                - generic [ref=e141]: 
+                - text: Aujourd'hui
+            - generic [ref=e142]:
+              - generic [ref=e143]: 0 FCFA
+              - generic [ref=e144]: 0 dossier(s) décaissé(s) ce jour
+        - generic [ref=e146]:
+          - tablist [ref=e147]:
+            - tab " En Attente 1" [selected] [ref=e148] [cursor=pointer]:
+              - generic [ref=e149]: 
+              - text: En Attente
+              - generic [ref=e150]: "1"
+            - tab " Décaissés Aujourd'hui 0" [ref=e151] [cursor=pointer]:
+              - generic [ref=e152]: 
+              - text: Décaissés Aujourd'hui
+              - generic [ref=e153]: "0"
+          - generic [ref=e154]:
+            - generic [ref=e155]: 
+            - textbox "Rechercher emprunteur, N° prêt, téléphone..." [ref=e156]
+        - generic [ref=e157]:
+          - tabpanel " En Attente 1" [ref=e158]:
+            - generic [ref=e160]:
+              - generic [ref=e161]:
+                - generic [ref=e162]:
+                  - generic [ref=e163]:
+                    - generic [ref=e164]: 
+                    - text: LOAN-2026-0001
+                  - generic [ref=e165]:
+                    - generic [ref=e166]: 
+                    - text: Approuvé le
+                    - strong [ref=e167]: 09/11/2026
+                - generic [ref=e168]:
+                  - link " 9/9 Contrôles Validés" [ref=e169] [cursor=pointer]:
+                    - /url: http://127.0.0.1:8000/caissier/loans/1
+                    - generic [ref=e170]: 
+                    - text: 9/9 Contrôles Validés
+                  - generic [ref=e171]:
+                    - generic [ref=e172]: 
+                    - text: 3 Caution(s) Solidaire(s)
+                  - generic [ref=e173]:
+                    - generic [ref=e174]: 
+                    - text: Prêt Validé
+              - generic [ref=e176]:
+                - generic [ref=e177]:
+                  - generic [ref=e178]:
+                    - generic [ref=e179]: KM
+                    - generic [ref=e180]:
+                      - heading "Koffi MENSAH" [level=5] [ref=e181]
+                      - generic [ref=e182]:
+                        - generic [ref=e183]:
+                          - generic [ref=e184]: 
+                          - text: "90112233"
+                        - generic [ref=e185]: •
+                        - generic [ref=e186]: CLT-AGO-001
+                      - link " Consulter le dossier client →" [ref=e187] [cursor=pointer]:
+                        - /url: http://127.0.0.1:8000/caissier/clients/1
+                        - generic [ref=e188]: 
+                        - text: Consulter le dossier client →
+                  - generic [ref=e190]:
+                    - generic [ref=e191]: 
+                    - generic [ref=e192]:
+                      - strong [ref=e193]: "Objet :"
+                      - text: Achat de stock pour boutique de vivres frais
+                - generic [ref=e195]:
+                  - generic [ref=e197]:
+                    - generic [ref=e198]:
+                      - generic [ref=e199]: 
+                      - text: Durée Prêt
+                    - generic [ref=e200]: 6 Mois
+                    - generic [ref=e201]:
+                      - text: "Taux :"
+                      - strong [ref=e202]: 17.0%
+                      - text: / an
+                  - generic [ref=e204]:
+                    - generic [ref=e205]:
+                      - generic [ref=e206]: 
+                      - text: Mensualité
+                    - generic [ref=e207]: 45 208 F
+                    - generic [ref=e208]: Par mois d'échéance
+                - generic [ref=e210]:
+                  - generic [ref=e211]:
+                    - generic [ref=e212]:
+                      - generic [ref=e213]: 
+                      - text: Net à Remettre en Espèces
+                    - generic [ref=e214]:
+                      - generic [ref=e215]: 
+                      - text: Caisse OK
+                  - generic [ref=e216]: 250 000 FCFA
+                  - button " Décaisser les Espèces" [ref=e218] [cursor=pointer]:
+                    - generic [ref=e219]: 
+                    - text: Décaisser les Espèces
+          - text: 
+      - text:   
+  - text:         

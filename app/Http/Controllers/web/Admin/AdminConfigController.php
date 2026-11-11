@@ -23,6 +23,14 @@ class AdminConfigController extends Controller
     }
 
     /**
+     * Point d'entrée de la configuration système
+     */
+    public function index(Request $request)
+    {
+        return redirect()->route('admin.config.parameters');
+    }
+
+    /**
      * Afficher la page des paramètres système
      */
     public function parameters(Request $request)

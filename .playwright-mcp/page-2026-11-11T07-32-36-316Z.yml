@@ -1,0 +1,262 @@
+- generic [active] [ref=f13e1]:
+  - complementary [ref=f13e2]:
+    - generic [ref=f13e3]:
+      - link " FSD YAYRA Guichet & Caisse" [ref=f13e4] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/caissier/dashboard
+        - generic [ref=f13e5]: 
+        - generic [ref=f13e7]:
+          - heading "FSD YAYRA" [level=5] [ref=f13e8]
+          - generic [ref=f13e9]: Guichet & Caisse
+      - button "" [ref=f13e10] [cursor=pointer]
+      - text: 
+    - list [ref=f13e12]:
+      - generic [ref=f13e13]: Dashboard
+      - listitem [ref=f13e14]:
+        - link " Tableau de Bord" [ref=f13e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/dashboard
+          - generic [ref=f13e16]: 
+          - generic [ref=f13e17]: Tableau de Bord
+      - listitem [ref=f13e18]:
+        - link " Terminal de Caisse" [ref=f13e19] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/terminal
+          - generic [ref=f13e20]: 
+          - generic [ref=f13e21]: Terminal de Caisse
+      - generic [ref=f13e22]: Guichet & Opérations
+      - listitem [ref=f13e23]:
+        - button " Opérations Guichet " [ref=f13e24] [cursor=pointer]:
+          - generic [ref=f13e25]: 
+          - generic [ref=f13e26]: Opérations Guichet
+          - generic [ref=f13e27]: 
+        - text:     
+      - generic [ref=f13e28]: Crédits & Prêts
+      - listitem [ref=f13e29]:
+        - button " Gestion des Prêts " [ref=f13e30] [cursor=pointer]:
+          - generic [ref=f13e31]: 
+          - generic [ref=f13e32]: Gestion des Prêts
+          - generic [ref=f13e33]: 
+        - text:    
+      - generic [ref=f13e34]: Clients & Comptes
+      - listitem [ref=f13e35]:
+        - button " Dossiers Clients " [ref=f13e36] [cursor=pointer]:
+          - generic [ref=f13e37]: 
+          - generic [ref=f13e38]: Dossiers Clients
+          - generic [ref=f13e39]: 
+        - text:   
+      - generic [ref=f13e40]: Agents & Terrain
+      - listitem [ref=f13e41]:
+        - button " Collectes Terrain " [ref=f13e42] [cursor=pointer]:
+          - generic [ref=f13e43]: 
+          - generic [ref=f13e44]: Collectes Terrain
+          - generic [ref=f13e45]: 
+        - text: 
+      - generic [ref=f13e46]: Rapports & Audit
+      - listitem [ref=f13e47]:
+        - button " États & Clôture " [ref=f13e48] [cursor=pointer]:
+          - generic [ref=f13e49]: 
+          - generic [ref=f13e50]: États & Clôture
+          - generic [ref=f13e51]: 
+        - text:   
+  - generic [ref=f13e52]:
+    - banner [ref=f13e53]:
+      - generic [ref=f13e54]:
+        - text: 
+        - generic [ref=f13e55]:
+          - generic: 
+          - textbox "Rechercher un client, compte, prêt... (Entrée)" [ref=f13e56]
+      - generic [ref=f13e57]:
+        - generic [ref=f13e58]:
+          - button "" [ref=f13e59] [cursor=pointer]
+          - text:  
+        - generic [ref=f13e62]:
+          - generic [ref=f13e63]: 
+          - generic [ref=f13e64]: Agence Agoè (Siège)
+        - generic "Session n° 3 active" [ref=f13e65]: Guichet Actif (#3)
+        - link " Clôturer" [ref=f13e68] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/session/close
+          - generic [ref=f13e69]: 
+          - text: Clôturer
+        - generic [ref=f13e70]:
+          - generic [ref=f13e71] [cursor=pointer]:
+            - generic [ref=f13e72]:
+              - paragraph [ref=f13e73]: Kodzo GADZEKPO
+              - paragraph [ref=f13e74]: Caissier Guichet
+            - generic [ref=f13e75]: K
+            - generic [ref=f13e76]: 
+          - text:    
+    - main [ref=f13e77]:
+      - generic [ref=f13e78]:
+        - generic [ref=f13e79]:
+          - generic [ref=f13e80]:
+            - heading "Dashboard" [level=1] [ref=f13e81]
+            - paragraph [ref=f13e82]: dashboard / guichet caisse
+          - generic [ref=f13e83]:
+            - generic [ref=f13e84]:
+              - generic [ref=f13e85]: 
+              - generic [ref=f13e86]: 11 nov. 2026
+              - generic [ref=f13e87]: 
+            - link "+ Dépôt" [ref=f13e88] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/depot
+              - generic [ref=f13e89]: +
+              - text: Dépôt
+            - link " Retrait" [ref=f13e90] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/retrait
+              - generic [ref=f13e91]: 
+              - text: Retrait
+            - button " Coffre" [ref=f13e92] [cursor=pointer]:
+              - generic [ref=f13e93]: 
+              - text: Coffre
+        - generic [ref=f13e94]:
+          - generic [ref=f13e96]:
+            - generic [ref=f13e97]:
+              - generic [ref=f13e98]: 
+              - generic [ref=f13e100]:
+                - generic [ref=f13e101]: 
+                - text: 18%
+            - generic [ref=f13e102]:
+              - generic [ref=f13e103]: 0 F
+              - paragraph [ref=f13e104]: Total Encaissements Jour
+          - generic [ref=f13e106]:
+            - generic [ref=f13e107]:
+              - generic [ref=f13e108]: 
+              - generic [ref=f13e110]:
+                - generic [ref=f13e111]: 
+                - text: 12%
+            - generic [ref=f13e112]:
+              - generic [ref=f13e113]: 0 F
+              - paragraph [ref=f13e114]: Total Décaissements Jour
+          - generic [ref=f13e116]:
+            - generic [ref=f13e117]:
+              - generic [ref=f13e118]: 
+              - generic [ref=f13e120]: Espèces
+            - generic [ref=f13e121]:
+              - generic [ref=f13e122]: 0 F
+              - paragraph [ref=f13e123]: Disponible en Caisse
+          - generic [ref=f13e125]:
+            - generic [ref=f13e126]:
+              - generic [ref=f13e127]: 
+              - generic [ref=f13e129]: Coffre
+            - generic [ref=f13e130]:
+              - generic [ref=f13e131]: 47 980 000 F
+              - paragraph [ref=f13e132]: Trésorerie Coffre-Fort
+          - generic [ref=f13e134]:
+            - generic [ref=f13e135]:
+              - generic [ref=f13e136]: 
+              - generic [ref=f13e138]: À jour
+            - generic [ref=f13e139]:
+              - generic [ref=f13e140]: "0"
+              - paragraph [ref=f13e141]: Prêts Prêts à Décaisser
+        - generic [ref=f13e142]:
+          - generic [ref=f13e144]:
+            - generic [ref=f13e145]:
+              - generic [ref=f13e146]: 
+              - generic [ref=f13e148]: ↑ Activité
+            - generic [ref=f13e149]: "0"
+            - paragraph [ref=f13e150]: Tickets Réalisés
+          - generic [ref=f13e152]:
+            - generic [ref=f13e153]:
+              - generic [ref=f13e154]: 
+              - generic [ref=f13e156]: Terrain
+            - generic [ref=f13e157]: 48 750 F
+            - paragraph [ref=f13e158]: Collecte Agents Rapatriée
+          - generic [ref=f13e160]:
+            - generic [ref=f13e161]:
+              - generic [ref=f13e162]: 
+              - generic [ref=f13e164]: Actifs
+            - generic [ref=f13e165]: "2"
+            - paragraph [ref=f13e166]: Collecteurs Déployés
+          - link "  0 reçu 5 Portefeuille Clients Agence" [ref=f13e168] [cursor=pointer]:
+            - /url: http://127.0.0.1:8000/caissier/clients
+            - generic [ref=f13e169]:
+              - generic [ref=f13e170]:
+                - generic [ref=f13e171]: 
+                - generic "Clients ayant effectué une transaction aujourd'hui" [ref=f13e173]:
+                  - generic [ref=f13e174]: 
+                  - text: 0 reçu
+              - generic [ref=f13e175]: "5"
+              - paragraph [ref=f13e176]: Portefeuille Clients Agence
+          - generic [ref=f13e178]:
+            - generic [ref=f13e179]:
+              - generic [ref=f13e180]: 
+              - generic [ref=f13e182]: Ouvert
+            - generic [ref=f13e183]: Ouverte à 07:32
+            - paragraph [ref=f13e184]: "Provision : 0 F"
+        - generic [ref=f13e186]:
+          - generic [ref=f13e187]:
+            - heading "Flux de Trésorerie Guichet" [level=5] [ref=f13e188]
+            - text: Répartition des encaissements et décaissements au cours de la journée
+          - generic [ref=f13e189]:
+            - generic [ref=f13e192]:
+              - text: "Encaissements :"
+              - strong [ref=f13e193]: 0 FCFA
+            - generic [ref=f13e196]:
+              - text: "Décaissements :"
+              - strong [ref=f13e197]: 0 FCFA
+        - generic [ref=f13e200]:
+          - generic [ref=f13e202]:
+            - generic [ref=f13e203]:
+              - generic [ref=f13e204]:
+                - heading "Dernières Opérations Encaissées au Guichet" [level=6] [ref=f13e205]
+                - text: Flux enregistrés en temps réel dans cette session
+              - link "Terminal " [ref=f13e206] [cursor=pointer]:
+                - /url: http://127.0.0.1:8000/caissier/terminal
+                - text: Terminal
+                - generic [ref=f13e207]: 
+            - table [ref=f13e209]:
+              - rowgroup [ref=f13e210]:
+                - row [ref=f13e211]:
+                  - columnheader "Heure / Réf" [ref=f13e212]
+                  - columnheader "Client & Compte" [ref=f13e213]
+                  - columnheader "Type" [ref=f13e214]
+                  - columnheader "Montant" [ref=f13e215]
+                  - columnheader "Action" [ref=f13e216]
+              - rowgroup [ref=f13e217]:
+                - row [ref=f13e218]:
+                  - cell " Aucune transaction effectuée dans cette session pour l'instant." [ref=f13e219]:
+                    - generic [ref=f13e220]: 
+                    - text: Aucune transaction effectuée dans cette session pour l'instant.
+          - generic [ref=f13e221]:
+            - generic [ref=f13e222]:
+              - generic [ref=f13e223]:
+                - heading " Supervision Terrain" [level=6] [ref=f13e224]:
+                  - generic [ref=f13e225]: 
+                  - text: Supervision Terrain
+                - link "Voir tournées →" [ref=f13e226] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/caissier/field-agents
+              - generic [ref=f13e228]:
+                - generic [ref=f13e229]:
+                  - generic [ref=f13e230]: Total collecté ce jour par les agents
+                  - heading "48 750 FCFA" [level=4] [ref=f13e231]
+                - generic [ref=f13e232]: 
+              - generic [ref=f13e234]:
+                - generic [ref=f13e235]: Agents rattachés à votre agence
+                - strong [ref=f13e236]: 2 agents
+              - generic [ref=f13e237]:
+                - generic [ref=f13e238]: Plafond de sécurité par agent
+                - strong [ref=f13e239]: 500 000 FCFA
+            - generic [ref=f13e240]:
+              - generic [ref=f13e241]:
+                - generic [ref=f13e242]: 
+                - generic [ref=f13e244]:
+                  - heading "Inscription Client Express" [level=6] [ref=f13e245]
+                  - text: Adhésion & ouverture carnet en 2 minutes
+              - paragraph [ref=f13e246]: Créez immédiatement la fiche d'un nouvel adhérent avec carnet tontine ou compte d'épargne.
+              - link " Inscrire un Client au Guichet" [ref=f13e247] [cursor=pointer]:
+                - /url: http://127.0.0.1:8000/caissier/clients/register-with-tontine
+                - generic [ref=f13e248]: 
+                - text: Inscrire un Client au Guichet
+            - generic [ref=f13e249]:
+              - generic [ref=f13e250]:
+                - heading " Prêts Validés" [level=6] [ref=f13e251]:
+                  - generic [ref=f13e252]: 
+                  - text: Prêts Validés
+                - generic [ref=f13e253]: 0 en attente
+              - paragraph [ref=f13e254]: Effectuez le décaissement physique et la remise des fonds pour les dossiers autorisés.
+              - link " Traiter les Décaissements" [ref=f13e255] [cursor=pointer]:
+                - /url: http://127.0.0.1:8000/caissier/prets/disbursement
+                - generic [ref=f13e256]: 
+                - text: Traiter les Décaissements
+  - text:         
+  - alert [ref=f13e257]:
+    - heading "Succès" [level=2] [ref=f13e265]
+    - generic [ref=f13e266]: "Votre session de caisse a été ouverte avec succès ! Fond initial : 0 FCFA"
+    - text: "!"

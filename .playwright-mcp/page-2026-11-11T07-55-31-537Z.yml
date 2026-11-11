@@ -1,0 +1,24 @@
+- generic [ref=f24e3]:
+  - generic [ref=f24e4]: 
+  - generic [ref=f24e6]:
+    - heading "Welcome back" [level=1] [ref=f24e7]
+    - paragraph [ref=f24e8]: Please enter your details to sign in.
+  - generic [ref=f24e9]:
+    - generic [ref=f24e10]:
+      - generic [ref=f24e11]: E-Mail Address
+      - textbox "E-Mail Address" [active] [ref=f24e13]:
+        - /placeholder: Enter your email...
+    - generic [ref=f24e14]:
+      - generic [ref=f24e15]: Password
+      - generic [ref=f24e16]:
+        - textbox "Password" [ref=f24e17]:
+          - /placeholder: ••••••••••••
+        - button "" [ref=f24e18] [cursor=pointer]
+    - generic [ref=f24e20]:
+      - generic [ref=f24e21] [cursor=pointer]:
+        - checkbox "Remember me" [ref=f24e22]
+        - generic [ref=f24e23]: Remember me
+      - link "Forgot password?" [ref=f24e24] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/forgot-password
+    - button "Sign in" [ref=f24e25] [cursor=pointer]
+    - generic [ref=f24e26]: FSD YAYRA • Espace Institutionnel Sécurisé

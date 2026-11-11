@@ -37,6 +37,7 @@ Route::middleware(['role:administrateur_systeme,administrateur_reglementaire'])-
         Route::post('parameters', [AdminConfigController::class, 'updateParameters'])->name('parameters.update');
         Route::get('integrations', [AdminConfigController::class, 'integrations'])->name('integrations');
         Route::put('integrations', [AdminConfigController::class, 'updateIntegrations'])->name('update-integrations');
+        Route::post('integrations/test', [AdminConfigController::class, 'testIntegration'])->name('integrations.test');
         Route::get('backups', [AdminConfigController::class, 'backups'])->name('backups');
         Route::post('backups/create', [AdminConfigController::class, 'createBackup'])->name('backups.create');
         Route::get('backups/download/{file}', [AdminConfigController::class, 'downloadBackup'])->name('backups.download');
@@ -59,6 +60,7 @@ Route::middleware(['role:administrateur_systeme,administrateur_reglementaire'])-
         Route::delete('{user}', [AdminUserController::class, 'destroy'])->name('destroy');
         Route::get('{user}/reset-password', [AdminUserController::class, 'resetPassword'])->name('reset-password');
         Route::get('{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('toggle-status');
+        Route::get('{user}/toggle-cashier-open', [AdminUserController::class, 'toggleCashierOpenPermission'])->name('toggle-cashier-open');
         Route::post('{user}/transfer-clients', [AdminUserController::class, 'transferClients'])->name('transfer-clients');
     });
 
@@ -241,6 +243,7 @@ Route::middleware(['role:administrateur_systeme,administrateur_reglementaire'])-
         Route::get('{loan}', [AdminLoanController::class, 'show'])->name('show');
         Route::get('{loan}/analyze', [AdminLoanController::class, 'analyze'])->name('analyze');
         Route::get('{loan}/schedule', [AdminLoanController::class, 'schedule'])->name('schedule');
+        Route::post('{loan}/verifications', [AdminLoanController::class, 'updateVerifications'])->name('verifications.update');
         Route::middleware(['role:administrateur_systeme,administrateur_reglementaire,manager_agence'])->group(function () {
             Route::post('{loan}/approve', [AdminLoanController::class, 'approve'])->name('approve');
             Route::post('{loan}/reject', [AdminLoanController::class, 'reject'])->name('reject');

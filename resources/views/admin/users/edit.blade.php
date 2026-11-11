@@ -12,7 +12,7 @@
         </a>
         <div>
             <h2 class="text-2xl font-black text-slate-900 tracking-tight">Mise à jour de l'Entité</h2>
-            <p class="text-slate-500 text-sm font-bold uppercase tracking-widest font-mono">Modification des privilèges et données de l'Officier #{{ $user->id }}</p>
+            <p class="text-slate-500 text-sm font-bold uppercase tracking-widest font-mono">Modification des privilèges et données de l'Officier {{ $user->id }}</p>
         </div>
     </div>
 
@@ -111,6 +111,26 @@
                         <input type="text" name="username" id="username" value="{{ old('username', $user->username) }}" required
                                class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-400 cursor-not-allowed outline-none uppercase font-mono" readonly>
                         <p class="text-[8px] font-bold text-slate-400 uppercase mt-1 ml-1 italic">L'identifiant institutionnel ne peut être modifié</p>
+                    </div>
+
+                    <div class="space-y-1.5 md:col-span-2 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <label for="can_open_cashier_session" class="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fas fa-cash-register text-emerald-600"></i>
+                                    Autorisation d'Ouverture Autonome de Caisse
+                                </label>
+                                <p class="text-[10px] text-slate-500 font-medium mt-0.5">
+                                    Permet à ce caissier d'ouvrir et de démarrer sa session de caisse lui-même depuis son guichet sans intervention préalable d'un administrateur.
+                                </p>
+                            </div>
+                            <div class="flex items-center">
+                                <select name="can_open_cashier_session" id="can_open_cashier_session" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none">
+                                    <option value="1" {{ old('can_open_cashier_session', $user->can_open_cashier_session) ? 'selected' : '' }}>🟢 Oui, Autorisée</option>
+                                    <option value="0" {{ old('can_open_cashier_session', $user->can_open_cashier_session) ? '' : 'selected' }}>🔴 Non, Requiert l'Admin</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

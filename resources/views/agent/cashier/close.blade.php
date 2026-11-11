@@ -2,84 +2,90 @@
 
 @section('title', 'Clôture de Caisse')
 @section('page-title', 'Clôture de Session')
-@section('page-subtitle', 'Récapitulatif de fin de journée')
+@section('page-subtitle', 'Récapitulatif et validation de fin de journée')
 
 @push('styles')
 <style>
     .close-container {
-        max-width: 800px;
+        max-width: 760px;
         margin: 0 auto;
     }
 
     .summary-card {
-        background: #1a2332;
-        border: 1px solid rgba(0, 209, 178, 0.15);
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
     .summary-title {
-        color: white;
-        font-weight: 700;
+        color: #0f172a;
+        font-weight: 800;
         text-align: center;
-        margin-bottom: 30px;
-        border-bottom: 1px solid rgba(0, 209, 178, 0.1);
-        padding-bottom: 15px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 16px;
     }
 
     .summary-item {
         display: flex;
         justify-content: space-between;
-        padding: 15px 0;
-        border-bottom: 1px solid rgba(225, 232, 237, 0.05);
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid #f1f5f9;
     }
 
-    .summary-item .label { color: rgba(225, 232, 237, 0.6); font-size: 0.9rem; }
-    .summary-item .value { color: white; font-weight: 600; font-size: 1.1rem; }
+    .summary-item .label { color: #64748b; font-size: 0.9rem; font-weight: 500; }
+    .summary-item .value { color: #0f172a; font-weight: 700; font-size: 1.05rem; }
 
     .final-balance-box {
-        background: rgba(0, 209, 178, 0.08);
+        background: #f0fdf4;
         border-radius: 12px;
-        padding: 20px;
+        padding: 24px;
         margin: 25px 0;
         text-align: center;
-        border: 1px solid rgba(0, 209, 178, 0.2);
+        border: 1px solid #bbf7d0;
     }
 
     .final-balance-box h3 {
-        color: #00d1b2;
+        color: #15803d;
         font-weight: 800;
-        margin: 10px 0 0;
+        font-size: 2rem;
+        margin: 8px 0 0;
     }
 
     .btn-close-final {
-        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        background: linear-gradient(135deg, #e11d48, #be123c);
         color: white;
         border: none;
         width: 100%;
-        padding: 15px;
-        border-radius: 12px;
+        padding: 14px;
+        border-radius: 10px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.3s;
+        letter-spacing: 0.5px;
+        transition: all 0.2s;
     }
 
     .btn-close-final:hover {
-        transform: scale(1.02);
-        box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
+        background: linear-gradient(135deg, #be123c, #9f1239);
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
         color: white;
     }
 
     .warning-box {
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid rgba(245, 158, 11, 0.2);
-        color: #f59e0b;
-        padding: 15px;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #b45309;
+        padding: 16px;
         border-radius: 10px;
-        font-size: 0.85rem;
+        font-size: 0.88rem;
+        font-weight: 500;
         margin-bottom: 25px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
     }
 </style>
 @endpush
@@ -91,50 +97,56 @@
         <h4 class="summary-title">Récapitulatif de Clôture</h4>
 
         <div class="warning-box">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            Attention: La clôture de session est irréversible. Toutes les opérations après cette confirmation seront enregistrées sur une nouvelle session.
+            <i class="fas fa-exclamation-triangle mt-1 text-amber-600 fs-5"></i>
+            <div>
+                <strong>Attention opérationnelle :</strong> La clôture de session est irréversible. Un billetage physique sera requis et toutes les opérations ultérieures seront enregistrées sur une nouvelle session.
+            </div>
         </div>
 
-        {{-- <div class="summary-item">
-            <span class="label">ID Session</span>
-            <span class="value">#{{ $activeSession->id }}</span>
-        </div> --}}
         <div class="summary-item">
-            <span class="label">Ouverture</span>
-            <span class="value">{{ $activeSession->opened_at->format('d/m/Y H:i') }}</span>
+            <span class="label">Date & Heure d'ouverture</span>
+            <span class="value">{{ $activeSession->opened_at ? $activeSession->opened_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i') }}</span>
         </div>
         <div class="summary-item">
             <span class="label">Solde d'Ouverture</span>
-            <span class="value">{{ number_format($activeSession->opening_balance, 0, ',', ' ') }} FCFA</span>
+            <span class="value">{{ number_format($activeSession->opening_balance ?? 0, 0, ',', ' ') }} FCFA</span>
         </div>
         <div class="summary-item">
-            <span class="label">Total Encaissement (+)</span>
-            <span class="value text-success">+ {{ number_format($todayStats->total_in, 0, ',', ' ') }} FCFA</span>
+            <span class="label">Total Encaissements (+)</span>
+            <span class="value text-emerald-600">+ {{ number_format($todayStats->total_in ?? 0, 0, ',', ' ') }} FCFA</span>
         </div>
         <div class="summary-item">
-            <span class="label">Total Décaissement (-)</span>
-            <span class="value text-danger">- {{ number_format($todayStats->total_out, 0, ',', ' ') }} FCFA</span>
+            <span class="label">Total Décaissements (-)</span>
+            <span class="value text-rose-600">- {{ number_format($todayStats->total_out ?? 0, 0, ',', ' ') }} FCFA</span>
         </div>
 
         <div class="final-balance-box">
-            <span class="label text-uppercase">Solde Théorique Final</span>
-            <h3>{{ number_format(($activeSession->opening_balance + $todayStats->total_in - $todayStats->total_out), 0, ',', ' ') }} FCFA</h3>
+            <span class="label text-xs uppercase tracking-wider text-emerald-800 font-bold">Solde Théorique de Clôture</span>
+            <h3>{{ number_format((($activeSession->opening_balance ?? 0) + ($todayStats->total_in ?? 0) - ($todayStats->total_out ?? 0)), 0, ',', ' ') }} FCFA</h3>
         </div>
 
-        <form action="{{ route('caissier.session.close', $activeSession->id) }}" method="POST">
+        <form action="{{ route('caissier.session.close', $activeSession->id ?? 1) }}" method="POST">
             @csrf
             <div class="mb-4">
-                <label class="form-label text-white-50">Note ou observation de fin de journée</label>
-                <textarea name="closing_note" class="form-control" rows="3" placeholder="Tout est conforme, écart de..."></textarea>
+                <label class="form-label text-slate-700 font-bold small">Note ou observation de fin de journée (Optionnel)</label>
+                <textarea name="closing_note" class="form-control rounded-lg border-slate-300" rows="3" placeholder="Ex: Caisse parfaitement équilibrée, aucun écart constaté..."></textarea>
             </div>
 
-            <button type="submit" class="btn-close-final">
-                <i class="fas fa-lock me-2"></i> Confirmer la Clôture Définitive
+            <button type="button" class="btn-close-final"
+                    data-confirm="Confirmez-vous la fermeture définitive de votre session de caisse ? Cette action verrouille les écritures du jour et transfère le bilan pour arrêté comptable."
+                    data-confirm-title="Clôture Définitive de Caisse"
+                    data-confirm-subtitle="Arrêté journalier de session"
+                    data-confirm-btn="Oui, Clôturer la Caisse"
+                    data-confirm-class="btn-danger"
+                    data-confirm-icon="fa-lock"
+                    data-confirm-icon-bg="#fee2e2"
+                    data-confirm-icon-color="#dc2626">
+                <i class="fas fa-lock me-2"></i> Valider la Clôture Définitive
             </button>
         </form>
 
         <div class="text-center mt-4">
-            <a href="{{ route('caissier.dashboard') }}" class="text-white-50 text-decoration-none small">
+            <a href="{{ route('caissier.dashboard') }}" class="text-slate-500 hover:text-slate-800 text-decoration-none small font-semibold">
                 <i class="fas fa-arrow-left me-1"></i> Retour au tableau de bord
             </a>
         </div>

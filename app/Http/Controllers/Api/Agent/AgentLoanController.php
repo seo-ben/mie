@@ -174,17 +174,6 @@ class AgentLoanController extends Controller
 
         $isEligible = ($score >= 50) && !$hasActiveLoan && ($defaultedLoans === 0);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'client' => [
-                    'id' => $client->id,
-                    'full_name' => $client->full_name,
-                    'phone' => $client->phone,
-                    'kyc_status' => $client->kyc_status,
-                ],
-                'is_eligible' => $isEligible,
-                'eligibility_score' => $score,
         $riskLevel = $score >= 75 ? 'low' : ($score >= 50 ? 'medium' : 'high');
         $rateKey = match($riskLevel) {
             'low' => 'loan_interest_rate_low',

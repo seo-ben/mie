@@ -248,7 +248,7 @@
                 <tbody class="divide-y divide-slate-100">
                     @foreach($topClients as $index => $client)
                     <tr class="hover:bg-slate-50/50">
-                        <td class="text-center font-black text-slate-400 text-xs">#{{ $index + 1 }}</td>
+                        <td class="text-center font-black text-slate-400 text-xs">{{ $index + 1 }}</td>
                         <td>
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">

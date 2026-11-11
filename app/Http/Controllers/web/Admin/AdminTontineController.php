@@ -414,7 +414,7 @@ class AdminTontineController extends Controller
                 'fee_amount' => $completedCycle->collected_amount - $completedCycle->payout_amount,
                 'payment_method' => 'cash', // À adapter si besoin
                 'status' => 'completed',
-                'description' => "Déblocage capital Tontine - Cycle #" . $completedCycle->cycle_number,
+                'description' => "Déblocage capital Tontine - Cycle " . $completedCycle->cycle_number,
                 'balance_before' => $tontine->account->balance,
                 'balance_after' => $tontine->account->balance - $completedCycle->collected_amount,
                 'processed_by' => Auth::id(),

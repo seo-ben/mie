@@ -1,0 +1,20 @@
+FSD YAYRA 
+Identifiants de Connexion & Sécurité
+
+1. Guichet Caisse
+-----------------
+email : kodzogadzekpo@gmail.com
+password : kodzo8615
+
+Code PIN Superviseur (Extournes / Annulations de transactions) :
+PIN : 1234  (ou 0000, 2026)
+
+2. Agents de terrain
+--------------------
+01-
+email: eyram2yayra@gmail.com
+password : Eyram@2026360
+
+02-
+email: prudence3yayra@gmail.com
+password: Prudence@360202609

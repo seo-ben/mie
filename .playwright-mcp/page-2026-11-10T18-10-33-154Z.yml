@@ -1,0 +1,134 @@
+- generic [ref=f1e1]:
+  - complementary [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - link " FSD YAYRA Guichet & Caisse" [ref=f1e4] [cursor=pointer]:
+        - /url: http://127.0.0.1:8000/caissier/dashboard
+        - generic [ref=f1e5]: 
+        - generic [ref=f1e7]:
+          - heading "FSD YAYRA" [level=5] [ref=f1e8]
+          - generic [ref=f1e9]: Guichet & Caisse
+      - button "" [ref=f1e10] [cursor=pointer]
+      - text: 
+    - list [ref=f1e12]:
+      - generic [ref=f1e13]: Dashboard
+      - listitem [ref=f1e14]:
+        - link " Tableau de Bord" [ref=f1e15] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/dashboard
+          - generic [ref=f1e16]: 
+          - generic [ref=f1e17]: Tableau de Bord
+      - listitem [ref=f1e18]:
+        - link " Terminal de Caisse" [ref=f1e19] [cursor=pointer]:
+          - /url: http://127.0.0.1:8000/caissier/terminal
+          - generic [ref=f1e20]: 
+          - generic [ref=f1e21]: Terminal de Caisse
+      - generic [ref=f1e22]: Guichet & Opérations
+      - listitem [ref=f1e23]:
+        - button " Opérations Guichet " [expanded] [ref=f1e24] [cursor=pointer]:
+          - generic [ref=f1e25]: 
+          - generic [ref=f1e26]: Opérations Guichet
+          - generic [ref=f1e27]: 
+        - list [ref=f1e29]:
+          - listitem [ref=f1e30]:
+            - link " Encaissement (Dépôt)" [ref=f1e31] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/depot
+              - generic [ref=f1e32]: 
+              - text: Encaissement (Dépôt)
+          - listitem [ref=f1e33]:
+            - link " Décaissement (Retrait)" [ref=f1e34] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/retrait
+              - generic [ref=f1e35]: 
+              - text: Décaissement (Retrait)
+          - listitem [ref=f1e36]:
+            - link " Virement Inter-Comptes" [ref=f1e37] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/caissier/transfer
+              - generic [ref=f1e38]: 
+              - text: Virement Inter-Comptes
+          - listitem [ref=f1e39]:
+            - link " Transfert Coffre-Fort" [ref=f1e40] [cursor=pointer]:
+              - /url: javascript:void(0)
+              - generic [ref=f1e41]: 
+              - text: Transfert Coffre-Fort
+          - listitem [ref=f1e42]:
+            - link " Extourne (PIN)" [ref=f1e43] [cursor=pointer]:
+              - /url: javascript:void(0)
+              - generic [ref=f1e44]: 
+              - text: Extourne (PIN)
+      - generic [ref=f1e45]: Crédits & Prêts
+      - listitem [ref=f1e46]:
+        - button " Gestion des Prêts " [ref=f1e47] [cursor=pointer]:
+          - generic [ref=f1e48]: 
+          - generic [ref=f1e49]: Gestion des Prêts
+          - generic [ref=f1e50]: 
+        - text:    
+      - generic [ref=f1e51]: Clients & Comptes
+      - listitem [ref=f1e52]:
+        - button " Dossiers Clients " [ref=f1e53] [cursor=pointer]:
+          - generic [ref=f1e54]: 
+          - generic [ref=f1e55]: Dossiers Clients
+          - generic [ref=f1e56]: 
+        - text:   
+      - generic [ref=f1e57]: Agents & Terrain
+      - listitem [ref=f1e58]:
+        - button " Collectes Terrain " [ref=f1e59] [cursor=pointer]:
+          - generic [ref=f1e60]: 
+          - generic [ref=f1e61]: Collectes Terrain
+          - generic [ref=f1e62]: 
+        - text: 
+      - generic [ref=f1e63]: Rapports & Audit
+      - listitem [ref=f1e64]:
+        - button " États & Clôture " [ref=f1e65] [cursor=pointer]:
+          - generic [ref=f1e66]: 
+          - generic [ref=f1e67]: États & Clôture
+          - generic [ref=f1e68]: 
+        - text:   
+  - generic [ref=f1e69]:
+    - banner [ref=f1e70]:
+      - generic [ref=f1e71]:
+        - text: 
+        - generic [ref=f1e72]:
+          - generic: 
+          - textbox "Rechercher un client, compte, prêt... (Entrée)" [ref=f1e73]
+      - generic [ref=f1e74]:
+        - generic [ref=f1e75]:
+          - button "" [ref=f1e76] [cursor=pointer]
+          - text:  
+        - generic [ref=f1e79]:
+          - generic [ref=f1e80]: 
+          - generic [ref=f1e81]: Agence Agoè (Siège)
+        - generic [ref=f1e82]: Guichet Actif
+        - generic [ref=f1e85]:
+          - generic [ref=f1e86] [cursor=pointer]:
+            - generic [ref=f1e87]:
+              - paragraph [ref=f1e88]: Kodzo GADZEKPO
+              - paragraph [ref=f1e89]: Caissier Guichet
+            - generic [ref=f1e90]: K
+            - generic [ref=f1e91]: 
+          - text:    
+    - main [ref=f1e92]:
+      - generic [ref=f1e93]:
+        - generic [ref=f1e94]:
+          - heading " Rechercher un compte pour retrait" [level=5] [ref=f1e95]:
+            - generic [ref=f1e96]: 
+            - text: Rechercher un compte pour retrait
+          - generic [ref=f1e97]:
+            - generic [ref=f1e98]: /
+            - text: pour rechercher •
+            - generic [ref=f1e99]: Échap
+            - text: pour effacer
+        - generic [ref=f1e100]:
+          - generic [ref=f1e101]: 
+          - textbox "Nom du client, téléphone ou numéro de compte..." [active] [ref=f1e102]
+          - text: 
+        - generic [ref=f1e103]:
+          - button " Tontine" [ref=f1e104] [cursor=pointer]:
+            - generic [ref=f1e105]: 
+            - text: Tontine
+          - button " Épargne" [ref=f1e106] [cursor=pointer]:
+            - generic [ref=f1e107]: 
+            - text: Épargne
+        - text:  
+        - generic [ref=f1e108]:
+          - generic [ref=f1e109]: 
+          - paragraph [ref=f1e110]: Entrez les informations du client pour initier le retrait...
+      - text:   
+  - text:       

@@ -30,4 +30,22 @@ class AuditLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function getDescriptionAttribute()
+    {
+        if (!empty($this->additional_data['description'])) {
+            return $this->additional_data['description'];
+        }
+        return "Action " . str_replace('_', ' ', $this->action) . " effectuée sur " . ($this->table_name ?? 'système');
+    }
+
+    public function getEntityTypeAttribute()
+    {
+        return $this->table_name ?? 'Système';
+    }
+
+    public function getEntityIdAttribute()
+    {
+        return $this->record_id ?? '-';
+    }
 }

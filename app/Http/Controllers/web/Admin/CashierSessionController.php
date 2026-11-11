@@ -86,8 +86,8 @@ class CashierSessionController extends Controller
     {
         $user = Auth::user();
         
-        // Liste des utilisateurs ayant le rôle caissier dans l'agence (ou tous si superadmin)
-        $cashiers = \App\Models\User::where('role', 'caissier')
+        // Liste des utilisateurs pouvant tenir une caisse dans l'agence (ou tous si superadmin)
+        $cashiers = \App\Models\User::whereIn('role', ['caissier', 'administrateur_systeme', 'administrateur_reglementaire'])
             ->when($user->role !== 'administrateur_systeme', fn($q) => $q->where('agency_id', $user->agency_id))
             ->whereDoesntHave('cashierSessions', fn($q) => $q->where('status', 'open'))
             ->get();

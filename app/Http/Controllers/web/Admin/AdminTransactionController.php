@@ -451,6 +451,8 @@ class AdminTransactionController extends Controller
     {
         return Transaction::whereBetween('transaction_date', [$startDate, $endDate])
             ->where('status', 'completed')
+            ->whereNotNull('account_id')
+            ->whereHas('account.client')
             ->with('account.client')
             ->selectRaw('account_id, COUNT(*) as transaction_count, SUM(amount) as total_amount')
             ->groupBy('account_id')

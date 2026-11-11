@@ -74,7 +74,7 @@
                     <i class="fas fa-rotate"></i>
                 </div>
                 <div>
-                    <h5 class="text-sm font-black text-slate-900 uppercase tracking-tight">Cycle Actif #{{ $activeCycle->cycle_number }}</h5>
+                    <h5 class="text-sm font-black text-slate-900 uppercase tracking-tight">Cycle Actif {{ $activeCycle->cycle_number }}</h5>
                     <p class="text-[10px] font-bold text-slate-500 uppercase mt-0.5">Période : {{ $activeCycle->start_date->format('d/m/Y') }} → {{ $activeCycle->end_date->format('d/m/Y') }}</p>
                 </div>
             </div>

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Reçu Transaction #{{ $transaction->transaction_reference }}</title>
+    <title>Reçu Transaction {{ $transaction->transaction_reference }}</title>
     <style>
         body { font-family: 'Courier New', Courier, monospace; color: #000; margin: 40px; font-size: 14px; line-height: 1.5; }
         .receipt { max-width: 400px; margin: 0 auto; border: 1px dotted #ccc; padding: 20px; }
@@ -36,7 +36,7 @@
 
     <div class="receipt">
         <div class="header">
-            <div class="institution">MIE YAYRA - MICROFINANCE</div>
+            <div class="institution">FSD YAYRA - MICROFINANCE</div>
             <div class="branch">Agence : {{ $transaction->account->agency->name ?? 'Siège Central' }}</div>
             <div class="branch">TEL: +228 00 00 00 00</div>
             <br>
