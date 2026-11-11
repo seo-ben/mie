@@ -82,7 +82,7 @@
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-emerald text-white py-3 rounded-xl font-bold shadow-sm d-flex align-items-center justify-center gap-2">
+                        <button type="submit" class="btn btn-emerald text-white py-3 rounded-xl font-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background-color: #059669 !important; border-color: #047857 !important; color: #ffffff !important;">
                             <i class="fas fa-play-circle text-lg"></i>
                             <span>Démarrer et Ouvrir mon Guichet</span>
                         </button>

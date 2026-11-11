@@ -690,6 +690,27 @@
             box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
         }
 
+        /* Bouton émeraude pour ouverture de caisse & actions positives */
+        .btn-emerald {
+            background-color: #059669 !important;
+            border-color: #047857 !important;
+            color: #ffffff !important;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-emerald:hover, .btn-emerald:focus, .btn-emerald:active {
+            background-color: #047857 !important;
+            border-color: #065f46 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35) !important;
+        }
+
+        .badge-waiting-admin {
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
         /* Profil utilisateur dans la topbar */
         .user-profile-btn {
             display: flex;
@@ -1153,11 +1174,11 @@
                         <span>Guichet Fermé</span>
                     </div>
                     @if($navCanOpen)
-                        <a href="{{ route('caissier.terminal') }}" class="btn btn-sm btn-emerald text-white rounded-pill px-3 py-1 fs-8 fw-bold d-none d-sm-inline-flex align-items-center gap-1 shadow-xs" title="Ouvrir votre caisse">
+                        <a href="{{ route('caissier.terminal') }}" class="btn btn-sm btn-emerald text-white rounded-pill px-3 py-1 fs-8 fw-bold d-none d-sm-inline-flex align-items-center gap-1 shadow-sm" style="background-color: #059669 !important; border-color: #047857 !important; color: #ffffff !important;" title="Ouvrir votre caisse">
                             <i class="fas fa-cash-register"></i> Ouvrir ma Caisse
                         </a>
                     @else
-                        <span class="badge bg-slate-100 text-slate-500 rounded-pill px-2.5 py-1 fs-8 border border-slate-200 d-none d-md-inline-flex align-items-center gap-1" title="Votre caisse doit être ouverte par un administrateur">
+                        <span class="badge rounded-pill px-2.5 py-1 fs-8 border d-none d-md-inline-flex align-items-center gap-1 badge-waiting-admin" style="background-color: #f1f5f9 !important; color: #475569 !important; border-color: #cbd5e1 !important;" title="Votre caisse doit être ouverte par un administrateur">
                             <i class="fas fa-shield-halved"></i> Attente Admin
                         </span>
                     @endif
