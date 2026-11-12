@@ -89,8 +89,8 @@ Route::middleware(['role:caissier,administrateur_systeme,administrateur_reglemen
     // Gestion des Comptes Tontine & Épargne
     Route::prefix('accounts')->name('accounts.')->group(function () {
         Route::get('/', [AgentAccountController::class, 'index'])->name('index');
-        Route::get('create/{client}', [AgentAccountController::class, 'create'])->name('create');
-        Route::post('store/{client}', [AgentAccountController::class, 'store'])->name('store');
+        Route::get('create/{client}', [AgentCashierController::class, 'createAccountForm'])->name('create');
+        Route::post('store/{client}', [AgentCashierController::class, 'storeAccount'])->name('store');
         Route::get('{account}', [AgentAccountController::class, 'show'])->name('show');
         Route::get('{account}/deposit', [AgentAccountController::class, 'depositForm'])->name('deposit.form');
         Route::post('{account}/deposit', [AgentAccountController::class, 'processDeposit'])->name('deposit.process');

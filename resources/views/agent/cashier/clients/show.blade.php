@@ -22,10 +22,15 @@
 
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <a href="{{ route('caissier.loans.apply.form', ['client_id' => $client->id]) }}" class="btn btn-success fw-bold px-3 py-2 rounded-3 fs-7 shadow-sm">
-                <i class="fas fa-file-circle-plus me-1"></i> Nouvelle Demande de Prêt
+                <i class="fas fa-file-circle-plus me-1"></i> Demande de Prêt
             </a>
-            <a href="{{ route('caissier.accounts.create', $client->id) }}" class="btn btn-light border fw-bold px-3 py-2 rounded-3 fs-7 text-dark">
-                <i class="fas fa-plus me-1 text-primary"></i> Nouveau Compte
+            @if($client->canOpenSavingsAccount())
+                <a href="{{ route('caissier.accounts.create', ['client' => $client->id, 'type' => 'savings']) }}" class="btn btn-primary fw-bold px-3 py-2 rounded-3 fs-7 shadow-sm text-white">
+                    <i class="fas fa-vault me-1"></i> Ouvrir Compte Épargne
+                </a>
+            @endif
+            <a href="{{ route('caissier.accounts.create', ['client' => $client->id, 'type' => 'tontine']) }}" class="btn btn-light border fw-bold px-3 py-2 rounded-3 fs-7 text-dark">
+                <i class="fas fa-plus me-1 text-emerald-600"></i> Compte Tontine
             </a>
             <a href="{{ route('caissier.clients.index') }}" class="btn btn-light border fw-bold px-3 py-2 rounded-3 fs-7 text-muted">
                 <i class="fas fa-arrow-left me-1"></i> Retour

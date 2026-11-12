@@ -148,7 +148,7 @@ class AgentDashboardController extends Controller
     {
         $user = $user ?? auth()->user();
         return Client::query()->where(function ($query) use ($user) {
-            if ($user && ($user->role === 'caissier' || $user->agency_id)) {
+            if ($user && ($user->role === 'caissier' || $user->role === 'administrateur_systeme')) {
                 $query->where('agency_id', $user->agency_id)
                       ->orWhere('registered_by', $user->id);
             } else {

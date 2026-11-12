@@ -1494,6 +1494,320 @@ class AgentCashierController extends Controller
     }
 
     // ================================================================
+    //  OUVERTURE DE COMPTE GUICHET (ÉPARGNE & TONTINE)
+    // ================================================================
+
+    /**
+     * Formulaire d'ouverture d'un nouveau compte (Épargne ou Tontine) pour un client au guichet
+     */
+    public function createAccountForm($clientId, Request $request)
+    {
+        $user = Auth::user();
+        $activeSession = $this->getActiveSession($user);
+
+        if (!$activeSession) {
+            return view('agent.cashier.session_required');
+        }
+
+        // Vérifier que le client appartient à l'agence du caissier
+        $clientQuery = Client::where('id', $clientId);
+        if ($user->agency_id && $user->role !== 'administrateur_systeme') {
+            $clientQuery->where(function($q) use ($user) {
+                $q->where('agency_id', $user->agency_id)
+                  ->orWhereNull('agency_id');
+            });
+        }
+        $client = $clientQuery->with(['accounts'])->firstOrFail();
+
+        // Récupérer les frais d'activation via les paramètres système
+        $savingsActivationFee = (float) (SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000);
+        $tontineCarnetFee = (float) (SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value') ?? 300);
+
+        // Vérifications d'éligibilité
+        $hasSavingsAccount = !$client->canOpenSavingsAccount();
+        $canOpenTontine = $client->canOpenTontineAccount();
+        $hasUnfinishedCycle = $client->hasActiveUnfinishedTontineCycle();
+
+        $selectedType = $request->get('type', $hasSavingsAccount ? 'tontine' : 'savings');
+
+        return view('agent.cashier.accounts.create', compact(
+            'client',
+            'activeSession',
+            'savingsActivationFee',
+            'tontineCarnetFee',
+            'hasSavingsAccount',
+            'canOpenTontine',
+            'hasUnfinishedCycle',
+            'selectedType'
+        ));
+    }
+
+    /**
+     * Enregistrer l'ouverture d'un compte (Épargne ou Tontine) au guichet caissier
+     */
+    public function storeAccount(Request $request, $clientId)
+    {
+        $request->validate([
+            'account_type' => 'required|in:savings,tontine',
+            // Frais d'ouverture / carnet (personnalisable selon client)
+            'activation_fee' => 'nullable|numeric|min:0',
+            // Dépôt initial optionnel
+            'initial_deposit' => 'nullable|numeric|min:0',
+            // Champs spécifiques tontine
+            'target_amount' => 'required_if:account_type,tontine|nullable|numeric|min:100',
+            'cycle_duration_months' => 'required_if:account_type,tontine|nullable|integer|min:1|max:24',
+            'payment_frequency' => 'required_if:account_type,tontine|nullable|in:daily,weekly,monthly',
+        ]);
+
+        $user = Auth::user();
+        $activeSession = $this->getActiveSession($user);
+
+        if (!$activeSession) {
+            return back()->with('error', 'Opération refusée : Aucune session de caisse ouverte.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $clientQuery = Client::where('id', $clientId);
+            if ($user->agency_id && $user->role !== 'administrateur_systeme') {
+                $clientQuery->where(function($q) use ($user) {
+                    $q->where('agency_id', $user->agency_id)
+                      ->orWhereNull('agency_id');
+                });
+            }
+            $client = $clientQuery->lockForUpdate()->firstOrFail();
+
+            $accountType = $request->account_type;
+            $transactionId = null;
+
+            if ($accountType === 'savings') {
+                // Règle d'unicité : 1 seul compte d'épargne par client
+                if (!$client->canOpenSavingsAccount()) {
+                    throw new \Exception('Ce client possède déjà un compte d\'épargne actif. Seuls des comptes tontine peuvent être ajoutés.');
+                }
+
+                // Déterminer les frais d'adhésion épargne (saisie caissier ou paramètre par défaut 7000)
+                $defaultSavingsFee = (float) (SystemParameter::where('parameter_key', 'savings_account_activation_fee')->value('parameter_value') ?? 7000);
+                $activationFee = $request->filled('activation_fee') ? (float) $request->activation_fee : $defaultSavingsFee;
+
+                // Création du compte Épargne
+                $account = Account::create([
+                    'client_id' => $client->id,
+                    'account_number' => $this->generateAccountNumber('savings'),
+                    'account_type' => 'savings',
+                    'status' => 'active',
+                    'activation_fee' => $activationFee,
+                    'activation_fee_paid' => $activationFee > 0,
+                    'activation_payment_method' => 'cash',
+                    'activation_reference' => 'FEE-ADH-' . time(),
+                    'activated_at' => now(),
+                    'activated_by' => $user->id,
+                    'balance' => 0,
+                    'created_by' => $user->id,
+                    'agency_id' => $user->agency_id,
+                ]);
+
+                // Créer le sous-enregistrement SavingsAccount
+                SavingsAccount::create([
+                    'account_id' => $account->id,
+                    'interest_rate' => 0,
+                    'minimum_balance' => 0,
+                    'monthly_fee' => 0,
+                ]);
+
+                // 1. Transaction pour les frais d'adhésion / ouverture si > 0
+                if ($activationFee > 0) {
+                    $feeTx = Transaction::create([
+                        'transaction_reference' => 'FEE-ADHESION-' . strtoupper(Str::random(8)),
+                        'account_id' => $account->id,
+                        'transaction_type' => 'fee',
+                        'amount' => $activationFee,
+                        'balance_before' => 0,
+                        'balance_after' => 0,
+                        'payment_method' => 'cash',
+                        'payment_reference' => 'ADH-' . $account->account_number,
+                        'description' => "Frais d'ouverture compte Épargne - {$client->first_name} {$client->last_name} ({$account->account_number})",
+                        'status' => 'completed',
+                        'processed_by' => $user->id,
+                        'agency_id' => $user->agency_id,
+                        'cashier_session_id' => $activeSession->id,
+                        'processed_at' => now(),
+                        'transaction_date' => now(),
+                    ]);
+                    $transactionId = $feeTx->id;
+                }
+
+                // 2. Dépôt initial si fourni
+                $initialDeposit = (float) ($request->initial_deposit ?? 0);
+                if ($initialDeposit > 0) {
+                    $depTx = Transaction::create([
+                        'transaction_reference' => $this->generateTransactionReference(),
+                        'account_id' => $account->id,
+                        'transaction_type' => 'deposit',
+                        'amount' => $initialDeposit,
+                        'balance_before' => 0,
+                        'balance_after' => $initialDeposit,
+                        'payment_method' => 'cash',
+                        'payment_reference' => 'INITIAL-SAV-' . time(),
+                        'description' => "Premier versement à l'ouverture compte Épargne ({$account->account_number})",
+                        'status' => 'completed',
+                        'processed_by' => $user->id,
+                        'agency_id' => $user->agency_id,
+                        'cashier_session_id' => $activeSession->id,
+                        'processed_at' => now(),
+                        'transaction_date' => now(),
+                    ]);
+                    $account->update(['balance' => $initialDeposit, 'last_transaction_at' => now()]);
+                    $transactionId = $depTx->id;
+                }
+
+                $successMsg = "Compte d'Épargne n° {$account->account_number} ouvert avec succès pour {$client->first_name} {$client->last_name}.";
+                if ($activationFee > 0) {
+                    $successMsg .= " Frais d'adhésion perçus : " . number_format($activationFee, 0, ',', ' ') . " FCFA.";
+                }
+
+            } else {
+                // Tontine
+                if (!$client->canOpenTontineAccount()) {
+                    throw new \Exception('Ce client a atteint sa limite autorisée de comptes Tontine (' . ($client->max_tontine_accounts ?? 1) . ').');
+                }
+                if ($client->hasActiveUnfinishedTontineCycle()) {
+                    throw new \Exception('Ce client a déjà un cycle de tontine de 31 jours en cours de cotisation non achevé.');
+                }
+
+                $defaultCarnetFee = (float) (SystemParameter::where('parameter_key', 'tontine_carnet_fee')->value('parameter_value') ?? 300);
+                $carnetFee = $request->filled('activation_fee') ? (float) $request->activation_fee : $defaultCarnetFee;
+
+                $account = Account::create([
+                    'client_id' => $client->id,
+                    'account_number' => $this->generateAccountNumber('tontine'),
+                    'account_type' => 'tontine',
+                    'status' => 'active',
+                    'activation_fee' => $carnetFee,
+                    'activation_fee_paid' => $carnetFee > 0,
+                    'activation_payment_method' => 'cash',
+                    'activation_reference' => 'FEE-CARNET-' . time(),
+                    'activated_at' => now(),
+                    'activated_by' => $user->id,
+                    'balance' => 0,
+                    'created_by' => $user->id,
+                    'agency_id' => $user->agency_id,
+                ]);
+
+                $targetAmount = (float) $request->target_amount;
+                $duration = (int) $request->cycle_duration_months;
+                $frequency = $request->payment_frequency;
+
+                $totalPeriods = match ($frequency) {
+                    'daily' => $duration * 31,
+                    'weekly' => (int) round(($duration * 52) / 12),
+                    'monthly' => $duration,
+                    default => 0,
+                };
+                $totalExpected = $targetAmount * $totalPeriods;
+
+                $tontineAccount = TontineAccount::create([
+                    'account_id' => $account->id,
+                    'tontine_amount' => $targetAmount,
+                    'cycle_duration_months' => $duration,
+                    'payment_frequency' => $frequency,
+                    'total_expected' => $totalExpected,
+                    'total_paid' => 0,
+                    'commission_type' => 'one_unit',
+                    'commission_amount' => $targetAmount,
+                    'start_date' => now(),
+                    'end_date' => now()->addMonths($duration),
+                    'status' => 'active',
+                ]);
+
+                $this->createTontineCycle($tontineAccount);
+
+                if ($carnetFee > 0) {
+                    $feeTx = Transaction::create([
+                        'transaction_reference' => 'FEE-CARNET-' . strtoupper(Str::random(8)),
+                        'account_id' => $account->id,
+                        'transaction_type' => 'fee',
+                        'amount' => $carnetFee,
+                        'balance_before' => 0,
+                        'balance_after' => 0,
+                        'payment_method' => 'cash',
+                        'payment_reference' => 'CARNET-' . $account->account_number,
+                        'description' => "Frais de carnet Tontine - {$client->first_name} {$client->last_name} ({$account->account_number})",
+                        'status' => 'completed',
+                        'processed_by' => $user->id,
+                        'agency_id' => $user->agency_id,
+                        'cashier_session_id' => $activeSession->id,
+                        'processed_at' => now(),
+                        'transaction_date' => now(),
+                    ]);
+                    $transactionId = $feeTx->id;
+                }
+
+                // Dépôt initial tontine si fourni
+                $initialDeposit = (float) ($request->initial_deposit ?? 0);
+                if ($initialDeposit > 0) {
+                    $depTx = Transaction::create([
+                        'transaction_reference' => $this->generateTransactionReference(),
+                        'account_id' => $account->id,
+                        'transaction_type' => 'deposit',
+                        'amount' => $initialDeposit,
+                        'balance_before' => 0,
+                        'balance_after' => $initialDeposit,
+                        'payment_method' => 'cash',
+                        'payment_reference' => 'INITIAL-TON-' . time(),
+                        'description' => "Premier versement à l'ouverture compte Tontine ({$account->account_number})",
+                        'status' => 'completed',
+                        'processed_by' => $user->id,
+                        'agency_id' => $user->agency_id,
+                        'cashier_session_id' => $activeSession->id,
+                        'processed_at' => now(),
+                        'transaction_date' => now(),
+                    ]);
+                    $account->update(['balance' => $initialDeposit]);
+                    $tontineAccount->increment('total_paid', $initialDeposit);
+                    $activeCycle = $tontineAccount->activeCycle;
+                    if ($activeCycle) {
+                        $activeCycle->increment('collected_amount', $initialDeposit);
+                    }
+                    $transactionId = $depTx->id;
+                }
+
+                $successMsg = "Compte Tontine n° {$account->account_number} ouvert avec succès pour {$client->first_name} {$client->last_name}.";
+            }
+
+            AuditLog::create([
+                'user_id' => $user->id,
+                'action' => 'OPEN_ACCOUNT_AT_CASHIER',
+                'table_name' => 'accounts',
+                'record_id' => $account->id,
+                'additional_data' => [
+                    'account_type' => $account->account_type,
+                    'client_id' => $client->id,
+                    'account_number' => $account->account_number,
+                    'activation_fee' => $activationFee ?? ($carnetFee ?? 0),
+                    'initial_deposit' => $initialDeposit ?? 0,
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            DB::commit();
+
+            $redirect = redirect()->route('caissier.clients.show', $client->id)->with('success', $successMsg);
+            if ($transactionId) {
+                $redirect->with('print_receipt', route('caissier.receipt.print', $transactionId));
+            }
+            return $redirect;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Erreur ouverture compte au guichet : " . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', "Échec de l'ouverture : " . $e->getMessage());
+        }
+    }
+
+    // ================================================================
     //  VIREMENT TRÉSORERIE / COFFRE-FORT (APPROVISIONNEMENT & DÉCHARGE)
     // ================================================================
 
