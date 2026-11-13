@@ -55,19 +55,14 @@ class AgentSyncController extends Controller
                 'transactions' => ['created' => [], 'updated' => [], 'deleted' => []],
             ];
 
-            // 1. Synchronisation des Clients (Périmètre : Agence pour Caissier/Admin, Portefeuille personnel strict pour Agent de Terrain)
+            // 1. Synchronisation des Clients de l'agence (pour que tous les agents voient les clients existants)
             $agent = auth()->user();
             $agencyId = $agent->agency_id ?? 1;
 
-            $clientsQuery = Client::query();
-            if ($agent->role === 'caissier' || $agent->role === 'administrateur_systeme') {
-                $clientsQuery->where(function($q) use ($agentId, $agencyId) {
-                    $q->where('agency_id', $agencyId)
-                      ->orWhere('registered_by', $agentId);
-                });
-            } else {
-                $clientsQuery->where('registered_by', $agentId);
-            }
+            $clientsQuery = Client::where(function($q) use ($agentId, $agencyId) {
+                $q->where('agency_id', $agencyId)
+                  ->orWhere('registered_by', $agentId);
+            });
             if ($lastSync) $clientsQuery->where('updated_at', '>', $lastSync);
 
             foreach ($clientsQuery->get() as $client) {
@@ -87,17 +82,11 @@ class AgentSyncController extends Controller
                 ];
             }
 
-            // 2. Synchronisation des Comptes (Solde serveur fait foi)
-            $clientIdsQuery = Client::query();
-            if ($agent->role === 'caissier' || $agent->role === 'administrateur_systeme') {
-                $clientIdsQuery->where(function($q) use ($agentId, $agencyId) {
-                    $q->where('agency_id', $agencyId)
-                      ->orWhere('registered_by', $agentId);
-                });
-            } else {
-                $clientIdsQuery->where('registered_by', $agentId);
-            }
-            $clientIds = $clientIdsQuery->pluck('id');
+            // 2. Synchronisation des Comptes de l'agence (Solde serveur fait foi)
+            $clientIds = Client::where(function($q) use ($agentId, $agencyId) {
+                $q->where('agency_id', $agencyId)
+                  ->orWhere('registered_by', $agentId);
+            })->pluck('id');
             $accountsQuery = Account::with('tontineAccount')->whereIn('client_id', $clientIds);
             if ($lastSync) $accountsQuery->where('updated_at', '>', $lastSync);
 
