@@ -19,6 +19,7 @@
                 $collected = $activeCycle ? (float) $activeCycle->collected_amount : (float) $tontine->total_paid;
                 $filledSlots = $mise > 0 ? min(31, (int) floor($collected / $mise)) : 0;
                 $remainingSlots = max(0, 31 - $filledSlots);
+                $remainingAmount = $remainingSlots * $mise;
                 $commission = $mise;
                 $clientNet = max(0, 30 * $mise);
             @endphp
