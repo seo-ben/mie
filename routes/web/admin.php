@@ -317,6 +317,7 @@ Route::middleware(['role:administrateur_systeme,administrateur_reglementaire'])-
     Route::prefix('anomalies')->name('anomalies.')->group(function () {
         Route::get('/', [AdminAnomalyController::class, 'index'])->name('index');
         Route::post('/resolve-duplicates', [AdminAnomalyController::class, 'resolveDuplicates'])->name('resolve-duplicates');
+        Route::post('/resolve-account-duplicates', [AdminAnomalyController::class, 'resolveAccountDuplicates'])->name('resolve-account-duplicates');
         Route::post('/regularize-balance', [AdminAnomalyController::class, 'regularizeBalance'])->name('regularize-balance');
     });
 

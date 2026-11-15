@@ -284,7 +284,42 @@ class AdminAccountController extends Controller
                 'last_transaction' => $account->last_transaction_at,
             ];
 
-            return view('admin.accounts.show', compact('account', 'stats'));
+            // Détection automatique de doublons éventuels sur ce compte
+            $clusters = DB::table('transactions')
+                ->select('amount', DB::raw('DATE(transaction_date) as tx_date'), DB::raw('COUNT(*) as total_count'))
+                ->where('account_id', $accountId)
+                ->where('transaction_type', 'deposit')
+                ->where('status', 'completed')
+                ->groupBy('amount', DB::raw('DATE(transaction_date)'))
+                ->having(DB::raw('COUNT(*)'), '>', 1)
+                ->get();
+
+            $duplicateStats = [
+                'count'  => 0,
+                'amount' => 0.0,
+                'ids'    => [],
+            ];
+
+            foreach ($clusters as $cluster) {
+                $txs = Transaction::where('account_id', $accountId)
+                    ->where('amount', $cluster->amount)
+                    ->where('transaction_type', 'deposit')
+                    ->where(function($q) use ($cluster) {
+                        $q->whereDate('transaction_date', $cluster->tx_date)
+                          ->orWhereDate('created_at', $cluster->tx_date);
+                    })
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                if ($txs->count() > 1) {
+                    $dups = $txs->slice(1);
+                    $duplicateStats['count'] += $dups->count();
+                    $duplicateStats['amount'] += $dups->count() * (float) $cluster->amount;
+                    $duplicateStats['ids'] = array_merge($duplicateStats['ids'], $dups->pluck('id')->all());
+                }
+            }
+
+            return view('admin.accounts.show', compact('account', 'stats', 'duplicateStats'));
         }
 
         /**

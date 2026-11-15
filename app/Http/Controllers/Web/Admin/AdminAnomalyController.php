@@ -46,7 +46,10 @@ class AdminAnomalyController extends Controller
         $accountIds = $allClusters->pluck('account_id')->unique();
         $accounts = Account::with(['client', 'tontineAccount'])->whereIn('id', $accountIds)->get()->keyBy('id');
 
-        $anomalies = [];
+        // Regroupement par COMPTE (Client) pour permettre d'assainir tout le compte d'un coup
+        $accountsWithAnomalies = [];
+        $totalDuplicateTxsCount = 0;
+
         foreach ($allClusters as $cluster) {
             $account = $accounts->get($cluster->account_id);
             if (!$account) continue;
@@ -54,19 +57,49 @@ class AdminAnomalyController extends Controller
             $transactions = Transaction::where('account_id', $cluster->account_id)
                 ->where('amount', $cluster->amount)
                 ->where('transaction_type', 'deposit')
-                ->whereDate('transaction_date', $cluster->tx_date)
+                ->where(function($q) use ($cluster) {
+                    $q->whereDate('transaction_date', $cluster->tx_date)
+                      ->orWhereDate('created_at', $cluster->tx_date);
+                })
                 ->orderBy('id', 'asc')
                 ->get();
 
-            $anomalies[] = [
-                'account'       => $account,
+            if ($transactions->count() <= 1) continue;
+
+            $original = $transactions->first();
+            $duplicates = $transactions->slice(1);
+            $excessCount = $duplicates->count();
+            $excessAmount = $excessCount * (float) $cluster->amount;
+            $totalDuplicateTxsCount += $excessCount;
+
+            $clusterData = [
                 'amount'        => (float) $cluster->amount,
                 'date'          => $cluster->tx_date,
-                'total_count'   => (int) $cluster->total_count,
-                'excess_count'  => (int) $cluster->total_count - 1,
-                'excess_amount' => ((int) $cluster->total_count - 1) * (float) $cluster->amount,
+                'total_count'   => $transactions->count(),
+                'excess_count'  => $excessCount,
+                'excess_amount' => $excessAmount,
+                'original_id'   => $original->id,
+                'duplicate_ids' => $duplicates->pluck('id')->all(),
                 'transactions'  => $transactions,
             ];
+
+            if (!isset($accountsWithAnomalies[$account->id])) {
+                $accountsWithAnomalies[$account->id] = [
+                    'account'             => $account,
+                    'clusters'            => [],
+                    'total_excess_count'  => 0,
+                    'total_excess_amount' => 0.0,
+                    'all_duplicate_ids'   => [],
+                ];
+            }
+
+            $accountsWithAnomalies[$account->id]['clusters'][] = $clusterData;
+            $accountsWithAnomalies[$account->id]['total_excess_count'] += $excessCount;
+            $accountsWithAnomalies[$account->id]['total_excess_amount'] += $excessAmount;
+            $accountsWithAnomalies[$account->id]['all_duplicate_ids'] = array_merge(
+                $accountsWithAnomalies[$account->id]['all_duplicate_ids'],
+                $duplicates->pluck('id')->all()
+            );
         }
 
         // 2. Recherche spécifique d'un compte pour audit & régularisation manuelle
@@ -88,14 +121,23 @@ class AdminAnomalyController extends Controller
                   ->orWhere('client_number', $searchQuery);
             })
             ->first();
+
+            // Filtrer également les anomalies affichées par la recherche
+            $accountsWithAnomalies = array_filter($accountsWithAnomalies, function($item) use ($searchQuery) {
+                $acc = $item['account'];
+                $client = $acc->client;
+                $haystack = strtolower(($acc->account_number ?? '') . ' ' . ($client->first_name ?? '') . ' ' . ($client->last_name ?? '') . ' ' . ($client->phone ?? '') . ' ' . ($client->client_number ?? ''));
+                return str_contains($haystack, strtolower($searchQuery));
+            });
         }
 
         return view('admin.anomalies.index', compact(
-            'anomalies',
+            'accountsWithAnomalies',
             'searchedAccount',
             'searchQuery',
             'totalAnomaliesCount',
-            'totalExcessVolume'
+            'totalExcessVolume',
+            'totalDuplicateTxsCount'
         ));
     }
 
@@ -190,6 +232,97 @@ class AdminAnomalyController extends Controller
             DB::rollBack();
             Log::error("Erreur Audit Doublons: " . $e->getMessage());
             return redirect()->back()->with('error', "Erreur lors de la résolution des doublons : " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Résoudre TOUS les doublons d'un compte en une seule opération (tous montants confondus)
+     */
+    public function resolveAccountDuplicates(Request $request)
+    {
+        $validated = $request->validate([
+            'account_id'      => 'required|exists:accounts,id',
+            'transaction_ids' => 'nullable|string',
+        ]);
+
+        $accountId = (int) $validated['account_id'];
+
+        DB::beginTransaction();
+        try {
+            $account = Account::with('tontineAccount')->findOrFail($accountId);
+
+            if (!empty($validated['transaction_ids'])) {
+                $ids = array_filter(array_map('intval', explode(',', $validated['transaction_ids'])));
+                $duplicateTransactions = Transaction::where('account_id', $accountId)
+                    ->whereIn('id', $ids)
+                    ->where('transaction_type', 'deposit')
+                    ->get();
+            } else {
+                // Détection dynamique de tous les doublons pour ce compte
+                $clusters = DB::table('transactions')
+                    ->select('amount', DB::raw('DATE(transaction_date) as tx_date'), DB::raw('COUNT(*) as total_count'))
+                    ->where('account_id', $accountId)
+                    ->where('transaction_type', 'deposit')
+                    ->where('status', 'completed')
+                    ->groupBy('amount', DB::raw('DATE(transaction_date)'))
+                    ->having(DB::raw('COUNT(*)'), '>', 1)
+                    ->get();
+
+                $duplicateIds = [];
+                foreach ($clusters as $cluster) {
+                    $txs = Transaction::where('account_id', $accountId)
+                        ->where('amount', $cluster->amount)
+                        ->where('transaction_type', 'deposit')
+                        ->where(function($q) use ($cluster) {
+                            $q->whereDate('transaction_date', $cluster->tx_date)
+                              ->orWhereDate('created_at', $cluster->tx_date);
+                        })
+                        ->orderBy('id', 'asc')
+                        ->get();
+
+                    if ($txs->count() > 1) {
+                        $duplicateIds = array_merge($duplicateIds, $txs->slice(1)->pluck('id')->all());
+                    }
+                }
+
+                $duplicateTransactions = Transaction::whereIn('id', $duplicateIds)->get();
+            }
+
+            if ($duplicateTransactions->isEmpty()) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Aucun doublon à supprimer pour ce compte.');
+            }
+
+            $deletedCount = $duplicateTransactions->count();
+            $deletedAmount = (float) $duplicateTransactions->sum('amount');
+
+            // Suppression définitive des transactions en doublon
+            Transaction::whereIn('id', $duplicateTransactions->pluck('id'))->delete();
+
+            // Réajustement du solde du compte
+            $newBalance = max(0, $account->balance - $deletedAmount);
+            $account->update([
+                'balance'    => $newBalance,
+                'updated_at' => now(),
+            ]);
+
+            // Réalignement complet de la tontine si applicable
+            if ($account->account_type === 'tontine' && $account->tontineAccount) {
+                $tontine = $account->tontineAccount;
+                $newTotalPaid = max(0, $tontine->total_paid - $deletedAmount);
+                $this->realignTontineCycles($tontine, $newTotalPaid);
+            }
+
+            DB::commit();
+
+            Log::info("Audit Doublons Compte: {$deletedCount} doublons supprimés sur compte #{$accountId} (déduction de " . number_format($deletedAmount, 0) . " XOF) par admin #" . auth()->id());
+
+            return redirect()->back()->with('success', "Compte assaini avec succès : {$deletedCount} doublon(s) supprimé(s). Déduction globale de " . number_format($deletedAmount, 0, ',', ' ') . " XOF appliquée.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Erreur Audit Doublons Compte: " . $e->getMessage());
+            return redirect()->back()->with('error', "Erreur lors de la suppression des doublons : " . $e->getMessage());
         }
     }
 

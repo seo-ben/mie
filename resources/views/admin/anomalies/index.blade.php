@@ -26,28 +26,28 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bank-card p-4 border-l-4 border-amber-500 bg-amber-50/10">
             <div class="flex items-center justify-between">
-                <span class="kpi-label text-amber-800 text-[10px]">Doublons Rapprochés</span>
+                <span class="kpi-label text-amber-800 text-[10px]">Comptes Affectés</span>
                 <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xs">
-                    <i class="fas fa-clone"></i>
+                    <i class="fas fa-users-viewfinder"></i>
                 </span>
             </div>
             <div class="text-xl font-black text-amber-900 mt-1 font-numeric">
-                {{ $totalAnomaliesCount ?? count($anomalies) }} <small class="text-xs font-semibold text-slate-500">cas détectés</small>
+                {{ count($accountsWithAnomalies) }} <small class="text-xs font-semibold text-slate-500">compte(s) avec doublons</small>
             </div>
-            <p class="text-[9px] font-medium text-slate-400 mt-1">Même compte & montant le même jour</p>
+            <p class="text-[9px] font-medium text-slate-400 mt-1">{{ $totalDuplicateTxsCount ?? 0 }} écritures excédentaires détectées</p>
         </div>
 
         <div class="bank-card p-4 border-l-4 border-rose-500 bg-rose-50/10">
             <div class="flex items-center justify-between">
-                <span class="kpi-label text-rose-800 text-[10px]">Volume Excédentaire</span>
+                <span class="kpi-label text-rose-800 text-[10px]">Volume Excédentaire Global</span>
                 <span class="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-xs">
                     <i class="fas fa-money-bill-transfer"></i>
                 </span>
             </div>
             <div class="text-xl font-black text-rose-600 mt-1 font-numeric">
-                +{{ number_format($totalExcessVolume ?? collect($anomalies)->sum('excess_amount'), 0, ',', ' ') }} <small class="text-xs font-bold text-rose-400">XOF</small>
+                +{{ number_format($totalExcessVolume ?? 0, 0, ',', ' ') }} <small class="text-xs font-bold text-rose-400">XOF</small>
             </div>
-            <p class="text-[9px] font-medium text-slate-400 mt-1">Cumul des écritures en trop</p>
+            <p class="text-[9px] font-medium text-slate-400 mt-1">Cumul total des écritures en trop sur le réseau</p>
         </div>
 
         <div class="bank-card p-4 border-l-4 border-emerald-500 bg-emerald-50/10">
@@ -58,9 +58,9 @@
                 </span>
             </div>
             <div class="text-xl font-black text-emerald-700 mt-1">
-                Active <small class="text-xs font-semibold text-slate-500">(30 min)</small>
+                Active <small class="text-xs font-semibold text-slate-500">(Idempotence renforcée)</small>
             </div>
-            <p class="text-[9px] font-medium text-slate-400 mt-1">Idempotence mobile & serveur renforcée</p>
+            <p class="text-[9px] font-medium text-slate-400 mt-1">Empêche les réinjections futures lors des syncs</p>
         </div>
     </div>
 
@@ -72,9 +72,9 @@
         <button type="button" onclick="switchTab('duplicates')" id="tab-btn-duplicates"
                 class="tab-btn px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 {{ $activeTab === 'duplicates' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600' }}">
             <i class="fas fa-triangle-exclamation text-[11px]"></i>
-            <span>Doublons Détectés</span>
-            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ ($totalAnomaliesCount ?? count($anomalies)) > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500' }}">
-                {{ $totalAnomaliesCount ?? count($anomalies) }}
+            <span>Comptes avec Doublons</span>
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ count($accountsWithAnomalies) > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500' }}">
+                {{ count($accountsWithAnomalies) }}
             </span>
         </button>
 
@@ -88,16 +88,16 @@
         </button>
     </div>
 
-    <!-- ONGLET 1 : DOUBLONS DÉTECTÉS (TABLEAU COMPACT) -->
+    <!-- ONGLET 1 : COMPTES AVEC DOUBLONS (GROUPÉS PAR CLIENT) -->
     <div id="tab-content-duplicates" class="{{ $activeTab === 'duplicates' ? 'block' : 'hidden' }}">
         <div class="bank-card overflow-hidden">
             <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Écritures suspectes identifiées</span>
-                    <span class="text-[10px] text-slate-400">&bull; Confirmation par modal avant toute suppression</span>
+                    <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Comptes identifiés avec écritures en doublon</span>
+                    <span class="text-[10px] text-slate-400">&bull; Nettoyage complet du compte en 1 clic</span>
                 </div>
                 <div class="text-[11px] font-medium text-slate-400">
-                    {{ count($anomalies) }} cas actif(s)
+                    {{ count($accountsWithAnomalies) }} compte(s) &bull; {{ $totalDuplicateTxsCount ?? 0 }} doublon(s)
                 </div>
             </div>
 
@@ -106,100 +106,112 @@
                     <thead>
                         <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[10px] font-black uppercase text-slate-400 tracking-wider">
                             <th class="py-2.5 px-4">Titulaire</th>
-                            <th class="py-2.5 px-4">Compte</th>
-                            <th class="py-2.5 px-4">Date & Passages</th>
-                            <th class="py-2.5 px-4">Montant Répété</th>
-                            <th class="py-2.5 px-4">Répétitions</th>
+                            <th class="py-2.5 px-4">Compte & Solde</th>
+                            <th class="py-2.5 px-4">Détail des Doublons Détectés</th>
+                            <th class="py-2.5 px-4 text-center">Écritures en trop</th>
                             <th class="py-2.5 px-4">Excédent Net</th>
                             <th class="py-2.5 px-4 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse($anomalies as $index => $item)
+                        @forelse($accountsWithAnomalies as $accountId => $item)
                             <tr class="hover:bg-slate-50/80 transition">
                                 <!-- Titulaire -->
-                                <td class="py-2.5 px-4">
+                                <td class="py-3 px-4">
                                     <div class="flex items-center gap-2.5">
-                                        <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                                        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
                                             {{ strtoupper(substr($item['account']->client->first_name ?? 'C', 0, 1)) }}
                                         </div>
-                                        <span class="font-bold text-slate-800 text-xs">
-                                            {{ $item['account']->client->first_name }} {{ $item['account']->client->last_name }}
-                                        </span>
-                                    </div>
-                                </td>
-
-                                <!-- N° Compte -->
-                                <td class="py-2.5 px-4">
-                                    <span class="font-mono text-[11px] text-blue-600 font-bold">
-                                        {{ $item['account']->account_number }}
-                                    </span>
-                                </td>
-
-                                <!-- Date & Heures -->
-                                <td class="py-2.5 px-4">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="text-slate-600 font-medium text-xs">
-                                            {{ \Carbon\Carbon::parse($item['date'])->format('d/m/Y') }}
-                                        </span>
-                                        <span class="text-slate-300">&bull;</span>
-                                        <div class="flex items-center gap-1 flex-wrap">
-                                            @foreach($item['transactions'] as $tx)
-                                                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-mono">
-                                                    {{ \Carbon\Carbon::parse($tx->created_at)->format('H:i') }}
-                                                </span>
-                                            @endforeach
+                                        <div>
+                                            <a href="{{ route('admin.accounts.show', $item['account']->id) }}" class="font-bold text-slate-800 text-xs hover:text-blue-600 transition block">
+                                                {{ $item['account']->client->first_name }} {{ $item['account']->client->last_name }}
+                                            </a>
+                                            <span class="text-[10px] text-slate-400 font-mono">{{ $item['account']->client->phone ?? 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>
 
-                                <!-- Montant Répété -->
-                                <td class="py-2.5 px-4 font-bold text-slate-800">
-                                    {{ number_format($item['amount'], 0, ',', ' ') }} <small class="text-[9px] text-slate-400">XOF</small>
+                                <!-- N° Compte & Solde -->
+                                <td class="py-3 px-4">
+                                    <a href="{{ route('admin.accounts.show', $item['account']->id) }}" class="font-mono text-xs text-blue-600 font-bold hover:underline block">
+                                        {{ $item['account']->account_number }}
+                                    </a>
+                                    <span class="text-[10px] text-slate-400">Solde: <strong class="text-slate-700 font-numeric">{{ number_format($item['account']->balance, 0, ',', ' ') }} XOF</strong></span>
                                 </td>
 
-                                <!-- Répétitions -->
-                                <td class="py-2.5 px-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
-                                        {{ $item['total_count'] }} fois
+                                <!-- Détail des Doublons (Montants & Répétitions) -->
+                                <td class="py-3 px-4">
+                                    <div class="flex flex-col gap-1.5">
+                                        @foreach($item['clusters'] as $cluster)
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                                                    <i class="fas fa-repeat text-[8px] text-amber-500"></i>
+                                                    {{ $cluster['total_count'] }}x {{ number_format($cluster['amount'], 0, ',', ' ') }} XOF
+                                                </span>
+                                                <span class="text-[9px] text-rose-600 font-bold">
+                                                    ({{ $cluster['excess_count'] }} en trop = -{{ number_format($cluster['excess_amount'], 0, ',', ' ') }})
+                                                </span>
+                                                <div class="flex items-center gap-1">
+                                                    @foreach($cluster['transactions'] as $tx)
+                                                        <span class="px-1 py-0.2 rounded bg-slate-100 text-slate-500 text-[8px] font-mono">
+                                                            {{ \Carbon\Carbon::parse($tx->created_at)->format('H:i') }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+
+                                <!-- Total Doublons Compte -->
+                                <td class="py-3 px-4 text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-black">
+                                        {{ $item['total_excess_count'] }} en trop
                                     </span>
                                 </td>
 
-                                <!-- Excédent Net -->
-                                <td class="py-2.5 px-4">
-                                    <span class="font-black text-rose-600 text-xs">
-                                        +{{ number_format($item['excess_amount'], 0, ',', ' ') }} XOF
+                                <!-- Excédent Net Total -->
+                                <td class="py-3 px-4">
+                                    <span class="font-black text-rose-600 text-xs font-numeric block">
+                                        +{{ number_format($item['total_excess_amount'], 0, ',', ' ') }} XOF
                                     </span>
-                                    <span class="text-[9px] text-slate-400 ml-1">({{ $item['excess_count'] }} en trop)</span>
+                                    <span class="text-[9px] text-slate-400">À déduire du solde</span>
                                 </td>
 
-                                <!-- Action Résolution -->
-                                <td class="py-2.5 px-4 text-right">
-                                    <form method="POST" action="{{ route('admin.anomalies.resolve-duplicates') }}" class="inline form-resolve-duplicate"
-                                          data-client="{{ $item['account']->client->first_name }} {{ $item['account']->client->last_name }}"
-                                          data-account="{{ $item['account']->account_number }}"
-                                          data-count="{{ $item['excess_count'] }}"
-                                          data-amount="{{ number_format($item['excess_amount'], 0, ',', ' ') }}">
-                                        @csrf
-                                        <input type="hidden" name="account_id" value="{{ $item['account']->id }}">
-                                        <input type="hidden" name="amount" value="{{ $item['amount'] }}">
-                                        <input type="hidden" name="date" value="{{ $item['date'] }}">
-                                        <input type="hidden" name="transaction_ids" value="{{ $item['transactions']->pluck('id')->implode(',') }}">
+                                <!-- Action Résolution Complète -->
+                                <td class="py-3 px-4 text-right">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        <form method="POST" action="{{ route('admin.anomalies.resolve-account-duplicates') }}" class="inline form-resolve-account"
+                                              data-client="{{ $item['account']->client->first_name }} {{ $item['account']->client->last_name }}"
+                                              data-account="{{ $item['account']->account_number }}"
+                                              data-count="{{ $item['total_excess_count'] }}"
+                                              data-amount="{{ number_format($item['total_excess_amount'], 0, ',', ' ') }}">
+                                            @csrf
+                                            <input type="hidden" name="account_id" value="{{ $item['account']->id }}">
+                                            <input type="hidden" name="transaction_ids" value="{{ implode(',', $item['all_duplicate_ids']) }}">
 
-                                        <button type="button"
-                                                class="btn-trigger-resolve px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-md text-[10px] font-bold transition inline-flex items-center gap-1 shadow-sm cursor-pointer">
-                                            <i class="fas fa-trash-can text-[9px]"></i>
-                                            <span>Corriger (-{{ number_format($item['excess_amount'], 0, ',', ' ') }})</span>
-                                        </button>
-                                    </form>
+                                            <button type="button"
+                                                    class="btn-trigger-clean-account px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold uppercase transition inline-flex items-center gap-1 shadow-sm shadow-rose-600/20 cursor-pointer"
+                                                    title="Supprimer tous les doublons de ce compte">
+                                                <i class="fas fa-trash-can text-[9px]"></i>
+                                                <span>Nettoyer (-{{ number_format($item['total_excess_amount'], 0, ',', ' ') }})</span>
+                                            </button>
+                                        </form>
+
+                                        <a href="{{ route('admin.accounts.show', $item['account']->id) }}"
+                                           class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition"
+                                           title="Voir le compte">
+                                            <i class="fas fa-eye text-[10px]"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-12 text-center">
+                                <td colspan="6" class="py-12 text-center">
                                     <i class="fas fa-check-circle text-2xl text-emerald-500 mb-2 block"></i>
-                                    <p class="text-xs font-bold text-slate-700">Aucun doublon suspect détecté</p>
-                                    <p class="text-[10px] text-slate-400 mt-0.5">Les écritures de dépôts sont cohérentes.</p>
+                                    <p class="text-xs font-bold text-slate-700">Aucun compte avec doublons suspect détecté</p>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">Toutes les écritures sont cohérentes sur l'ensemble des comptes.</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -232,6 +244,35 @@
 
         <!-- Fiche Compte & Formulaire de Régularisation -->
         @if($searchedAccount)
+            @if(isset($accountsWithAnomalies[$searchedAccount->id]))
+                @php
+                    $searchAnom = $accountsWithAnomalies[$searchedAccount->id];
+                @endphp
+                <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-triangle-exclamation"></i>
+                        </span>
+                        <div>
+                            <h4 class="text-xs font-black text-rose-900 uppercase tracking-tight">{{ $searchAnom['total_excess_count'] }} doublon(s) de synchronisation détecté(s)</h4>
+                            <p class="text-[11px] text-rose-700">Volume excédentaire : <strong class="font-bold font-numeric text-rose-900">+{{ number_format($searchAnom['total_excess_amount'], 0, ',', ' ') }} XOF</strong></p>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ route('admin.anomalies.resolve-account-duplicates') }}" class="inline"
+                          data-client="{{ $searchedAccount->client->first_name }} {{ $searchedAccount->client->last_name }}"
+                          data-account="{{ $searchedAccount->account_number }}"
+                          data-count="{{ $searchAnom['total_excess_count'] }}"
+                          data-amount="{{ number_format($searchAnom['total_excess_amount'], 0, ',', ' ') }}">
+                        @csrf
+                        <input type="hidden" name="account_id" value="{{ $searchedAccount->id }}">
+                        <input type="hidden" name="transaction_ids" value="{{ implode(',', $searchAnom['all_duplicate_ids']) }}">
+                        <button type="button" class="btn-trigger-clean-account px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold uppercase transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                            <i class="fas fa-trash-can text-[10px]"></i> Nettoyer Tous les Doublons (-{{ number_format($searchAnom['total_excess_amount'], 0, ',', ' ') }})
+                        </button>
+                    </form>
+                </div>
+            @endif
+
             <div class="bank-card p-5 border border-blue-200 bg-gradient-to-br from-white to-blue-50/20">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                     <!-- Résumé du Compte (5 colonnes) -->
@@ -336,9 +377,9 @@
         if (targetContent) targetContent.classList.remove('hidden');
     }
 
-    // Modal de confirmation SweetAlert2 pour la suppression des doublons
+    // Modal de confirmation SweetAlert2 pour la suppression complète des doublons d'un compte
     document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.btn-trigger-resolve');
+        const btn = e.target.closest('.btn-trigger-clean-account, .btn-trigger-resolve');
         if (!btn) return;
 
         e.preventDefault();
@@ -360,19 +401,19 @@
         }
 
         Swal.fire({
-            title: 'Confirmation de Suppression',
+            title: 'Assainir ce Compte',
             html: `
                 <div class="text-left text-xs text-slate-600 space-y-3 mt-3">
-                    <p class="leading-relaxed">Vous confirmez la suppression définitive de <strong class="text-rose-600 font-bold">${count} écriture(s) en doublon</strong> pour le compte :</p>
+                    <p class="leading-relaxed">Vous confirmez la purge complète de <strong>${count} écriture(s) en doublon</strong> pour ce client :</p>
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                         <div class="font-bold text-slate-900 text-sm">${client}</div>
                         <div class="text-xs text-blue-600 font-mono font-bold mt-0.5">${account}</div>
                     </div>
                     <div class="p-3 bg-rose-50 rounded-xl border border-rose-200 flex items-center justify-between">
-                        <span class="text-xs font-semibold text-rose-800">Déduction du solde :</span>
+                        <span class="text-xs font-semibold text-rose-800">Déduction totale appliquée :</span>
                         <span class="text-sm font-black text-rose-600 font-mono">-${amount} XOF</span>
                     </div>
-                    <p class="text-[11px] text-slate-400 italic">Le solde et les cases du carnet de tontine seront immédiatement recalculés.</p>
+                    <p class="text-[11px] text-slate-400 italic">Tous les doublons de synchronisation de ce compte seront supprimés, et le carnet de tontine sera recalculé.</p>
                 </div>
             `,
             icon: 'warning',
@@ -380,7 +421,7 @@
             showCancelButton: true,
             confirmButtonColor: '#e11d48',
             cancelButtonColor: '#64748b',
-            confirmButtonText: '<i class="fas fa-trash-can mr-1.5"></i> Supprimer les Doublons',
+            confirmButtonText: '<i class="fas fa-trash-can mr-1.5"></i> Oui, Tout Assainir',
             cancelButtonText: 'Annuler',
             reverseButtons: true,
             focusCancel: true,

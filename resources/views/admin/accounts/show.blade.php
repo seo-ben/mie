@@ -59,6 +59,41 @@
         </div>
     </div>
 
+    @if(isset($duplicateStats) && $duplicateStats['count'] > 0)
+        <!-- Bannière d'alerte doublons détectés sur ce compte -->
+        <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 text-base">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </span>
+                <div>
+                    <h4 class="text-xs font-black text-rose-900 uppercase tracking-tight flex items-center gap-2">
+                        <span>Anomalie Détectée : {{ $duplicateStats['count'] }} doublon(s) de synchronisation</span>
+                        <span class="px-2 py-0.5 rounded-full bg-rose-200 text-rose-800 text-[9px] font-bold">Action Requise</span>
+                    </h4>
+                    <p class="text-xs text-rose-700 mt-0.5">
+                        Volume excédentaire sur ce compte : <strong class="font-black font-numeric text-rose-900">+{{ number_format($duplicateStats['amount'], 0, ',', ' ') }} XOF</strong> (écritures identiques renvoyées par le mobile).
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <form method="POST" action="{{ route('admin.anomalies.resolve-account-duplicates') }}" class="inline" id="form-clean-account-banner"
+                      data-client="{{ $account->client->first_name }} {{ $account->client->last_name }}"
+                      data-account="{{ $account->account_number }}"
+                      data-count="{{ $duplicateStats['count'] }}"
+                      data-amount="{{ number_format($duplicateStats['amount'], 0, ',', ' ') }}">
+                    @csrf
+                    <input type="hidden" name="account_id" value="{{ $account->id }}">
+                    <input type="hidden" name="transaction_ids" value="{{ implode(',', $duplicateStats['ids']) }}">
+                    <button type="button" class="btn-clean-account-banner px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold uppercase transition flex items-center gap-2 shadow-md shadow-rose-600/20 cursor-pointer">
+                        <i class="fas fa-trash-can text-[10px]"></i>
+                        <span>Nettoyer les Doublons (-{{ number_format($duplicateStats['amount'], 0, ',', ' ') }})</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
+
     <!-- Matrice de Statut & Trésorerie -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Colonne Latérale : Statut & Titulaire -->
@@ -428,6 +463,65 @@
         if (event.key === 'Escape') {
             closeSuspendModal();
         }
+    });
+
+    // Confirmation SweetAlert2 pour le nettoyage des doublons de ce compte
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-clean-account-banner');
+        if (!btn) return;
+
+        e.preventDefault();
+        const form = document.getElementById('form-clean-account-banner');
+        if (!form) return;
+
+        const client = form.dataset.client || 'Client';
+        const account = form.dataset.account || '';
+        const count = form.dataset.count || '1';
+        const amount = form.dataset.amount || '0';
+
+        if (typeof Swal === 'undefined') {
+            if (confirm(`Confirmer la suppression des ${count} doublon(s) pour ${client} (-${amount} XOF) ?`)) {
+                form.submit();
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: 'Assainir ce Compte',
+            html: `
+                <div class="text-left text-xs text-slate-600 space-y-3 mt-3">
+                    <p class="leading-relaxed">Vous confirmez la purge complète des <strong>${count} écriture(s) en doublon</strong> détectées sur ce compte :</p>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="font-bold text-slate-900 text-sm">${client}</div>
+                        <div class="text-xs text-blue-600 font-mono font-bold mt-0.5">${account}</div>
+                    </div>
+                    <div class="p-3 bg-rose-50 rounded-xl border border-rose-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-rose-800">Déduction totale appliquée :</span>
+                        <span class="text-sm font-black text-rose-600 font-mono">-${amount} XOF</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 italic">Le solde et les cycles de tontine seront immédiatement réalignés.</p>
+                </div>
+            `,
+            icon: 'warning',
+            iconColor: '#e11d48',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="fas fa-trash-can mr-1.5"></i> Oui, Nettoyer Tout',
+            cancelButtonText: 'Annuler',
+            reverseButtons: true,
+            focusCancel: true,
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl border-0 p-6',
+                title: 'text-base font-bold text-slate-900',
+                confirmButton: 'rounded-xl text-xs font-bold px-4 py-2.5 shadow-sm',
+                cancelButton: 'rounded-xl text-xs font-bold px-4 py-2.5'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
     });
 </script>
 
