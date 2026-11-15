@@ -90,29 +90,50 @@ class AdminAnomalyController extends Controller
     public function resolveDuplicates(Request $request)
     {
         $validated = $request->validate([
-            'account_id' => 'required|exists:accounts,id',
-            'amount'     => 'required|numeric|min:1',
-            'date'       => 'required|date',
+            'account_id'      => 'required|exists:accounts,id',
+            'amount'          => 'required|numeric|min:1',
+            'date'            => 'nullable|string',
+            'transaction_ids' => 'nullable|string',
         ]);
 
         $accountId = (int) $validated['account_id'];
         $amount    = (float) $validated['amount'];
-        $date      = $validated['date'];
+        $date      = $validated['date'] ?? null;
 
         DB::beginTransaction();
         try {
             $account = Account::with('tontineAccount')->findOrFail($accountId);
 
-            $transactions = Transaction::where('account_id', $accountId)
-                ->where('amount', $amount)
-                ->where('transaction_type', 'deposit')
-                ->whereDate('transaction_date', $date)
-                ->orderBy('id', 'asc')
-                ->get();
+            // 1. Récupérer les transactions par leurs IDs exacts ou par date/montant
+            if (!empty($request->transaction_ids)) {
+                $ids = array_filter(array_map('intval', explode(',', $request->transaction_ids)));
+                $transactions = Transaction::whereIn('id', $ids)->orderBy('id', 'asc')->get();
+            } else {
+                $transactions = Transaction::where('account_id', $accountId)
+                    ->where('amount', $amount)
+                    ->where('transaction_type', 'deposit')
+                    ->where(function($q) use ($date) {
+                        if ($date) {
+                            $q->whereDate('transaction_date', $date)
+                              ->orWhereDate('created_at', $date);
+                        }
+                    })
+                    ->orderBy('id', 'asc')
+                    ->get();
+            }
+
+            // Fallback si la date ne correspond pas exactement
+            if ($transactions->count() <= 1) {
+                $transactions = Transaction::where('account_id', $accountId)
+                    ->where('amount', $amount)
+                    ->where('transaction_type', 'deposit')
+                    ->orderBy('id', 'asc')
+                    ->get();
+            }
 
             if ($transactions->count() <= 1) {
                 DB::rollBack();
-                return redirect()->back()->with('error', 'Aucun doublon à supprimer pour cette sélection.');
+                return redirect()->back()->with('error', 'Aucun doublon à supprimer pour ce compte.');
             }
 
             // Conserver la 1ère transaction originale, supprimer les suivantes

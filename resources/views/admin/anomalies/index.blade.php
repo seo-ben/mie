@@ -178,14 +178,16 @@
 
                                 <!-- Action Résolution -->
                                 <td class="py-2.5 px-4 text-right">
-                                    <form method="POST" action="{{ route('admin.anomalies.resolve-duplicates') }}" id="form-dup-{{ $index }}" class="inline">
+                                    <form method="POST" action="{{ route('admin.anomalies.resolve-duplicates') }}" class="inline"
+                                          onsubmit="return confirm('Confirmer la suppression des {{ $item['excess_count'] }} doublon(s) (déduction de {{ number_format($item['excess_amount'], 0, ',', ' ') }} XOF) pour ce compte ?');">
                                         @csrf
                                         <input type="hidden" name="account_id" value="{{ $item['account']->id }}">
                                         <input type="hidden" name="amount" value="{{ $item['amount'] }}">
                                         <input type="hidden" name="date" value="{{ $item['date'] }}">
+                                        <input type="hidden" name="transaction_ids" value="{{ $item['transactions']->pluck('id')->implode(',') }}">
 
-                                        <button type="button" onclick="confirmResolveDuplicates({{ $index }}, '{{ $item['account']->client->first_name }} {{ $item['account']->client->last_name }}', {{ $item['excess_count'] }}, '{{ number_format($item['excess_amount'], 0, ',', ' ') }}')"
-                                                class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-md text-[10px] font-bold transition inline-flex items-center gap-1 shadow-sm">
+                                        <button type="submit"
+                                                class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-md text-[10px] font-bold transition inline-flex items-center gap-1 shadow-sm cursor-pointer">
                                             <i class="fas fa-trash-can text-[9px]"></i>
                                             <span>Corriger (-{{ number_format($item['excess_amount'], 0, ',', ' ') }})</span>
                                         </button>
@@ -270,7 +272,8 @@
 
                     <!-- Formulaire de Saisie du Montant Réel (7 colonnes) -->
                     <div class="md:col-span-7">
-                        <form method="POST" action="{{ route('admin.anomalies.regularize-balance') }}" id="form-regularize-{{ $searchedAccount->id }}" class="space-y-3">
+                        <form method="POST" action="{{ route('admin.anomalies.regularize-balance') }}" id="form-regularize-{{ $searchedAccount->id }}" class="space-y-3"
+                              onsubmit="return confirm('Confirmer la régularisation de ce compte au montant saisi ?');">
                             @csrf
                             <input type="hidden" name="account_id" value="{{ $searchedAccount->id }}">
 
@@ -287,8 +290,8 @@
                                 </div>
                             </div>
 
-                            <button type="button" onclick="confirmRegularize({{ $searchedAccount->id }}, '{{ $searchedAccount->client->first_name }} {{ $searchedAccount->client->last_name }}')"
-                                    class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold uppercase transition flex items-center justify-center gap-1.5 shadow-sm">
+                            <button type="submit"
+                                    class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold uppercase transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
                                 <i class="fas fa-check-double text-[10px]"></i> Valider & Réaligner la Tontine
                             </button>
                         </form>
@@ -317,58 +320,19 @@
             btn.classList.add('border-transparent', 'text-slate-400');
         });
 
-        document.getElementById('tab-btn-' + tabName).classList.add('border-blue-600', 'text-blue-600');
-        document.getElementById('tab-btn-' + tabName).classList.remove('border-transparent', 'text-slate-400');
-
-        document.getElementById('tab-content-duplicates').classList.add('hidden');
-        document.getElementById('tab-content-manual').classList.add('hidden');
-
-        document.getElementById('tab-content-' + tabName).classList.remove('hidden');
-    }
-
-    function confirmResolveDuplicates(index, clientName, count, amount) {
-        Swal.fire({
-            title: 'Corriger les doublons ?',
-            html: `Supprimer <strong>${count} écriture(s) en double</strong> pour <strong>${clientName}</strong> ?<br><br>Le solde sera déduit de <strong class="text-rose-600">${amount} XOF</strong>.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#E11D48',
-            cancelButtonColor: '#64748B',
-            confirmButtonText: 'Oui, corriger',
-            cancelButtonText: 'Annuler',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('form-dup-' + index).submit();
-            }
-        });
-    }
-
-    function confirmRegularize(accountId, clientName) {
-        const form = document.getElementById('form-regularize-' + accountId);
-        const amountInput = form.querySelector('input[name="target_amount"]');
-        const amount = amountInput.value;
-
-        if (!amount || amount < 0) {
-            Swal.fire('Montant Invalide', 'Veuillez saisir un montant valide.', 'error');
-            return;
+        const activeBtn = document.getElementById('tab-btn-' + tabName);
+        if (activeBtn) {
+            activeBtn.classList.add('border-blue-600', 'text-blue-600');
+            activeBtn.classList.remove('border-transparent', 'text-slate-400');
         }
 
-        Swal.fire({
-            title: 'Confirmer le montant ?',
-            html: `Le compte de <strong>${clientName}</strong> sera réaligné à :<br><br><span class="text-lg font-black text-emerald-600">${Number(amount).toLocaleString('fr-FR')} XOF</span><br><br>Les écritures et cycles seront synchronisés sur ce montant.`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#059669',
-            cancelButtonColor: '#64748B',
-            confirmButtonText: 'Confirmer',
-            cancelButtonText: 'Annuler',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                form.submit();
-            }
-        });
+        const dupContent = document.getElementById('tab-content-duplicates');
+        const manualContent = document.getElementById('tab-content-manual');
+        if (dupContent) dupContent.classList.add('hidden');
+        if (manualContent) manualContent.classList.add('hidden');
+
+        const targetContent = document.getElementById('tab-content-' + tabName);
+        if (targetContent) targetContent.classList.remove('hidden');
     }
 </script>
 @endpush
