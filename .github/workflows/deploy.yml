@@ -76,8 +76,6 @@ jobs:
                   detected_dir + 'bootstrap/cache/routes-v7.php',
                   detected_dir + 'bootstrap/cache/config.php',
                   detected_dir + 'bootstrap/cache/events.php',
-                  detected_dir + '.ftp-deploy-sync-state.json',
-                  detected_dir + '.ftp-deploy-sync-state-v2.json',
               ]
               for sf in stale_files:
                   try:
