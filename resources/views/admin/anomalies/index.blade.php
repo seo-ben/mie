@@ -23,9 +23,6 @@
     </div>
 
     <!-- KPIs Compacts (Style Grand Livre Financier) -->
-    @php
-        $totalExcess = collect($anomalies)->sum('excess_amount');
-    @endphp
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bank-card p-4 border-l-4 border-amber-500 bg-amber-50/10">
             <div class="flex items-center justify-between">
@@ -35,7 +32,7 @@
                 </span>
             </div>
             <div class="text-xl font-black text-amber-900 mt-1 font-numeric">
-                {{ count($anomalies) }} <small class="text-xs font-semibold text-slate-500">cas détectés</small>
+                {{ $totalAnomaliesCount ?? count($anomalies) }} <small class="text-xs font-semibold text-slate-500">cas détectés</small>
             </div>
             <p class="text-[9px] font-medium text-slate-400 mt-1">Même compte & montant le même jour</p>
         </div>
@@ -48,7 +45,7 @@
                 </span>
             </div>
             <div class="text-xl font-black text-rose-600 mt-1 font-numeric">
-                +{{ number_format($totalExcess, 0, ',', ' ') }} <small class="text-xs font-bold text-rose-400">XOF</small>
+                +{{ number_format($totalExcessVolume ?? collect($anomalies)->sum('excess_amount'), 0, ',', ' ') }} <small class="text-xs font-bold text-rose-400">XOF</small>
             </div>
             <p class="text-[9px] font-medium text-slate-400 mt-1">Cumul des écritures en trop</p>
         </div>
@@ -76,8 +73,8 @@
                 class="tab-btn px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 {{ $activeTab === 'duplicates' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600' }}">
             <i class="fas fa-triangle-exclamation text-[11px]"></i>
             <span>Doublons Détectés</span>
-            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ count($anomalies) > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500' }}">
-                {{ count($anomalies) }}
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-black {{ ($totalAnomaliesCount ?? count($anomalies)) > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500' }}">
+                {{ $totalAnomaliesCount ?? count($anomalies) }}
             </span>
         </button>
 
@@ -97,10 +94,10 @@
             <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div class="flex items-center gap-2">
                     <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Écritures suspectes identifiées</span>
-                    <span class="text-[10px] text-slate-400">&bull; Confirmation requise avant toute suppression</span>
+                    <span class="text-[10px] text-slate-400">&bull; Confirmation par modal avant toute suppression</span>
                 </div>
                 <div class="text-[11px] font-medium text-slate-400">
-                    {{ count($anomalies) }} ligne(s)
+                    {{ count($anomalies) }} cas actif(s)
                 </div>
             </div>
 
@@ -178,16 +175,19 @@
 
                                 <!-- Action Résolution -->
                                 <td class="py-2.5 px-4 text-right">
-                                    <form method="POST" action="{{ route('admin.anomalies.resolve-duplicates') }}" class="inline"
-                                          onsubmit="return confirm('Confirmer la suppression des {{ $item['excess_count'] }} doublon(s) (déduction de {{ number_format($item['excess_amount'], 0, ',', ' ') }} XOF) pour ce compte ?');">
+                                    <form method="POST" action="{{ route('admin.anomalies.resolve-duplicates') }}" class="inline form-resolve-duplicate"
+                                          data-client="{{ $item['account']->client->first_name }} {{ $item['account']->client->last_name }}"
+                                          data-account="{{ $item['account']->account_number }}"
+                                          data-count="{{ $item['excess_count'] }}"
+                                          data-amount="{{ number_format($item['excess_amount'], 0, ',', ' ') }}">
                                         @csrf
                                         <input type="hidden" name="account_id" value="{{ $item['account']->id }}">
                                         <input type="hidden" name="amount" value="{{ $item['amount'] }}">
                                         <input type="hidden" name="date" value="{{ $item['date'] }}">
                                         <input type="hidden" name="transaction_ids" value="{{ $item['transactions']->pluck('id')->implode(',') }}">
 
-                                        <button type="submit"
-                                                class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-md text-[10px] font-bold transition inline-flex items-center gap-1 shadow-sm cursor-pointer">
+                                        <button type="button"
+                                                class="btn-trigger-resolve px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-md text-[10px] font-bold transition inline-flex items-center gap-1 shadow-sm cursor-pointer">
                                             <i class="fas fa-trash-can text-[9px]"></i>
                                             <span>Corriger (-{{ number_format($item['excess_amount'], 0, ',', ' ') }})</span>
                                         </button>
@@ -272,15 +272,16 @@
 
                     <!-- Formulaire de Saisie du Montant Réel (7 colonnes) -->
                     <div class="md:col-span-7">
-                        <form method="POST" action="{{ route('admin.anomalies.regularize-balance') }}" id="form-regularize-{{ $searchedAccount->id }}" class="space-y-3"
-                              onsubmit="return confirm('Confirmer la régularisation de ce compte au montant saisi ?');">
+                        <form method="POST" action="{{ route('admin.anomalies.regularize-balance') }}" id="form-regularize-account" class="space-y-3"
+                              data-client="{{ $searchedAccount->client->first_name }} {{ $searchedAccount->client->last_name }}"
+                              data-account="{{ $searchedAccount->account_number }}">
                             @csrf
                             <input type="hidden" name="account_id" value="{{ $searchedAccount->id }}">
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Montant Réel Cotisé (XOF) *</label>
-                                    <input type="number" step="100" min="0" name="target_amount" required placeholder="Ex: 55000, 44700..."
+                                    <input type="number" step="100" min="0" name="target_amount" id="regularize-target-amount" required placeholder="Ex: 55000, 44700..."
                                            class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-black text-slate-900 focus:outline-none focus:border-emerald-500">
                                 </div>
                                 <div>
@@ -333,6 +334,128 @@
 
         const targetContent = document.getElementById('tab-content-' + tabName);
         if (targetContent) targetContent.classList.remove('hidden');
+    }
+
+    // Modal de confirmation SweetAlert2 pour la suppression des doublons
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-trigger-resolve');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const form = btn.closest('form');
+        if (!form) return;
+
+        const client = form.dataset.client || 'Client';
+        const account = form.dataset.account || '';
+        const count = form.dataset.count || '1';
+        const amount = form.dataset.amount || '0';
+
+        if (typeof Swal === 'undefined') {
+            if (confirm(`Confirmer la suppression des ${count} doublon(s) pour ${client} (-${amount} XOF) ?`)) {
+                form.submit();
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirmation de Suppression',
+            html: `
+                <div class="text-left text-xs text-slate-600 space-y-3 mt-3">
+                    <p class="leading-relaxed">Vous confirmez la suppression définitive de <strong class="text-rose-600 font-bold">${count} écriture(s) en doublon</strong> pour le compte :</p>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="font-bold text-slate-900 text-sm">${client}</div>
+                        <div class="text-xs text-blue-600 font-mono font-bold mt-0.5">${account}</div>
+                    </div>
+                    <div class="p-3 bg-rose-50 rounded-xl border border-rose-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-rose-800">Déduction du solde :</span>
+                        <span class="text-sm font-black text-rose-600 font-mono">-${amount} XOF</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 italic">Le solde et les cases du carnet de tontine seront immédiatement recalculés.</p>
+                </div>
+            `,
+            icon: 'warning',
+            iconColor: '#e11d48',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="fas fa-trash-can mr-1.5"></i> Supprimer les Doublons',
+            cancelButtonText: 'Annuler',
+            reverseButtons: true,
+            focusCancel: true,
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl border-0 p-6',
+                title: 'text-base font-bold text-slate-900',
+                confirmButton: 'rounded-xl text-xs font-bold px-4 py-2.5 shadow-sm',
+                cancelButton: 'rounded-xl text-xs font-bold px-4 py-2.5'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+
+    // Modal de confirmation SweetAlert2 pour la régularisation manuelle
+    const regForm = document.getElementById('form-regularize-account');
+    if (regForm) {
+        regForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const client = this.dataset.client || 'Client';
+            const account = this.dataset.account || '';
+            const targetInput = document.getElementById('regularize-target-amount');
+            const targetAmount = targetInput ? targetInput.value : '';
+
+            if (!targetAmount) return;
+
+            const formattedTarget = Number(targetAmount).toLocaleString('fr-FR');
+
+            if (typeof Swal === 'undefined') {
+                if (confirm(`Confirmer la régularisation de ${client} au montant de ${formattedTarget} XOF ?`)) {
+                    regForm.submit();
+                }
+                return;
+            }
+
+            Swal.fire({
+                title: 'Confirmer la Régularisation',
+                html: `
+                    <div class="text-left text-xs text-slate-600 space-y-3 mt-3">
+                        <p class="leading-relaxed">Vous allez réaligner manuellement le compte :</p>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="font-bold text-slate-900 text-sm">${client}</div>
+                            <div class="text-xs text-blue-600 font-mono font-bold mt-0.5">${account}</div>
+                        </div>
+                        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                            <span class="text-xs font-semibold text-emerald-800">Nouveau Total Cotisé :</span>
+                            <span class="text-sm font-black text-emerald-700 font-mono">${formattedTarget} XOF</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 italic">Le solde et les 31 cases de tontine seront mis à jour avec ce montant exact.</p>
+                    </div>
+                `,
+                icon: 'question',
+                iconColor: '#059669',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fas fa-check-double mr-1.5"></i> Valider & Réaligner',
+                cancelButtonText: 'Annuler',
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    popup: 'rounded-2xl shadow-2xl border-0 p-6',
+                    title: 'text-base font-bold text-slate-900',
+                    confirmButton: 'rounded-xl text-xs font-bold px-4 py-2.5 shadow-sm',
+                    cancelButton: 'rounded-xl text-xs font-bold px-4 py-2.5'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    regForm.submit();
+                }
+            });
+        });
     }
 </script>
 @endpush

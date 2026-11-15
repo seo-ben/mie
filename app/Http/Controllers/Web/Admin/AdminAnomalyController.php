@@ -20,8 +20,8 @@ class AdminAnomalyController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Détection des grappes de doublons de dépôts (même compte, même montant, même jour >= 2 fois)
-        $rawClusters = DB::table('transactions')
+        // 1. Détection de TOUTES les grappes de doublons de dépôts (même compte, même montant, même jour >= 2 fois)
+        $allClusters = DB::table('transactions')
             ->select(
                 'account_id',
                 'amount',
@@ -34,12 +34,21 @@ class AdminAnomalyController extends Controller
             ->groupBy('account_id', 'amount', DB::raw('DATE(transaction_date)'))
             ->having(DB::raw('COUNT(*)'), '>', 1)
             ->orderBy(DB::raw('DATE(transaction_date)'), 'desc')
-            ->limit(30)
             ->get();
 
+        // Statistiques globales réelles sur toute la base
+        $totalAnomaliesCount = $allClusters->count();
+        $totalExcessVolume = (float) $allClusters->sum(function($c) {
+            return ((int) $c->total_count - 1) * (float) $c->amount;
+        });
+
+        // Pré-chargement des comptes pour éliminer les requêtes N+1
+        $accountIds = $allClusters->pluck('account_id')->unique();
+        $accounts = Account::with(['client', 'tontineAccount'])->whereIn('id', $accountIds)->get()->keyBy('id');
+
         $anomalies = [];
-        foreach ($rawClusters as $cluster) {
-            $account = Account::with(['client', 'tontineAccount'])->find($cluster->account_id);
+        foreach ($allClusters as $cluster) {
+            $account = $accounts->get($cluster->account_id);
             if (!$account) continue;
 
             $transactions = Transaction::where('account_id', $cluster->account_id)
@@ -81,7 +90,13 @@ class AdminAnomalyController extends Controller
             ->first();
         }
 
-        return view('admin.anomalies.index', compact('anomalies', 'searchedAccount', 'searchQuery'));
+        return view('admin.anomalies.index', compact(
+            'anomalies',
+            'searchedAccount',
+            'searchQuery',
+            'totalAnomaliesCount',
+            'totalExcessVolume'
+        ));
     }
 
     /**
