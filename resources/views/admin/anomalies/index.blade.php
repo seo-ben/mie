@@ -12,6 +12,18 @@
             <p class="text-xs text-slate-500 font-medium">Contrôle des anomalies de synchronisation et réalignement des comptes de tontine</p>
         </div>
         <div class="flex items-center gap-2">
+            @if(count($accountsWithAnomalies) > 0)
+                <form method="POST" action="{{ route('admin.anomalies.resolve-all-anomalies') }}" id="form-clean-all-anomalies" class="inline"
+                      data-accounts="{{ count($accountsWithAnomalies) }}"
+                      data-count="{{ $totalDuplicateTxsCount ?? 0 }}"
+                      data-amount="{{ number_format($totalExcessVolume ?? 0, 0, ',', ' ') }}">
+                    @csrf
+                    <button type="button" class="btn-trigger-clean-all px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold uppercase transition flex items-center gap-1.5 shadow-md shadow-rose-600/20 cursor-pointer">
+                        <i class="fas fa-wand-magic-sparkles text-[10px]"></i>
+                        <span>Purger Tous les Doublons ({{ count($accountsWithAnomalies) }})</span>
+                    </button>
+                </form>
+            @endif
             <a href="{{ route('admin.transactions.index') }}" class="btn-bank btn-bank-outline !py-2 !px-3 text-xs">
                 <i class="fas fa-arrow-left mr-1.5 text-[10px]"></i> Grand Livre
             </a>
@@ -96,8 +108,16 @@
                     <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Comptes identifiés avec écritures en doublon</span>
                     <span class="text-[10px] text-slate-400">&bull; Nettoyage complet du compte en 1 clic</span>
                 </div>
-                <div class="text-[11px] font-medium text-slate-400">
-                    {{ count($accountsWithAnomalies) }} compte(s) &bull; {{ $totalDuplicateTxsCount ?? 0 }} doublon(s)
+                <div class="flex items-center gap-3">
+                    <div class="text-[11px] font-medium text-slate-400">
+                        {{ count($accountsWithAnomalies) }} compte(s) &bull; {{ $totalDuplicateTxsCount ?? 0 }} doublon(s)
+                    </div>
+                    @if(count($accountsWithAnomalies) > 0)
+                        <button type="button" class="btn-trigger-clean-all px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-[10px] font-bold uppercase transition flex items-center gap-1 shadow-sm cursor-pointer">
+                            <i class="fas fa-trash-can text-[9px]"></i>
+                            <span>Tout Purger (-{{ number_format($totalExcessVolume ?? 0, 0, ',', ' ') }})</span>
+                        </button>
+                    @endif
                 </div>
             </div>
 
@@ -376,6 +396,84 @@
         const targetContent = document.getElementById('tab-content-' + tabName);
         if (targetContent) targetContent.classList.remove('hidden');
     }
+
+    // Modal de confirmation SweetAlert2 pour l'assainissement GLOBAL (tous les comptes)
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-trigger-clean-all');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const form = document.getElementById('form-clean-all-anomalies');
+        if (!form) return;
+
+        const accounts = form.dataset.accounts || '0';
+        const count = form.dataset.count || '0';
+        const amount = form.dataset.amount || '0';
+
+        if (typeof Swal === 'undefined') {
+            if (confirm(`Confirmer la purge GLOBALE de TOUS les doublons sur les ${accounts} comptes (${count} écritures, déduction totale: ${amount} XOF) ?`)) {
+                form.submit();
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: 'Assainissement Global du Réseau',
+            html: `
+                <div class="text-left text-xs text-slate-600 space-y-3 mt-3">
+                    <p class="leading-relaxed">Vous êtes sur le point de purger <strong>TOUS les doublons de synchronisation</strong> détectés sur l'ensemble du réseau en une seule opération :</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase block">Comptes impactés</span>
+                            <span class="text-base font-black text-slate-900 font-numeric">${accounts} comptes</span>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase block">Écritures en trop</span>
+                            <span class="text-base font-black text-rose-600 font-numeric">${count} doublons</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-rose-50 rounded-xl border border-rose-200 flex items-center justify-between">
+                        <span class="text-xs font-bold text-rose-800">Volume total déduit :</span>
+                        <span class="text-sm font-black text-rose-600 font-mono">-${amount} XOF</span>
+                    </div>
+                    <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-2 text-[10px] text-amber-800">
+                        <i class="fas fa-shield-halved text-amber-500 mt-0.5"></i>
+                        <span>Cette opération conservera la première transaction légitime de chaque client, déduira l'excédent de chaque solde et réalignera automatiquement les 31 cases des carnets de tontine.</span>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            iconColor: '#e11d48',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="fas fa-wand-magic-sparkles mr-1.5"></i> Oui, Tout Purger Maintenant',
+            cancelButtonText: 'Annuler',
+            reverseButtons: true,
+            focusCancel: true,
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl border-0 p-6',
+                title: 'text-base font-bold text-slate-900',
+                confirmButton: 'rounded-xl text-xs font-bold px-4 py-2.5 shadow-sm',
+                cancelButton: 'rounded-xl text-xs font-bold px-4 py-2.5'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Traitement en cours...',
+                    text: `Assainissement des ${accounts} comptes et réalignement des cycles de tontine en cours. Veuillez patienter...`,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                form.submit();
+            }
+        });
+    });
 
     // Modal de confirmation SweetAlert2 pour la suppression complète des doublons d'un compte
     document.addEventListener('click', function(e) {
