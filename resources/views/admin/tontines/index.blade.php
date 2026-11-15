@@ -12,6 +12,9 @@
             <p class="text-slate-500 text-sm font-medium">Surveillance des cycles d'épargne mutuelle et dynamique des pools de liquidité</p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{{ route('admin.anomalies.index') }}" class="btn-bank bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-sm">
+                <i class="fas fa-shield-virus mr-2 text-[10px]"></i> Audit Doublons
+            </a>
             <a href="{{ route('admin.tontines.visual-audit') }}" class="btn-bank btn-bank-outline">
                 <i class="fas fa-magnifying-glass mr-2 text-[10px]"></i> Audit Visuel
             </a>

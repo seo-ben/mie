@@ -12,6 +12,9 @@
             <p class="text-slate-500 text-sm font-medium">Audit en temps réel des flux de capitaux et mouvements de trésorerie</p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{{ route('admin.anomalies.index') }}" class="btn-bank bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-sm font-black">
+                <i class="fas fa-shield-virus mr-2 text-[10px]"></i> Contrôle & Doublons
+            </a>
             <a href="{{ route('admin.transactions.analytics') }}" class="btn-bank btn-bank-outline">
                 <i class="fas fa-chart-line mr-2 text-[10px]"></i> Analytique
             </a>

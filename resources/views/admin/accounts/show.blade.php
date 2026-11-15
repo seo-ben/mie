@@ -47,6 +47,9 @@
                     <i class="fas fa-calendar-check mr-2 text-[10px]"></i> Carnet Tontine 1-31
                 </a>
             @endif
+            <a href="{{ route('admin.anomalies.index', ['q' => $account->account_number]) }}" class="btn-bank bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-sm" title="Régulariser le solde ou corriger des doublons">
+                <i class="fas fa-wrench mr-2 text-[10px]"></i> Régulariser
+            </a>
             <a href="{{ route('admin.accounts.edit', $account->id) }}" class="btn-bank btn-bank-outline">
                 <i class="fas fa-sliders mr-2 text-[10px]"></i> Paramètres / Mise
             </a>

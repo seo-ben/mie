@@ -303,14 +303,27 @@ class AgentSyncController extends Controller
             $amount = (float) $item['amount'];
             $type = $item['transaction_type'] ?? 'deposit';
 
-            // Anti-doublon allégé (10 secondes)
-            $exists = Transaction::where('account_id', $realAccountId)
-                ->where('amount', $amount)
-                ->where('transaction_type', $type)
-                ->where('created_at', '>=', now()->subSeconds(10))
-                ->exists();
-    
-            if ($exists) continue;
+            // 1. Clé d'idempotence absolue : vérifier si l'identifiant local mobile a déjà été synchronisé
+            $existingTx = null;
+            if (!empty($mobileTxId)) {
+                $existingTx = Transaction::where('payment_reference', (string)$mobileTxId)
+                    ->orWhere('payment_reference', 'SYNC-' . (string)$mobileTxId)
+                    ->first();
+            }
+
+            // 2. Anti-doublon contextuel (même compte, même montant, même type dans un intervalle de 30 minutes)
+            if (!$existingTx) {
+                $existingTx = Transaction::where('account_id', $realAccountId)
+                    ->where('amount', $amount)
+                    ->where('transaction_type', $type)
+                    ->where('created_at', '>=', now()->subMinutes(30))
+                    ->first();
+            }
+
+            if ($existingTx) {
+                $this->idMapping['transactions'][$mobileTxId] = $existingTx->id;
+                continue;
+            }
     
             if ($type === 'deposit' && $account->account_type === 'tontine' && $account->tontineAccount) {
                 $tontine = $account->tontineAccount;
@@ -326,6 +339,7 @@ class AgentSyncController extends Controller
                 'account_id'            => $realAccountId,
                 'amount'                => $amount,
                 'transaction_type'      => $type,
+                'payment_reference'     => (string) $mobileTxId,
                 'payment_method'        => $item['payment_method'] ?? 'cash',
                 'description'           => $item['description']    ?? ($type == 'deposit' ? 'Dépôt mobile' : 'Retrait mobile'),
                 'status'                => 'completed',

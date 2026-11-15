@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\Admin\AdminLoanController;
 use App\Http\Controllers\Web\Admin\AdminUserReportController;
 use App\Http\Controllers\Web\Admin\AdminProfitabilityController;
 use App\Http\Controllers\Web\Admin\AdminNotificationController;
+use App\Http\Controllers\Web\Admin\AdminAnomalyController;
 use App\Http\Controllers\Web\Admin\CashierSessionController;
 use App\Http\Controllers\Web\Admin\AdminPayrollController;
 use App\Http\Controllers\Web\Admin\TreasuryController;
@@ -310,6 +311,13 @@ Route::middleware(['role:administrateur_systeme,administrateur_reglementaire'])-
         Route::post('/mark-all-read', [AdminNotificationController::class, 'markAllAsRead'])->name('markAllRead');
         Route::post('/create-test', [AdminNotificationController::class, 'createTest'])->name('createTest');
         Route::delete('/{id}', [AdminNotificationController::class, 'destroy'])->name('destroy');
+    });
+
+    // Contrôle des Anomalies et Doublons
+    Route::prefix('anomalies')->name('anomalies.')->group(function () {
+        Route::get('/', [AdminAnomalyController::class, 'index'])->name('index');
+        Route::post('/resolve-duplicates', [AdminAnomalyController::class, 'resolveDuplicates'])->name('resolve-duplicates');
+        Route::post('/regularize-balance', [AdminAnomalyController::class, 'regularizeBalance'])->name('regularize-balance');
     });
 
 });
