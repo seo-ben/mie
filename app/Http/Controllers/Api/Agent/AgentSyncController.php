@@ -349,6 +349,12 @@ class AgentSyncController extends Controller
                 $tontine->increment('total_paid', $amount);
             }
     
+            $actualTxDate = !empty($item['created_at'])
+                ? Carbon::parse($item['created_at'])
+                : (!empty($item['collected_at']) 
+                    ? Carbon::createFromTimestamp($item['collected_at'] / 1000) 
+                    : now());
+
             $tx = Transaction::create([
                 'transaction_reference' => 'SYNC-' . strtoupper(Str::random(6)) . '-' . now()->format('YmdHis'),
                 'account_id'            => $realAccountId,
@@ -360,7 +366,8 @@ class AgentSyncController extends Controller
                 'status'                => 'completed',
                 'processed_by'          => $agent->id,
                 'agency_id'             => $agent->agency_id ?? 1,
-                'transaction_date'      => now(),
+                'transaction_date'      => $actualTxDate,
+                'created_at'            => $actualTxDate,
                 'balance_before'        => $account->balance,
                 'balance_after'         => ($type === 'deposit') ? ($account->balance + $amount) : ($account->balance - $amount),
             ]);
