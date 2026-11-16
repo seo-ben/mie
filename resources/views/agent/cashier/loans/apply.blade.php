@@ -228,7 +228,7 @@
                         <div class="col-6 col-md-2">
                             <label class="form-label fw-bold text-dark fs-8 mb-1">Taux (%)</label>
                             <div class="input-group">
-                                <input type="number" name="interest_rate" id="loanRate" value="17.0" class="form-control rounded-start-3 border fw-bold" style="padding: 10px 14px; font-size: 0.88rem;" step="0.5" min="1" max="50" oninput="recalcSimulation()">
+                                <input type="number" name="interest_rate" id="loanRate" value="{{ old('interest_rate', '17.0') }}" class="form-control rounded-start-3 border fw-bold" style="padding: 10px 14px; font-size: 0.88rem;" step="any" min="0" max="50" oninput="recalcSimulation()">
                                 <span class="input-group-text bg-light fw-bold text-muted border-start-0 rounded-end-3">%</span>
                             </div>
                         </div>
@@ -469,7 +469,8 @@
     function recalcSimulation() {
         const amount = parseFloat(document.getElementById('loanAmount').value) || 0;
         const months = parseInt(document.getElementById('loanDuration').value) || 6;
-        const rate = parseFloat(document.getElementById('loanRate').value) || 17.0;
+        const rateVal = document.getElementById('loanRate')?.value;
+        const rate = (rateVal !== undefined && rateVal !== '' && !isNaN(rateVal)) ? Math.max(0, parseFloat(rateVal)) : 17.0;
 
         if (amount > 0) {
             const interest = amount * (rate / 100) * (months / 12);
@@ -510,7 +511,8 @@
 
         const amount = parseFloat(document.getElementById('loanAmount').value) || 200000;
         const months = parseInt(document.getElementById('loanDuration').value) || 6;
-        const rate = parseFloat(document.getElementById('loanRate').value) || 17.0;
+        const rateVal = document.getElementById('loanRate')?.value;
+        const rate = (rateVal !== undefined && rateVal !== '' && !isNaN(rateVal)) ? Math.max(0, parseFloat(rateVal)) : 17.0;
 
         try {
             const params = new URLSearchParams({

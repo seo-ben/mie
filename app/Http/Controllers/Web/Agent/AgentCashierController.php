@@ -2286,7 +2286,9 @@ class AgentCashierController extends Controller
 
         $requestedAmount = (float) $request->input('requested_amount', 200000);
         $durationMonths = (int) $request->input('duration_months', 6);
-        $interestRate = (float) $request->input('interest_rate', 17.0);
+        $interestRate = ($request->has('interest_rate') && $request->input('interest_rate') !== null && $request->input('interest_rate') !== '')
+            ? (float) $request->input('interest_rate')
+            : 17.0;
 
         $scoringService = new \App\Services\CreditScoringService();
         $analysis = $scoringService->analyze($client, $requestedAmount, $durationMonths, $interestRate);
@@ -2302,12 +2304,14 @@ class AgentCashierController extends Controller
         $request->validate([
             'amount'          => 'required|numeric|min:10000',
             'duration_months' => 'required|integer|min:1|max:60',
-            'interest_rate'   => 'nullable|numeric|min:1|max:50',
+            'interest_rate'   => 'nullable|numeric|min:0|max:50',
         ]);
 
         $amount = (float) $request->amount;
         $months = (int) $request->duration_months;
-        $annualRate = (float) ($request->interest_rate ?? 17.0);
+        $annualRate = ($request->has('interest_rate') && $request->input('interest_rate') !== null && $request->input('interest_rate') !== '')
+            ? (float) $request->input('interest_rate')
+            : 17.0;
 
         $totalInterest = $amount * ($annualRate / 100) * ($months / 12);
         $totalDue = $amount + $totalInterest;
@@ -2328,13 +2332,15 @@ class AgentCashierController extends Controller
      */
     public function processLoanApply(Request $request)
     {
+        $user = Auth::user();
+
         $request->validate([
             'client_id'              => 'required|exists:clients,id',
             'requested_amount'       => 'required|numeric|min:10000',
             'duration_months'        => 'required|integer|min:1|max:60',
             'purpose'                => 'required|string|max:255',
             'collateral_description' => 'nullable|string|max:500',
-            'interest_rate'          => 'nullable|numeric|min:1|max:50',
+            'interest_rate'          => 'nullable|numeric|min:0|max:50',
             'guarantors'             => 'nullable|array',
             'verifications'          => 'nullable|array',
         ]);
@@ -2342,7 +2348,9 @@ class AgentCashierController extends Controller
         try {
             DB::beginTransaction();
 
-            $annualRate = (float) ($request->interest_rate ?? 17.0);
+            $annualRate = ($request->has('interest_rate') && $request->input('interest_rate') !== null && $request->input('interest_rate') !== '')
+                ? (float) $request->input('interest_rate')
+                : 17.0;
             $amount = (float) $request->requested_amount;
             $months = (int) $request->duration_months;
             $totalInterest = $amount * ($annualRate / 100) * ($months / 12);
@@ -2387,6 +2395,7 @@ class AgentCashierController extends Controller
             if ($applicationFee > 0) {
                 $activeSession = $this->getActiveSession($user);
                 $clientAccount = Account::where('client_id', $request->client_id)->first();
+                $agencyId = $user?->agency_id ?? ($clientAccount?->agency_id ?? 1);
                 Transaction::create([
                     'transaction_reference' => 'FEE-DOSSIER-' . strtoupper(Str::random(8)),
                     'loan_id' => $loan->id,
@@ -2399,8 +2408,8 @@ class AgentCashierController extends Controller
                     'payment_method' => 'cash',
                     'description' => "Frais d'étude et montage dossier de prêt {$loan->loan_number}",
                     'status' => 'completed',
-                    'processed_by' => $user->id,
-                    'agency_id' => $user->agency_id,
+                    'processed_by' => $user?->id ?? Auth::id(),
+                    'agency_id' => $agencyId,
                     'cashier_session_id' => $activeSession?->id,
                     'processed_at' => now(),
                     'transaction_date' => now(),

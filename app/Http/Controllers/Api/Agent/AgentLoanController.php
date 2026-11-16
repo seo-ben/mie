@@ -265,7 +265,7 @@ class AgentLoanController extends Controller
         $amount = (float) $validated['amount'];
         $duration = (int) $validated['duration_months'];
         $defaultRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') ?? 17.0);
-        $annualRate = isset($validated['interest_rate']) && $validated['interest_rate'] > 0
+        $annualRate = (isset($validated['interest_rate']) && $validated['interest_rate'] !== null && $validated['interest_rate'] !== '')
             ? (float) $validated['interest_rate']
             : $defaultRate;
 
@@ -333,7 +333,7 @@ class AgentLoanController extends Controller
         $amount = (float) $validated['requested_amount'];
         $duration = (int) $validated['duration_months'];
         $defaultRate = (float)(DB::table('system_parameters')->where('parameter_key', 'loan_interest_rate_default')->value('parameter_value') ?? 17.0);
-        $rate = isset($validated['interest_rate']) && $validated['interest_rate'] > 0
+        $rate = (isset($validated['interest_rate']) && $validated['interest_rate'] !== null && $validated['interest_rate'] !== '')
             ? (float) $validated['interest_rate']
             : $defaultRate;
 
