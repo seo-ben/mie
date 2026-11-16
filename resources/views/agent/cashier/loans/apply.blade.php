@@ -215,12 +215,13 @@
                         <div class="col-6 col-md-2">
                             <label class="form-label fw-bold text-dark fs-8 mb-1">Durée (Mois) *</label>
                             <select name="duration_months" id="loanDuration" class="form-select rounded-3 border fw-bold" style="padding: 10px 14px; font-size: 0.88rem;" required onchange="recalcSimulation()">
-                                <option value="3">3 Mois</option>
-                                <option value="6" selected>6 Mois</option>
-                                <option value="9">9 Mois</option>
-                                <option value="12">12 Mois (1 An)</option>
-                                <option value="18">18 Mois</option>
-                                <option value="24">24 Mois (2 Ans)</option>
+                                @for($m = 1; $m <= 36; $m++)
+                                    <option value="{{ $m }}" {{ old('duration_months', 6) == $m ? 'selected' : '' }}>
+                                        {{ $m }} Mois {{ $m == 12 ? '(1 An)' : ($m == 24 ? '(2 Ans)' : ($m == 36 ? '(3 Ans)' : '')) }}
+                                    </option>
+                                @endfor
+                                <option value="48" {{ old('duration_months') == 48 ? 'selected' : '' }}>48 Mois (4 Ans)</option>
+                                <option value="60" {{ old('duration_months') == 60 ? 'selected' : '' }}>60 Mois (5 Ans)</option>
                             </select>
                         </div>
 

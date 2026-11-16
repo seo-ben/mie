@@ -731,11 +731,13 @@
                     </label>
                     <select name="duration_months" required
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                        @foreach([3, 6, 12, 18, 24] as $months)
-                        <option value="{{ $months }}" {{ $loan->duration_months == $months ? 'selected' : '' }}>
-                            {{ $months }} mois
-                        </option>
-                        @endforeach
+                        @for($m = 1; $m <= 36; $m++)
+                            <option value="{{ $m }}" {{ (old('duration_months', $loan->duration_months) == $m) ? 'selected' : '' }}>
+                                {{ $m }} mois {{ $m == 12 ? '(1 an)' : ($m == 24 ? '(2 ans)' : ($m == 36 ? '(3 ans)' : '')) }}
+                            </option>
+                        @endfor
+                        <option value="48" {{ (old('duration_months', $loan->duration_months) == 48) ? 'selected' : '' }}>48 mois (4 ans)</option>
+                        <option value="60" {{ (old('duration_months', $loan->duration_months) == 60) ? 'selected' : '' }}>60 mois (5 ans)</option>
                     </select>
                 </div>
 

@@ -258,7 +258,7 @@ class AgentLoanController extends Controller
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:10000',
-            'duration_months' => 'required|integer|min:1|max:36',
+            'duration_months' => 'required|integer|min:1|max:60',
             'interest_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
@@ -322,7 +322,7 @@ class AgentLoanController extends Controller
         $validated = $request->validate([
             'client_id' => 'required|integer|exists:clients,id',
             'requested_amount' => 'required|numeric|min:10000',
-            'duration_months' => 'required|integer|min:1|max:36',
+            'duration_months' => 'required|integer|min:1|max:60',
             'purpose' => 'nullable|string|max:500',
             'collateral_description' => 'nullable|string|max:500',
             'interest_rate' => 'nullable|numeric|min:0|max:100',

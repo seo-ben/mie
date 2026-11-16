@@ -121,7 +121,7 @@ class AdminLoanController extends Controller
         $request->validate([
             'client_id' => 'required|exists:clients,id',
             'requested_amount' => 'required|numeric|min:1000|max:5000000',
-            'duration_months' => 'required|integer|min:3|max:24',
+            'duration_months' => 'required|integer|min:1|max:60',
             'loan_type' => 'required|string|max:100',
             'purpose' => 'required|string|max:500',
             'collateral_description' => 'nullable|string|max:1000',
@@ -330,7 +330,7 @@ class AdminLoanController extends Controller
         $request->validate([
             'approved_amount' => 'required|numeric|min:1000',
             'interest_rate' => 'required|numeric|min:0|max:50',
-            'duration_months' => 'required|integer|min:3|max:24',
+            'duration_months' => 'required|integer|min:1|max:60',
             'approval_notes' => 'nullable|string|max:1000',
         ]);
 

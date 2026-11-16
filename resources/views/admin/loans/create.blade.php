@@ -108,11 +108,13 @@
                     <select name="duration_months" required
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('duration_months') border-red-500 @enderror">
                         <option value="">Sélectionner...</option>
-                        <option value="3" {{ old('duration_months') == 3 ? 'selected' : '' }}>3 mois</option>
-                        <option value="6" {{ old('duration_months') == 6 ? 'selected' : '' }}>6 mois</option>
-                        <option value="12" {{ old('duration_months') == 12 ? 'selected' : '' }}>12 mois</option>
-                        <option value="18" {{ old('duration_months') == 18 ? 'selected' : '' }}>18 mois</option>
-                        <option value="24" {{ old('duration_months') == 24 ? 'selected' : '' }}>24 mois</option>
+                        @for($m = 1; $m <= 36; $m++)
+                            <option value="{{ $m }}" {{ old('duration_months', 6) == $m ? 'selected' : '' }}>
+                                {{ $m }} mois {{ $m == 12 ? '(1 an)' : ($m == 24 ? '(2 ans)' : ($m == 36 ? '(3 ans)' : '')) }}
+                            </option>
+                        @endfor
+                        <option value="48" {{ old('duration_months') == 48 ? 'selected' : '' }}>48 mois (4 ans)</option>
+                        <option value="60" {{ old('duration_months') == 60 ? 'selected' : '' }}>60 mois (5 ans)</option>
                     </select>
                     @error('duration_months')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

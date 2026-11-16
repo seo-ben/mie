@@ -2301,7 +2301,7 @@ class AgentCashierController extends Controller
     {
         $request->validate([
             'amount'          => 'required|numeric|min:10000',
-            'duration_months' => 'required|integer|min:1|max:36',
+            'duration_months' => 'required|integer|min:1|max:60',
             'interest_rate'   => 'nullable|numeric|min:1|max:50',
         ]);
 
@@ -2331,7 +2331,7 @@ class AgentCashierController extends Controller
         $request->validate([
             'client_id'              => 'required|exists:clients,id',
             'requested_amount'       => 'required|numeric|min:10000',
-            'duration_months'        => 'required|integer|min:1|max:36',
+            'duration_months'        => 'required|integer|min:1|max:60',
             'purpose'                => 'required|string|max:255',
             'collateral_description' => 'nullable|string|max:500',
             'interest_rate'          => 'nullable|numeric|min:1|max:50',
