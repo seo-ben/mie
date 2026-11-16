@@ -497,6 +497,24 @@ class AgentAccountController extends Controller
                 $activeCycle = $this->createTontineCycle($tontine);
             }
 
+            // Anti-doublon immédiat (même compte, même montant dans un intervalle de 60 secondes)
+            $recentDeposit = Transaction::where('account_id', $account->id)
+                ->where('amount', $amount)
+                ->where('transaction_type', 'deposit')
+                ->where('created_at', '>=', now()->subSeconds(60))
+                ->first();
+
+            if ($recentDeposit) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Cette cotisation de ' . number_format($amount, 0, ',', ' ') . ' FCFA a déjà été enregistrée avec succès il y a quelques secondes.',
+                    'data' => [
+                        'transaction' => $recentDeposit,
+                        'new_balance' => $account->balance,
+                    ]
+                ], 200);
+            }
+
             // Répartition multi-cycles
             $cyclesAffected = $this->distributeTontineAmount($tontine, $activeCycle, $amount);
 

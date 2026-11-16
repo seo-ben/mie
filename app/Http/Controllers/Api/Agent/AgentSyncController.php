@@ -290,9 +290,10 @@ class AgentSyncController extends Controller
     private function processPushTransactions(array $transactions, $agent): void
     {
         foreach ($transactions as $item) {
-            $mobileTxId      = $item['id'];
-            $mobileAccountId = $item['account_id'];
+            $mobileTxId      = $item['offline_id'] ?? $item['id'] ?? $item['uuid'] ?? $item['transaction_id'] ?? null;
+            $mobileAccountId = $item['account_id'] ?? null;
             $realAccountId   = $this->idMapping['accounts'][$mobileAccountId] 
+                ?? $this->idMapping['accounts'][(string)$mobileAccountId]
                 ?? (is_numeric($mobileAccountId) ? (int) $mobileAccountId : null);
     
             if (!$realAccountId) continue;
@@ -303,25 +304,39 @@ class AgentSyncController extends Controller
             $amount = (float) $item['amount'];
             $type = $item['transaction_type'] ?? 'deposit';
 
-            // 1. Clé d'idempotence absolue : vérifier si l'identifiant local mobile a déjà été synchronisé
+            // 1. Clé d'idempotence absolue : vérification par identifiant mobile
             $existingTx = null;
             if (!empty($mobileTxId)) {
                 $existingTx = Transaction::where('payment_reference', (string)$mobileTxId)
                     ->orWhere('payment_reference', 'SYNC-' . (string)$mobileTxId)
+                    ->orWhere('transaction_reference', 'like', "%{$mobileTxId}%")
                     ->first();
             }
 
-            // 2. Anti-doublon contextuel (même compte, même montant, même type dans un intervalle de 30 minutes)
+            // 2. Anti-doublon contextuel étanche : même compte, même montant, même jour
+            // Bloque la réinsertion même si l'application mobile est rechargée des heures après
             if (!$existingTx) {
+                $targetDate = !empty($item['created_at']) 
+                    ? Carbon::parse($item['created_at'])->toDateString()
+                    : (!empty($item['collected_at']) 
+                        ? Carbon::createFromTimestamp($item['collected_at'] / 1000)->toDateString() 
+                        : today()->toDateString());
+
                 $existingTx = Transaction::where('account_id', $realAccountId)
                     ->where('amount', $amount)
                     ->where('transaction_type', $type)
-                    ->where('created_at', '>=', now()->subMinutes(30))
+                    ->where(function($q) use ($targetDate) {
+                        $q->whereDate('transaction_date', $targetDate)
+                          ->orWhereDate('created_at', $targetDate);
+                    })
                     ->first();
             }
 
+            // Si déjà existant, marquer comme synchronisé pour que l'app mobile arrête de le renvoyer
             if ($existingTx) {
-                $this->idMapping['transactions'][$mobileTxId] = $existingTx->id;
+                if (!empty($mobileTxId)) {
+                    $this->idMapping['transactions'][$mobileTxId] = $existingTx->id;
+                }
                 continue;
             }
     
@@ -556,15 +571,39 @@ class AgentSyncController extends Controller
                 ->orWhere('transaction_reference', 'like', "%{$offlineIdStr}%")
                 ->first();
 
-            if ($alreadyExists) {
-                $syncedIds[] = $offlineIdStr;
-                continue;
-            }
-
+            // 2. Anti-doublon contextuel étanche : même compte, même montant, même jour
             $action = $item['action'] ?? $item['transaction_type'] ?? 'deposit';
             $offlineCreatedAt = !empty($item['offline_created_at']) 
                 ? Carbon::parse($item['offline_created_at']) 
                 : now();
+            $targetDate = $offlineCreatedAt->toDateString();
+
+            if (!$alreadyExists && in_array($action, ['deposit', 'tontine', 'tontine_contribution', 'tontine_deposit', 'withdrawal'])) {
+                $rawAccId = $item['account_id'] ?? null;
+                $amt = (float) ($item['amount'] ?? 0);
+
+                if ($amt > 0 && ($rawAccId || !empty($item['account_number']))) {
+                    $alreadyExists = Transaction::where('amount', $amt)
+                        ->where(function($q) use ($rawAccId, $item) {
+                            if ($rawAccId) {
+                                $q->where('account_id', $rawAccId);
+                            }
+                            if (!empty($item['account_number'])) {
+                                $q->orWhereHas('account', fn($aq) => $aq->where('account_number', $item['account_number']));
+                            }
+                        })
+                        ->where(function($q) use ($targetDate) {
+                            $q->whereDate('transaction_date', $targetDate)
+                              ->orWhereDate('created_at', $targetDate);
+                        })
+                        ->first();
+                }
+            }
+
+            if ($alreadyExists) {
+                $syncedIds[] = $offlineIdStr;
+                continue;
+            }
 
             // -------------------------------------------------------------
             // CAS 1 : CRÉATION DE CLIENT HORS-LIGNE
