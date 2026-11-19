@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Http\Requests\CreateClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +21,7 @@ class AgentClientController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $query = Client::query()
             ->with(['accounts', 'agency']);
@@ -105,7 +106,7 @@ class AgentClientController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = Auth::user();
             $clientData = $request->validated();
 
             // Génération du numéro client
@@ -155,7 +156,7 @@ class AgentClientController extends Controller
      */
     public function show($clientId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Charger le client avec ses relations complètes
         $query = Client::with([
@@ -229,7 +230,7 @@ class AgentClientController extends Controller
      */
     public function edit($clientId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $client = Client::where('registered_by', $user->id)
             ->findOrFail($clientId);
@@ -256,7 +257,7 @@ class AgentClientController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = Auth::user();
 
             // Récupérer le client
             $client = Client::where('registered_by', $user->id)
@@ -311,7 +312,7 @@ class AgentClientController extends Controller
      */
     public function activationForm($clientId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $client = Client::where('registered_by', $user->id)
             ->with(['accounts' => function($q) {
@@ -346,7 +347,7 @@ class AgentClientController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = Auth::user();
 
             $client = Client::where('registered_by', $user->id)
                 ->findOrFail($clientId);
@@ -443,7 +444,7 @@ class AgentClientController extends Controller
             'type' => 'in:name,phone,client_number'
         ]);
 
-        $user = auth()->user();
+        $user = Auth::user();
         $query = $request->get('query');
         $type = $request->get('type', 'name');
 
@@ -495,7 +496,7 @@ class AgentClientController extends Controller
      */
     public function stats()
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $stats = [
             'total_clients' => Client::where('registered_by', $user->id)->count(),

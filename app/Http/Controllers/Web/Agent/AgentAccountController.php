@@ -9,6 +9,7 @@ use App\Models\TontineAccount;
 use App\Models\TontineCycle;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -32,7 +33,7 @@ class AgentAccountController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Récupérer les IDs des clients autorisés
         $clientIds = $this->getAuthorizedClientIds($user);
@@ -90,7 +91,7 @@ class AgentAccountController extends Controller
      */
     public function create($clientId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Vérifier que le client appartient à l'agent
         $client = Client::where('id', $clientId)
@@ -115,7 +116,7 @@ class AgentAccountController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = Auth::user();
 
             // Vérifier que le client appartient à l'agent
             $client = Client::where('id', $clientId)
@@ -200,7 +201,7 @@ class AgentAccountController extends Controller
      */
     public function show($accountId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Récupérer les IDs des clients de l'agent
         $clientIds = $this->getAuthorizedClientIds($user);
@@ -251,7 +252,7 @@ class AgentAccountController extends Controller
      */
     public function activateForm($accountId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $clientIds = $this->getAuthorizedClientIds($user);
 
         $account = Account::with(['client', 'tontineAccount'])
@@ -289,7 +290,7 @@ class AgentAccountController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = Auth::user();
             $clientIds = $this->getAuthorizedClientIds($user);
 
             $account = Account::with(['tontineAccount'])
@@ -370,7 +371,7 @@ class AgentAccountController extends Controller
      */
     public function depositForm($accountId)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $clientIds = $this->getAuthorizedClientIds($user);
 
         $query = Account::with([
@@ -428,7 +429,7 @@ class AgentAccountController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = Auth::user();
             $clientIds = $this->getAuthorizedClientIds($user);
 
             $query = Account::with([
@@ -556,7 +557,7 @@ class AgentAccountController extends Controller
      */
     public function transactions($accountId, Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $clientIds = $this->getAuthorizedClientIds($user);
 
         $account = Account::with('client')
@@ -785,7 +786,7 @@ class AgentAccountController extends Controller
             'query' => 'required|string|min:2',
         ]);
 
-        $user = auth()->user();
+        $user = Auth::user();
         $query = $request->get('query');
 
         // Récupérer les IDs des clients de l'agent
@@ -933,7 +934,7 @@ class AgentAccountController extends Controller
         try {
             DB::beginTransaction();
 
-            $user = auth()->user();
+            $user = Auth::user();
 
             // Récupérer les IDs des clients de l'agent
             $clientIds = $this->getAuthorizedClientIds($user);
@@ -1036,7 +1037,7 @@ class AgentAccountController extends Controller
      */
     public function dashboard()
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $clientIds = $this->getAuthorizedClientIds($user);
 
         $stats = [
@@ -1099,7 +1100,7 @@ class AgentAccountController extends Controller
      */
     public function dailyCollection()
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $agentId = $user->id;
 
         // 1. Récupérer les IDs des clients de l'agent
