@@ -162,7 +162,7 @@ class AdminAccountController extends Controller
                 // 2ï¸â£ Créer le compte de base
                 $account = Account::create([
                     'client_id' => $clientId,
-                    'account_number' => 'ACC-' . strtoupper(uniqid()),
+                    'account_number' => $this->generateAccountNumber($request->account_type),
                     'account_type' => $request->account_type,
                     'status' => 'active', // Directement actif car les frais sont payés à la création
                     'activation_fee' => $activationFee,
@@ -561,13 +561,7 @@ class AdminAccountController extends Controller
          */
         private function generateAccountNumber($type): string
         {
-            $prefix = $type === 'savings' ? 'SAV' : 'ACC';
-
-            do {
-                $number = $prefix . '-' . date('ym') . '-' . strtoupper(Str::random(6));
-            } while (Account::where('account_number', $number)->exists());
-
-            return $number;
+            return Account::generateAccountNumber($type);
         }
 
         /**

@@ -652,7 +652,7 @@ class AgentSyncController extends Controller
                         'client_id'    => $client->id,
                         'account_type' => 'savings',
                     ], [
-                        'account_number' => 'SAV-' . strtoupper(Str::random(8)),
+                        'account_number' => Account::generateAccountNumber('savings'),
                         'balance'        => 0,
                         'status'         => 'active',
                         'created_by'     => $user->id,
@@ -663,7 +663,7 @@ class AgentSyncController extends Controller
                     if (!$tonAcc) {
                         $tonAcc = Account::create([
                             'client_id'      => $client->id,
-                            'account_number' => 'TON-' . strtoupper(Str::random(8)),
+                            'account_number' => Account::generateAccountNumber('tontine'),
                             'account_type'   => 'tontine',
                             'balance'        => 0,
                             'status'         => 'active',
@@ -972,7 +972,7 @@ class AgentSyncController extends Controller
                         if (!$account) {
                             $account = Account::create([
                                 'client_id'      => $clientId,
-                                'account_number' => ($isTontine ? 'TON-' : 'SAV-') . strtoupper(Str::random(8)),
+                                'account_number' => Account::generateAccountNumber($isTontine ? 'tontine' : 'savings'),
                                 'account_type'   => $isTontine ? 'tontine' : 'savings',
                                 'balance'        => 0,
                                 'status'         => 'active',

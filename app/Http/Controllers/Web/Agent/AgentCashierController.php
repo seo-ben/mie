@@ -2771,11 +2771,7 @@ class AgentCashierController extends Controller
 
     private function generateAccountNumber(string $type): string
     {
-        $prefix = $type === 'tontine' ? 'ACC' : 'SAV';
-        do {
-            $number = $prefix . '-' . date('ym') . '-' . strtoupper(Str::random(6));
-        } while (Account::where('account_number', $number)->exists());
-        return $number;
+        return Account::generateAccountNumber($type);
     }
 }
 

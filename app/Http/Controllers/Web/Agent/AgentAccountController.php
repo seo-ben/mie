@@ -596,13 +596,7 @@ class AgentAccountController extends Controller
      */
     private function generateAccountNumber($type): string
     {
-        $prefix = $type === 'savings' ? 'SAV' : 'ACC';
-
-        do {
-            $number = $prefix . '-' . date('ym') . '-' . strtoupper(Str::random(6));
-        } while (Account::where('account_number', $number)->exists());
-
-        return $number;
+        return Account::generateAccountNumber($type);
     }
 
     /**

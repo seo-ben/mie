@@ -216,8 +216,42 @@ class Account extends Model
         return $this->account_type === 'tontine';
     }
 
+    /**
+     * Génère un numéro de compte unique selon les règles institutionnelles :
+     * - Tontine : ACC-00001, ACC-00002, etc. (ordonné de 1 jusqu'à selon l'ordre de création)
+     * - Épargne : SAV-XXXXXX (chiffres mélangés aléatoires à 6 chiffres, ex: SAV-237878)
+     */
+    public static function generateAccountNumber(string $type = 'tontine'): string
+    {
+        $isSavings = in_array(strtolower($type), ['savings', 'sav', 'epargne']);
 
+        if ($isSavings) {
+            do {
+                $number = 'SAV-' . rand(100000, 999999);
+            } while (self::where('account_number', $number)->exists());
 
+            return $number;
+        }
 
+        // Tontine : format séquentiel ordonné ACC-00001, ACC-00002...
+        $maxSeq = self::where('account_type', 'tontine')
+            ->where('account_number', 'REGEXP', '^ACC-[0-9]+$')
+            ->selectRaw('MAX(CAST(SUBSTRING(account_number, 5) AS UNSIGNED)) as max_num')
+            ->value('max_num');
 
+        if ($maxSeq) {
+            $nextSeq = (int) $maxSeq + 1;
+        } else {
+            // Si aucun compte au format séquentiel n'existe encore
+            $existingCount = self::where('account_type', 'tontine')->count();
+            $nextSeq = max(1, $existingCount + 1);
+        }
+
+        do {
+            $number = 'ACC-' . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+            $nextSeq++;
+        } while (self::where('account_number', $number)->exists());
+
+        return $number;
+    }
 }
