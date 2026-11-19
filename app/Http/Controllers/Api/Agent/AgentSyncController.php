@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +41,8 @@ class AgentSyncController extends Controller
         try {
             $lastPulledAt = $request->get('last_pulled_at');
             $timestamp    = now()->timestamp * 1000;
-            $agentId      = auth()->id();
+            $agent        = $request->user() ?? Auth::user();
+            $agentId      = $agent?->id ?? Auth::id();
 
             if (!$agentId) {
                 return response()->json(['success' => false, 'message' => 'Agent non authentifié'], 401);
@@ -56,7 +58,6 @@ class AgentSyncController extends Controller
             ];
 
             // 1. Synchronisation des Clients de l'agence (pour que tous les agents voient les clients existants)
-            $agent = auth()->user();
             $agencyId = $agent->agency_id ?? 1;
 
             $clientsQuery = Client::where(function($q) use ($agentId, $agencyId) {
@@ -150,7 +151,7 @@ class AgentSyncController extends Controller
     public function push(Request $request)
     {
         $changes = $request->get('changes', []);
-        $agent   = auth()->user();
+        $agent   = $request->user() ?? Auth::user();
 
         if (!$agent) {
             return response()->json(['success' => false, 'message' => 'Agent non authentifié'], 401);
@@ -498,7 +499,7 @@ class AgentSyncController extends Controller
      */
     public function syncTransactions(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user() ?? Auth::user();
         if (!$user) {
             return response()->json(['success' => false, 'message' => 'Utilisateur non authentifié.'], 401);
         }
